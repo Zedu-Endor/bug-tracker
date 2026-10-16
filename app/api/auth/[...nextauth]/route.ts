@@ -1,5 +1,6 @@
 import { handlers } from "@/auth";
 import { BASE_PATH } from "@/lib/base-path";
+import { getSiteUrl } from "@/lib/site-url";
 import { popRecentAuthError } from "@/lib/auth-diagnostics";
 import { NextRequest } from "next/server";
 
@@ -32,7 +33,7 @@ function withNormalizedRequest(req: NextRequest): NextRequest {
   }
 
   // Restore subpath if stripped by Next.js router
-  if (BASE_PATH && !url.pathname.startsWith(BASE_PATH)) {
+  if (!url.pathname.startsWith(BASE_PATH)) {
     url.pathname = `${BASE_PATH}${url.pathname}`;
   }
 
@@ -49,7 +50,6 @@ function normalizeResponse(response: Response): Response {
   try {
     targetUrl = new URL(location);
     if (
-      BASE_PATH &&
       !targetUrl.pathname.startsWith(BASE_PATH) &&
       (targetUrl.pathname === "/login" || targetUrl.pathname.startsWith("/login/"))
     ) {
@@ -57,11 +57,10 @@ function normalizeResponse(response: Response): Response {
     }
   } catch {
     if (
-      BASE_PATH &&
       location.startsWith("/login") &&
       !location.startsWith(`${BASE_PATH}/login`)
     ) {
-      targetUrl = new URL(`${BASE_PATH}${location}`, "https://issues.zedu.chat");
+      targetUrl = new URL(`${BASE_PATH}${location}`, new URL(getSiteUrl()).origin);
     }
   }
 

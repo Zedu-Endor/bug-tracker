@@ -43,3 +43,20 @@ describe("MarkdownEditor accessibility (#146)", () => {
     expect(html).toContain("9/2000");
   });
 });
+
+describe("MarkdownEditor form validation (#123)", () => {
+  it("renders required and minLength attributes on the textarea", () => {
+    const html = renderToStaticMarkup(
+      createElement(MarkdownEditor, {
+        value: "",
+        onChange: () => {},
+        required: true,
+        minLength: 10,
+        name: "description",
+      }),
+    );
+    expect(html).toContain("required");
+    expect(html).toContain('minLength="10"');
+    expect(html).toContain('name="description"');
+  });
+});

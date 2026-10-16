@@ -9,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
   type ClipboardEvent,
+  type FormEvent,
   type KeyboardEvent,
   type MouseEvent,
   type ReactNode,
@@ -187,6 +188,7 @@ export const MarkdownEditor = forwardRef<
     onSelect,
     onPaste,
     onBlur,
+    onInvalid,
     ...rest
   },
   ref,
@@ -204,9 +206,28 @@ export const MarkdownEditor = forwardRef<
   );
 
   useImperativeHandle(ref, () => ({
-    focus: () => textareaRef.current?.focus(),
+    focus: () => {
+      setTab("write");
+      textareaRef.current?.focus();
+    },
     getTextarea: () => textareaRef.current,
   }));
+
+  const handleInvalid = (event: FormEvent<HTMLTextAreaElement>) => {
+    if (tab !== "write") {
+      event.preventDefault();
+      setTab("write");
+      const schedule =
+        typeof requestAnimationFrame !== "undefined"
+          ? requestAnimationFrame
+          : (cb: () => void) => setTimeout(cb, 0);
+      schedule(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.reportValidity?.();
+      });
+    }
+    onInvalid?.(event);
+  };
 
   const mention = useMentionSuggestions({
     users: users ?? [],
@@ -415,6 +436,7 @@ export const MarkdownEditor = forwardRef<
               mention.close();
               onBlur?.(event);
             }}
+            onInvalid={handleInvalid}
             onPaste={handlePaste}
             role={users?.length ? "combobox" : undefined}
             aria-autocomplete={users?.length ? "list" : undefined}

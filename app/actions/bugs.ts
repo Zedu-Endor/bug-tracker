@@ -33,7 +33,12 @@ import {
   createBugSchema,
   updateBugSchema,
 } from "@/lib/validations/bug";
-import { calculateVoteChange, isValidVoteDirection } from "@/lib/voting";
+import {
+  VOTE_CONFLICT_MESSAGE,
+  VOTE_WRITE_ATTEMPTS,
+  calculateVoteChange,
+  isValidVoteDirection,
+} from "@/lib/voting";
 import {
   canDeleteTicket,
   canRestoreTicket,
@@ -553,57 +558,90 @@ export async function toggleVoteAction(
     return { error: "Issue not found" };
   }
 
-  const result = await prisma.$transaction(async (tx) => {
-    const existing = await tx.vote.findUnique({
-      where: { userId_bugId: { userId, bugId } },
-    });
+  // SERIALIZABLE so the read of the existing vote, the write, and the
+  // voteCount increment are one atomic step. At the default READ COMMITTED,
+  // two concurrent votes from the same user both read "no existing vote" and
+  // both insert — one losing the race on the Vote(userId, bugId) unique
+  // constraint with an unhandled P2002 — and a concurrent switch vote applies
+  // countDelta twice, permanently skewing Bug.voteCount.
+  //
+  // Every vote also updates the same Bug row, so two people voting on one
+  // issue at the same moment legitimately conflict. Retry those; only report
+  // a conflict once the retries are exhausted.
+  let result: ToggleVoteResult | undefined;
+  for (let attempt = 1; attempt <= VOTE_WRITE_ATTEMPTS; attempt++) {
+    try {
+      result = await prisma.$transaction(
+        async (tx) => {
+          const existing = await tx.vote.findUnique({
+            where: { userId_bugId: { userId, bugId } },
+          });
 
-    const currentVote = existing?.value ?? 0;
-    const { nextVote, countDelta } = calculateVoteChange(currentVote, direction);
+          const currentVote = existing?.value ?? 0;
+          const { nextVote, countDelta } = calculateVoteChange(
+            currentVote,
+            direction,
+          );
 
-    if (nextVote === 0 && existing) {
-      await tx.vote.delete({ where: { id: existing.id } });
-    } else if (existing) {
-      await tx.vote.update({
-        where: { id: existing.id },
-        data: { value: nextVote },
-      });
-    } else {
-      await tx.vote.create({
-        data: { userId, bugId, value: nextVote },
-      });
+          if (nextVote === 0 && existing) {
+            await tx.vote.delete({ where: { id: existing.id } });
+          } else if (existing) {
+            await tx.vote.update({
+              where: { id: existing.id },
+              data: { value: nextVote },
+            });
+          } else {
+            await tx.vote.create({
+              data: { userId, bugId, value: nextVote },
+            });
+          }
+
+          const rows = await tx.$queryRaw<Array<{ voteCount: number }>>`
+            UPDATE "Bug"
+            SET "voteCount" = "voteCount" + ${countDelta}
+            WHERE "id" = ${bugId}
+            RETURNING "voteCount"
+          `;
+
+          const voteCount = rows[0]?.voteCount ?? 0;
+
+          const voteCounts = await tx.vote.groupBy({
+            by: ["value"],
+            where: { bugId },
+            _count: { _all: true },
+          });
+
+          let likeCount = 0;
+          let dislikeCount = 0;
+          for (const c of voteCounts) {
+            if (c.value === 1) likeCount = c._count._all;
+            if (c.value === -1) dislikeCount = c._count._all;
+          }
+
+          return {
+            voted: nextVote === 1,
+            userVote: nextVote,
+            voteCount,
+            likeCount,
+            dislikeCount,
+          };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+      break;
+    } catch (error) {
+      // P2034 = serialization failure (the other transaction committed first).
+      // P2002 = lost a race the serializable level did not cover.
+      // Both mean the write was discarded whole, so retrying is safe.
+      const isConflict =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === "P2034" || error.code === "P2002");
+      if (!isConflict) throw error;
+      if (attempt === VOTE_WRITE_ATTEMPTS) {
+        return { error: VOTE_CONFLICT_MESSAGE };
+      }
     }
-
-    const rows = await tx.$queryRaw<Array<{ voteCount: number }>>`
-      UPDATE "Bug"
-      SET "voteCount" = "voteCount" + ${countDelta}
-      WHERE "id" = ${bugId}
-      RETURNING "voteCount"
-    `;
-
-    const voteCount = rows[0]?.voteCount ?? 0;
-
-    const voteCounts = await tx.vote.groupBy({
-      by: ["value"],
-      where: { bugId },
-      _count: { _all: true },
-    });
-
-    let likeCount = 0;
-    let dislikeCount = 0;
-    for (const c of voteCounts) {
-      if (c.value === 1) likeCount = c._count._all;
-      if (c.value === -1) dislikeCount = c._count._all;
-    }
-
-    return {
-      voted: nextVote === 1,
-      userVote: nextVote,
-      voteCount,
-      likeCount,
-      dislikeCount,
-    };
-  });
+  }
 
   revalidatePath("/bugs");
   revalidatePath(`/bugs/${bugId}`);

@@ -3,6 +3,22 @@ export type VoteChange = {
   countDelta: number;
 };
 
+/**
+ * Shown when a concurrent vote on the same issue wins the race, so this
+ * request is discarded rather than partially applied. The client can retry.
+ */
+export const VOTE_CONFLICT_MESSAGE =
+  "Someone voted on this issue at the same time. Please try again.";
+
+/**
+ * How many times a vote write is retried before giving up.
+ *
+ * Every vote touches the same Bug row, so genuinely simultaneous votes on one
+ * issue conflict under SERIALIZABLE. A short retry clears the common case
+ * without ever needing to surface the conflict message.
+ */
+export const VOTE_WRITE_ATTEMPTS = 3;
+
 /** Validates vote direction: only 1 (like) and -1 (dislike) are supported; out-of-range or malformed values are rejected. */
 export function isValidVoteDirection(direction: unknown): direction is 1 | -1 {
   return direction === 1 || direction === -1;

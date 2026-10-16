@@ -14,7 +14,8 @@ export const proofLinksInputSchema = z
   .string()
   .optional()
   .transform((value, ctx) => {
-    const links = splitProofLinkLines(value);
+    const rawLinks = splitProofLinkLines(value);
+    const links = [...new Set(rawLinks)];
     if (links.length > MAX_PROOF_LINKS) {
       ctx.addIssue({
         code: "custom",

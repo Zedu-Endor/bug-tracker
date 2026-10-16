@@ -270,8 +270,8 @@ export default async function BugDetailPage({ params }: BugPageProps) {
           </p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {bug.proofLinks.map((url) => (
-              <li key={url}>
+            {bug.proofLinks.map((url, index) => (
+              <li key={`${index}-${url}`}>
                 <a
                   href={url}
                   target="_blank"

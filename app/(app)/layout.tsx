@@ -1,8 +1,10 @@
 import { headers } from "next/headers";
+import { ReportIssueFab } from "@/components/report-issue-fab";
 import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-helpers";
 import { isLinkPreviewBot } from "@/lib/link-preview";
 import { AppHeader } from "@/components/app-header";
+import { REPORT_FORM_URL } from "@/lib/report-form";
 
 export default async function AppLayout({
   children,
@@ -39,6 +41,7 @@ export default async function AppLayout({
       <main className="mx-auto w-full max-w-5xl flex-1 px-3.5 py-5 sm:px-4 sm:py-8">
         {children}
       </main>
+      <ReportIssueFab href={REPORT_FORM_URL} />
     </div>
   );
 }

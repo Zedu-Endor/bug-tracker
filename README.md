@@ -76,6 +76,7 @@ Platform unfurl caches are outside our control; metadata is generated on each re
 | `SUPER_ADMIN_FORCE_UPDATE` | Set `true` to rotate password / promote an existing account |
 | `SEED_DEMO_DATA` | Set `true` to wipe and load demo users/bugs |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Optional SMTP for password-reset email (logs reset URL to console when unset) |
+| `REPORT_FORM_URL` | Optional Google Form behind the floating "Report issue" button. Must be an `https://` link on a Google-owned host; when unset the button is not rendered |
 
 Google redirect URI: `{AUTH_URL}/api/auth/callback/google`
 

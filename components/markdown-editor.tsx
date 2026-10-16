@@ -316,8 +316,8 @@ export const MarkdownEditor = forwardRef<
 
   return (
     <div className="space-y-1.5">
-      <div className="overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-600/20">
-        <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 px-1.5 py-1">
+      <div className="rounded-lg border border-slate-300 bg-white shadow-sm focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-teal-600/20">
+        <div className="flex flex-wrap items-center gap-1 rounded-t-lg border-b border-slate-200 bg-slate-50 px-1.5 py-1">
           <div
             className="flex items-center gap-1 border-r border-slate-200 pr-1.5"
             role="tablist"
@@ -383,7 +383,7 @@ export const MarkdownEditor = forwardRef<
             disabled={disabled}
             placeholder={placeholder}
             aria-label={ariaLabel}
-            className={`rounded-none border-0 shadow-none focus:border-transparent focus:ring-0 ${className}`}
+            className={`rounded-b-lg rounded-t-none border-0 shadow-none focus:border-transparent focus:ring-0 ${className}`}
             onChange={(event) => {
               const next = event.target.value;
               onChange(next);
@@ -441,7 +441,7 @@ export const MarkdownEditor = forwardRef<
           ) : null}
         </div>
         {!writing ? (
-          <div className="max-h-96 overflow-y-auto px-3 py-2">
+          <div className="max-h-96 overflow-y-auto rounded-b-lg px-3 py-2">
             <RichText
               content={value}
               className="mt-0"
@@ -525,7 +525,7 @@ function MentionList({
     <ul
       id={listboxId}
       role="listbox"
-      className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+      className="absolute left-0 top-full z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
     >
       {suggestions.map((user, index) => {
         const active = index === activeIndex;

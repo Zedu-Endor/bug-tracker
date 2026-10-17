@@ -98,6 +98,9 @@ export const categorySchema = z.object({
     .max(50, "Platform name must be at most 50 characters"),
 });
 
+/** Alias for categorySchema matching the user-facing Platform domain terminology (#355). */
+export const platformSchema = categorySchema;
+
 export const commentSchema = z.object({
   body: z
     .string()

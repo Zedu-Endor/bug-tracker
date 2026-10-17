@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { categorySchema, createBugSchema, updateBugSchema } from "./validations/bug";
+import { categorySchema, platformSchema, createBugSchema, updateBugSchema } from "./validations/bug";
 
-describe("categorySchema", () => {
-  it("accepts valid category names", () => {
+describe("categorySchema and platformSchema", () => {
+  it("accepts valid platform names", () => {
     expect(categorySchema.safeParse({ name: "Mobile" }).success).toBe(true);
-    expect(categorySchema.safeParse({ name: "Desktop" }).success).toBe(true);
-    expect(categorySchema.safeParse({ name: "Web" }).success).toBe(true);
+    expect(platformSchema.safeParse({ name: "Desktop" }).success).toBe(true);
+    expect(platformSchema.safeParse({ name: "Web" }).success).toBe(true);
   });
 
   it("trims whitespace from category names", () => {
@@ -16,9 +16,12 @@ describe("categorySchema", () => {
     }
   });
 
-  it("rejects names that are too short", () => {
-    const res = categorySchema.safeParse({ name: "A" });
+  it("rejects names that are too short with platform error message", () => {
+    const res = platformSchema.safeParse({ name: "A" });
     expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0]?.message).toBe("Platform name must be at least 2 characters");
+    }
   });
 
   it("rejects empty names", () => {
@@ -26,9 +29,12 @@ describe("categorySchema", () => {
     expect(res.success).toBe(false);
   });
 
-  it("rejects names that are too long", () => {
-    const res = categorySchema.safeParse({ name: "A".repeat(51) });
+  it("rejects names that are too long with platform error message", () => {
+    const res = platformSchema.safeParse({ name: "A".repeat(51) });
     expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0]?.message).toBe("Platform name must be at most 50 characters");
+    }
   });
 });
 

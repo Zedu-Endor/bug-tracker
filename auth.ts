@@ -115,7 +115,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             (typeof profile?.picture === "string" && profile.picture) ||
             (typeof user?.image === "string" ? user.image : undefined);
 
-          let dbUser: { id: string; role: Role } | null = null;
+          let dbUser: { id: string; name: string; role: Role } | null = null;
           let lastError: unknown;
           for (let attempt = 1; attempt <= 3; attempt++) {
             try {
@@ -137,7 +137,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
 
           token.email = email;
-          token.name = name;
+          token.name = dbUser.name || name;
           token.id = dbUser.id;
           token.sub = dbUser.id;
           token.role = dbUser.role;

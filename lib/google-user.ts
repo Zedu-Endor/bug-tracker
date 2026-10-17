@@ -5,6 +5,7 @@ import { isSuperAdminEmail } from "@/lib/super-admin";
 
 export type GoogleAccount = {
   id: string;
+  name: string;
   role: Role;
 };
 
@@ -34,14 +35,13 @@ export async function upsertGoogleUser(input: {
         ...(role === "super_admin" ? { role } : {}),
       },
       update: {
-        name,
         ...(image ? { image } : {}),
         emailVerified: new Date(),
         ...(role === "super_admin" ? { role } : {}),
       },
-      select: { id: true, role: true },
+      select: { id: true, name: true, role: true },
     });
-    return { id: user.id, role: user.role };
+    return { id: user.id, name: user.name, role: user.role };
   } catch (error) {
     console.error("[auth] Google user upsert failed:", error);
   }
@@ -50,10 +50,10 @@ export async function upsertGoogleUser(input: {
     const user = await prisma.user.upsert({
       where: { email },
       create: { email, name },
-      update: { name },
-      select: { id: true },
+      update: {},
+      select: { id: true, name: true },
     });
-    return { id: user.id, role };
+    return { id: user.id, name: user.name, role };
   } catch (error) {
     console.error("[auth] Minimal Google user upsert failed:", error);
   }
@@ -63,23 +63,23 @@ export async function upsertGoogleUser(input: {
     await prisma.$executeRaw`
       INSERT INTO "User" ("id", "name", "email", "createdAt")
       VALUES (${id}, ${name}, ${email}, CURRENT_TIMESTAMP)
-      ON CONFLICT ("email") DO UPDATE SET "name" = EXCLUDED."name"
+      ON CONFLICT ("email") DO NOTHING
     `;
   } catch (error) {
     console.error("[auth] Google user insert without password failed:", error);
     await prisma.$executeRaw`
       INSERT INTO "User" ("id", "name", "email", "passwordHash", "createdAt")
       VALUES (${id}, ${name}, ${email}, '', CURRENT_TIMESTAMP)
-      ON CONFLICT ("email") DO UPDATE SET "name" = EXCLUDED."name"
+      ON CONFLICT ("email") DO NOTHING
     `;
   }
 
   const saved = await prisma.user.findUnique({
     where: { email },
-    select: { id: true },
+    select: { id: true, name: true },
   });
   if (!saved) {
     throw new Error("Google sign-in could not save the user");
   }
-  return { id: saved.id, role };
+  return { id: saved.id, name: saved.name, role };
 }

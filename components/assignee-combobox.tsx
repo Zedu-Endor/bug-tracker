@@ -24,6 +24,8 @@ export function AssigneeCombobox({
   defaultValue = "",
   onChange,
   inputClassName = "",
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
 }: {
   id: string;
   name: string;
@@ -33,6 +35,8 @@ export function AssigneeCombobox({
   defaultValue?: string;
   onChange?: (assigneeId: string) => void;
   inputClassName?: string;
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
 }) {
   const listId = useId();
   const [ownValue, setOwnValue] = useState(defaultValue);
@@ -132,9 +136,12 @@ export function AssigneeCombobox({
         role="combobox"
         autoComplete="off"
         spellCheck={false}
+        aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : "Assignee")}
+        aria-labelledby={ariaLabelledBy}
+        aria-haspopup="listbox"
         aria-autocomplete="list"
         aria-expanded={open}
-        aria-controls={listId}
+        aria-controls={open ? listId : undefined}
         aria-activedescendant={activeOption ? `${listId}-${activeOption.id || "none"}` : undefined}
         placeholder={open ? "Search by name" : undefined}
         value={open ? query : labelFor(selectedId)}
@@ -170,7 +177,7 @@ export function AssigneeCombobox({
           ref={listRef}
           id={listId}
           role="listbox"
-          aria-label="People"
+          aria-label="Assignees"
           tabIndex={-1}
           className="absolute left-0 z-30 mt-1 max-h-64 w-full min-w-[14rem] overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg"
         >

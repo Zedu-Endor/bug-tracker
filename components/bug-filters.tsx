@@ -127,9 +127,10 @@ export function BugFilters({
             id="q"
             name="q"
             role="combobox"
+            aria-haspopup="listbox"
             aria-autocomplete="list"
             aria-expanded={suggestions.length > 0}
-            aria-controls={listId}
+            aria-controls={suggestions.length > 0 ? listId : undefined}
             aria-activedescendant={active >= 0 && suggestions[active] ? `${listId}-${active}` : undefined}
             autoComplete="off"
             value={text}

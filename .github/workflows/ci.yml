@@ -18,6 +18,20 @@ jobs:
     name: Lint, Type Check, Test & Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bugtracker
+          POSTGRES_PASSWORD: bugtracker
+          POSTGRES_DB: bugtracker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bugtracker -d bugtracker"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
       AUTH_SECRET: "ci-build-secret-dummy-must-be-long-enough-32-chars"
@@ -49,6 +63,11 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: PostgreSQL migration and offboarding tests
+        env:
+          TEST_DATABASE_URL: "postgresql://bugtracker:bugtracker@localhost:5432/bugtracker"
+        run: pnpm test:postgres
 
       - name: Build
         env:

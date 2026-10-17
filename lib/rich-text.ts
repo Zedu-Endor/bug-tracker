@@ -235,3 +235,110 @@ export function inlineImageSrc(url: string): string | null {
   }
   return INLINE_IMAGE_HOSTS.has(host) ? href : null;
 }
+
+export type InlineToken =
+  | { type: "text"; value: string }
+  | { type: "code"; value: string }
+  | { type: "bold"; value: string }
+  | { type: "italic"; value: string }
+  | { type: "strikethrough"; value: string }
+  | { type: "link"; label: string; href: string }
+  | { type: "image"; alt: string; src: string }
+  | { type: "autolink"; href: string };
+
+/**
+ * Strips trailing punctuation from autolinked URLs and preserves balanced parentheses.
+ */
+export function cleanTrailingUrl(rawUrl: string): { href: string; trailing: string } {
+  let href = rawUrl;
+  let trailing = "";
+
+  while (/[.,;:!?]$/.test(href)) {
+    trailing = href.slice(-1) + trailing;
+    href = href.slice(0, -1);
+  }
+
+  while (href.endsWith(")")) {
+    const openCount = (href.match(/\(/g) || []).length;
+    const closeCount = (href.match(/\)/g) || []).length;
+    if (closeCount > openCount) {
+      trailing = ")" + trailing;
+      href = href.slice(0, -1);
+    } else {
+      break;
+    }
+  }
+
+  while (/[.,;:!?]$/.test(href)) {
+    trailing = href.slice(-1) + trailing;
+    href = href.slice(0, -1);
+  }
+
+  return { href, trailing };
+}
+
+/**
+ * Links require an http(s) href so soft-mentions `@[Name](userId)` stay text,
+ * and bare URLs are linked automatically.
+ */
+export const INLINE_RE =
+  /(!?\[[^\]]*\]\((?:https?:\/\/|mailto:)[^)\s]*\)|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|\*[^*\s][^*]*\*|(?<![\w])_[^_\s][^_]*_(?![\w])|(?<![\w/.-])(https?:\/\/[^\s<>"]+))/g;
+
+export const MARKDOWN_TARGET_RE = /^(!?)\[([^\]]*)\]\(([^)\s]+)\)$/;
+
+function pushText(tokens: InlineToken[], value: string) {
+  if (!value) return;
+  const lastToken = tokens[tokens.length - 1];
+  if (lastToken && lastToken.type === "text") {
+    lastToken.value += value;
+  } else {
+    tokens.push({ type: "text", value });
+  }
+}
+
+export function tokenizeInline(text: string): InlineToken[] {
+  const tokens: InlineToken[] = [];
+  let last = 0;
+
+  for (const match of text.matchAll(INLINE_RE)) {
+    const index = match.index ?? 0;
+    if (index > last) {
+      pushText(tokens, text.slice(last, index));
+    }
+    const raw = match[0];
+
+    const target = MARKDOWN_TARGET_RE.exec(raw);
+    if (target) {
+      if (target[1] === "!") {
+        tokens.push({ type: "image", alt: target[2] ?? "", src: target[3] ?? "" });
+      } else {
+        tokens.push({ type: "link", label: target[2] ?? raw, href: target[3] ?? "" });
+      }
+    } else if (raw.startsWith("`")) {
+      tokens.push({ type: "code", value: raw.slice(1, -1) });
+    } else if (raw.startsWith("**") || raw.startsWith("__")) {
+      tokens.push({ type: "bold", value: raw.slice(2, -2) });
+    } else if (raw.startsWith("~~")) {
+      tokens.push({ type: "strikethrough", value: raw.slice(2, -2) });
+    } else if (
+      (raw.startsWith("*") && raw.endsWith("*")) ||
+      (raw.startsWith("_") && raw.endsWith("_"))
+    ) {
+      tokens.push({ type: "italic", value: raw.slice(1, -1) });
+    } else {
+      const { href, trailing } = cleanTrailingUrl(raw);
+      tokens.push({ type: "autolink", href });
+      if (trailing) {
+        pushText(tokens, trailing);
+      }
+    }
+
+    last = index + raw.length;
+  }
+
+  if (last < text.length) {
+    pushText(tokens, text.slice(last));
+  }
+
+  return tokens.length > 0 ? tokens : [{ type: "text", value: text }];
+}

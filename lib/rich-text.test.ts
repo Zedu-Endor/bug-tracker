@@ -6,6 +6,8 @@ import {
   stripMarkdown,
   stripLegacyMarkup,
   wrapSelection,
+  cleanTrailingUrl,
+  tokenizeInline,
 } from "./rich-text";
 
 describe("looksLikeMarkdown", () => {
@@ -15,6 +17,9 @@ describe("looksLikeMarkdown", () => {
     expect(looksLikeMarkdown("- item")).toBe(true);
     expect(looksLikeMarkdown("- [ ] item")).toBe(true);
     expect(looksLikeMarkdown("[x](https://a.com)")).toBe(true);
+    expect(looksLikeMarkdown("[x](mailto:test@example.com)")).toBe(true);
+    expect(looksLikeMarkdown("[docs](/docs)")).toBe(false);
+    expect(looksLikeMarkdown("@[John Doe](user_123)")).toBe(false);
     expect(looksLikeMarkdown("## heading")).toBe(true);
     expect(looksLikeMarkdown("> quoted")).toBe(true);
     expect(looksLikeMarkdown("~~gone~~")).toBe(true);
@@ -114,5 +119,102 @@ describe("inlineImageSrc (#119)", () => {
     expect(inlineImageSrc("http://avatars.githubusercontent.com/u/1")).toBeNull();
     expect(inlineImageSrc("javascript:alert(1)")).toBeNull();
     expect(inlineImageSrc("mailto:dev@example.com")).toBeNull();
+  });
+});
+
+describe("cleanTrailingUrl (#360)", () => {
+  it("strips trailing punctuation from URLs", () => {
+    expect(cleanTrailingUrl("https://example.com.")).toEqual({
+      href: "https://example.com",
+      trailing: ".",
+    });
+    expect(cleanTrailingUrl("https://example.com,")).toEqual({
+      href: "https://example.com",
+      trailing: ",",
+    });
+    expect(cleanTrailingUrl("https://example.com!")).toEqual({
+      href: "https://example.com",
+      trailing: "!",
+    });
+    expect(cleanTrailingUrl("https://example.com?")).toEqual({
+      href: "https://example.com",
+      trailing: "?",
+    });
+  });
+
+  it("handles URLs enclosed in parentheses without capturing the closing paren", () => {
+    expect(cleanTrailingUrl("https://example.com)")).toEqual({
+      href: "https://example.com",
+      trailing: ")",
+    });
+  });
+
+  it("preserves balanced parentheses in URLs", () => {
+    expect(
+      cleanTrailingUrl("https://en.wikipedia.org/wiki/React_(software)"),
+    ).toEqual({
+      href: "https://en.wikipedia.org/wiki/React_(software)",
+      trailing: "",
+    });
+    expect(
+      cleanTrailingUrl("https://en.wikipedia.org/wiki/React_(software))"),
+    ).toEqual({
+      href: "https://en.wikipedia.org/wiki/React_(software)",
+      trailing: ")",
+    });
+  });
+});
+
+describe("tokenizeInline autolinking and images (#360)", () => {
+  it("autolinks bare https and http URLs", () => {
+    const tokens = tokenizeInline("Check https://github.com/Zedu-Endor/bug-tracker for info");
+    expect(tokens).toEqual([
+      { type: "text", value: "Check " },
+      { type: "autolink", href: "https://github.com/Zedu-Endor/bug-tracker" },
+      { type: "text", value: " for info" },
+    ]);
+  });
+
+  it("autolinks bare URL with trailing punctuation", () => {
+    const tokens = tokenizeInline("See https://example.com/docs, then start.");
+    expect(tokens).toEqual([
+      { type: "text", value: "See " },
+      { type: "autolink", href: "https://example.com/docs" },
+      { type: "text", value: ", then start." },
+    ]);
+  });
+
+  it("tokenizes markdown image syntax ![alt](url)", () => {
+    const tokens = tokenizeInline("![Dashboard preview](https://github.com/user-attachments/assets/abc)");
+    expect(tokens).toEqual([
+      {
+        type: "image",
+        alt: "Dashboard preview",
+        src: "https://github.com/user-attachments/assets/abc",
+      },
+    ]);
+  });
+
+  it("tokenizes mixed content with autolinks, markdown links, and images", () => {
+    const tokens = tokenizeInline(
+      "Read [docs](https://example.com) or visit https://zedu.chat and see ![logo](https://user-images.githubusercontent.com/logo.png)",
+    );
+    expect(tokens).toEqual([
+      { type: "text", value: "Read " },
+      { type: "link", label: "docs", href: "https://example.com" },
+      { type: "text", value: " or visit " },
+      { type: "autolink", href: "https://zedu.chat" },
+      { type: "text", value: " and see " },
+      {
+        type: "image",
+        alt: "logo",
+        src: "https://user-images.githubusercontent.com/logo.png",
+      },
+    ]);
+  });
+
+  it("never autolinks dangerous javascript: or data: protocols", () => {
+    const tokens = tokenizeInline("Run javascript:alert(1) or data:text/html,test");
+    expect(tokens.every((t) => t.type === "text")).toBe(true);
   });
 });

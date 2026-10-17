@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { formatOverflowCount, getInitials, type VoterInfo } from "@/lib/voters";
 
 type VoterAvatarsProps = {
@@ -20,6 +21,7 @@ function SingleAvatar({
   const [imageError, setImageError] = useState(false);
   const initials = getInitials(voter.name);
   const isSm = size === "sm";
+  const dimension = isSm ? 20 : 28;
 
   return (
     <div
@@ -30,11 +32,12 @@ function SingleAvatar({
       }`}
     >
       {voter.image && !imageError ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
+        <Image
           src={voter.image}
           alt={voter.name}
           title={voter.name}
+          width={dimension}
+          height={dimension}
           onError={() => setImageError(true)}
           className="h-full w-full rounded-full object-cover"
         />

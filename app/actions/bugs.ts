@@ -591,6 +591,14 @@ export async function editBugContentAction(
   const user = await requireUser();
   const userId = user.id;
 
+  const limit = checkRateLimit(
+    `edit-bug:${userId}`,
+    ACTION_RATE_LIMITS.editBug,
+  );
+  if (!limit.allowed) {
+    return { error: RATE_LIMIT_MESSAGE };
+  }
+
   const existing = await prisma.bug.findUnique({
     where: { id: bugId },
     select: {
@@ -1099,6 +1107,14 @@ export async function selfAssignBugAction(
 ): Promise<ActionResult> {
   const user = await requireUser();
   const userId = user.id;
+
+  const limit = checkRateLimit(
+    `self-assign:${userId}`,
+    ACTION_RATE_LIMITS.selfAssign,
+  );
+  if (!limit.allowed) {
+    return { error: RATE_LIMIT_MESSAGE };
+  }
 
   if (!bugId || typeof bugId !== "string" || bugId.trim().length === 0) {
     return { error: TICKET_ASSIGN_ERRORS.invalidId };

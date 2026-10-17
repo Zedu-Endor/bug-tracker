@@ -10,6 +10,9 @@ export const ACTION_RATE_LIMITS = {
   createBug: { max: 10, windowMs: 60 * 1000 },
   addComment: { max: 20, windowMs: 60 * 1000 },
   toggleVote: { max: 60, windowMs: 60 * 1000 },
+  editBug: { max: 20, windowMs: 60 * 1000 },
+  editComment: { max: 30, windowMs: 60 * 1000 },
+  selfAssign: { max: 15, windowMs: 60 * 1000 },
 } as const;
 
 const MINUTE = 60 * 1000;

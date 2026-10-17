@@ -3,6 +3,7 @@ import {
   checkRateLimit,
   resetRateLimits,
   RATE_LIMIT_MESSAGE,
+  ACTION_RATE_LIMITS,
 } from "./rate-limit";
 
 describe("rate-limiting (#130)", () => {
@@ -96,3 +97,43 @@ describe("auth rate limits (#207)", () => {
     expect(trackedKeyCount()).toBe(1);
   });
 });
+
+describe("action rate limits (#350)", () => {
+  beforeEach(() => {
+    resetRateLimits();
+  });
+
+  it("configures limits for all state-mutating actions", () => {
+    expect(ACTION_RATE_LIMITS.createBug).toEqual({ max: 10, windowMs: 60 * 1000 });
+    expect(ACTION_RATE_LIMITS.addComment).toEqual({ max: 20, windowMs: 60 * 1000 });
+    expect(ACTION_RATE_LIMITS.toggleVote).toEqual({ max: 60, windowMs: 60 * 1000 });
+    expect(ACTION_RATE_LIMITS.editBug).toEqual({ max: 20, windowMs: 60 * 1000 });
+    expect(ACTION_RATE_LIMITS.editComment).toEqual({ max: 30, windowMs: 60 * 1000 });
+    expect(ACTION_RATE_LIMITS.selfAssign).toEqual({ max: 15, windowMs: 60 * 1000 });
+  });
+
+  it("enforces editComment rate limit", () => {
+    const key = "edit-comment:user-1";
+    for (let i = 0; i < ACTION_RATE_LIMITS.editComment.max; i++) {
+      expect(checkRateLimit(key, ACTION_RATE_LIMITS.editComment, 1000 + i).allowed).toBe(true);
+    }
+    expect(checkRateLimit(key, ACTION_RATE_LIMITS.editComment, 1100).allowed).toBe(false);
+  });
+
+  it("enforces editBug rate limit", () => {
+    const key = "edit-bug:user-1";
+    for (let i = 0; i < ACTION_RATE_LIMITS.editBug.max; i++) {
+      expect(checkRateLimit(key, ACTION_RATE_LIMITS.editBug, 1000 + i).allowed).toBe(true);
+    }
+    expect(checkRateLimit(key, ACTION_RATE_LIMITS.editBug, 1100).allowed).toBe(false);
+  });
+
+  it("enforces selfAssign rate limit", () => {
+    const key = "self-assign:user-1";
+    for (let i = 0; i < ACTION_RATE_LIMITS.selfAssign.max; i++) {
+      expect(checkRateLimit(key, ACTION_RATE_LIMITS.selfAssign, 1000 + i).allowed).toBe(true);
+    }
+    expect(checkRateLimit(key, ACTION_RATE_LIMITS.selfAssign, 1100).allowed).toBe(false);
+  });
+});
+

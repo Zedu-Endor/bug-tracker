@@ -104,4 +104,18 @@ describe("updateCommentAction mention notifications (#228)", () => {
 
     expect(notifyMock).not.toHaveBeenCalled();
   });
+
+  it("enforces rate limit when editing comments rapidly (#350)", async () => {
+    const { resetRateLimits, ACTION_RATE_LIMITS, RATE_LIMIT_MESSAGE } = await import("@/lib/rate-limit");
+    resetRateLimits();
+    findCommentMock.mockResolvedValue(existingComment("Initial comment"));
+
+    for (let i = 0; i < ACTION_RATE_LIMITS.editComment.max; i++) {
+      const res = await edit(`Edit iteration ${i}`);
+      expect(res).toEqual({ ok: true });
+    }
+
+    const blocked = await edit("One edit too many");
+    expect(blocked).toEqual({ error: RATE_LIMIT_MESSAGE });
+  });
 });

@@ -21,6 +21,11 @@ import {
   commentPreview,
 } from "@/lib/activity-log";
 import { notifyLater } from "@/lib/notify";
+import {
+  checkRateLimit,
+  ACTION_RATE_LIMITS,
+  RATE_LIMIT_MESSAGE,
+} from "@/lib/rate-limit";
 
 export type CommentActionResult = { error?: string; ok?: boolean };
 
@@ -46,6 +51,15 @@ export async function updateCommentAction(
   formData: FormData,
 ): Promise<CommentActionResult> {
   const user = await requireUser();
+
+  const limit = checkRateLimit(
+    `edit-comment:${user.id}`,
+    ACTION_RATE_LIMITS.editComment,
+  );
+  if (!limit.allowed) {
+    return { error: RATE_LIMIT_MESSAGE };
+  }
+
   const comment = await loadComment(commentId);
   if (!comment) return { error: COMMENT_ERRORS.notFound };
   if (comment.bug.isDeleted) return { error: COMMENT_ERRORS.issueDeleted };

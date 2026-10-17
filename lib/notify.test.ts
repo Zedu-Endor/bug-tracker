@@ -17,7 +17,12 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
-import { deliverNotifications } from "./notify";
+import {
+  DEFAULT_SMTP_CONCURRENCY,
+  deliverNotifications,
+  getSmtpConcurrency,
+  mapConcurrent,
+} from "./notify";
 
 const findMany = prisma.user.findMany as unknown as ReturnType<typeof vi.fn>;
 const send = sendMail as unknown as ReturnType<typeof vi.fn>;
@@ -88,5 +93,137 @@ describe("deliverNotifications", () => {
     await deliverNotifications({ ...base, kind: "mentioned", recipientIds: ["actor"], place: "comment" });
     expect(findMany).not.toHaveBeenCalled();
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it("limits concurrent SMTP sends to the configured concurrency limit (#354)", async () => {
+    const users = Array.from({ length: 6 }, (_, i) => who(`user${i}`));
+    findMany.mockResolvedValue(users);
+
+    let inFlight = 0;
+    let peakInFlight = 0;
+    send.mockImplementation(async () => {
+      inFlight++;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 10));
+      inFlight--;
+    });
+
+    const previousSmtp = process.env.SMTP_MAX_CONCURRENCY;
+    const previousEmail = process.env.EMAIL_CONCURRENCY;
+    process.env.SMTP_MAX_CONCURRENCY = String(DEFAULT_SMTP_CONCURRENCY);
+    delete process.env.EMAIL_CONCURRENCY;
+
+    try {
+      await deliverNotifications({
+        ...base,
+        kind: "mentioned",
+        recipientIds: users.map((u) => u.id),
+        place: "comment",
+      });
+
+      expect(send).toHaveBeenCalledTimes(6);
+      expect(peakInFlight).toBeLessThanOrEqual(DEFAULT_SMTP_CONCURRENCY);
+    } finally {
+      if (previousSmtp === undefined) delete process.env.SMTP_MAX_CONCURRENCY;
+      else process.env.SMTP_MAX_CONCURRENCY = previousSmtp;
+      if (previousEmail === undefined) delete process.env.EMAIL_CONCURRENCY;
+      else process.env.EMAIL_CONCURRENCY = previousEmail;
+    }
+  });
+
+  it("limits concurrency across overlapping deliverNotifications calls", async () => {
+    const usersA = Array.from({ length: 4 }, (_, i) => who(`userA${i}`));
+    const usersB = Array.from({ length: 4 }, (_, i) => who(`userB${i}`));
+    findMany.mockImplementation(async ({ where }) => {
+      const ids: string[] = where.id.in;
+      return [...usersA, ...usersB].filter((u) => ids.includes(u.id));
+    });
+
+    let inFlight = 0;
+    let peakInFlight = 0;
+    send.mockImplementation(async () => {
+      inFlight++;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 15));
+      inFlight--;
+    });
+
+    const previousSmtp = process.env.SMTP_MAX_CONCURRENCY;
+    const previousEmail = process.env.EMAIL_CONCURRENCY;
+    process.env.SMTP_MAX_CONCURRENCY = String(DEFAULT_SMTP_CONCURRENCY);
+    delete process.env.EMAIL_CONCURRENCY;
+
+    try {
+      await Promise.all([
+        deliverNotifications({
+          ...base,
+          kind: "mentioned",
+          recipientIds: usersA.map((u) => u.id),
+          place: "comment",
+        }),
+        deliverNotifications({
+          ...base,
+          kind: "mentioned",
+          recipientIds: usersB.map((u) => u.id),
+          place: "comment",
+        }),
+      ]);
+
+      expect(send).toHaveBeenCalledTimes(8);
+      expect(peakInFlight).toBeLessThanOrEqual(DEFAULT_SMTP_CONCURRENCY);
+    } finally {
+      if (previousSmtp === undefined) delete process.env.SMTP_MAX_CONCURRENCY;
+      else process.env.SMTP_MAX_CONCURRENCY = previousSmtp;
+      if (previousEmail === undefined) delete process.env.EMAIL_CONCURRENCY;
+      else process.env.EMAIL_CONCURRENCY = previousEmail;
+    }
+  });
+});
+
+describe("getSmtpConcurrency", () => {
+  it("defaults to DEFAULT_SMTP_CONCURRENCY when env is unset", () => {
+    delete process.env.SMTP_MAX_CONCURRENCY;
+    delete process.env.EMAIL_CONCURRENCY;
+    expect(getSmtpConcurrency()).toBe(DEFAULT_SMTP_CONCURRENCY);
+  });
+
+  it("reads SMTP_MAX_CONCURRENCY when valid", () => {
+    process.env.SMTP_MAX_CONCURRENCY = "4";
+    expect(getSmtpConcurrency()).toBe(4);
+    delete process.env.SMTP_MAX_CONCURRENCY;
+  });
+
+  it("falls back to default on invalid or negative values", () => {
+    process.env.SMTP_MAX_CONCURRENCY = "-1";
+    expect(getSmtpConcurrency()).toBe(DEFAULT_SMTP_CONCURRENCY);
+    delete process.env.SMTP_MAX_CONCURRENCY;
+  });
+});
+
+describe("mapConcurrent", () => {
+  it("preserves order and resolves all results", async () => {
+    const items = [1, 2, 3, 4, 5];
+    const results = await mapConcurrent(items, 2, async (x) => x * 2);
+    expect(results).toEqual([2, 4, 6, 8, 10]);
+  });
+
+  it("handles empty arrays", async () => {
+    const results = await mapConcurrent([], 2, async (x) => x);
+    expect(results).toEqual([]);
+  });
+
+  it("never executes more than the concurrency limit concurrently", async () => {
+    let inFlight = 0;
+    let peakInFlight = 0;
+    const items = Array.from({ length: 8 }, (_, i) => i);
+
+    await mapConcurrent(items, 3, async () => {
+      inFlight++;
+      peakInFlight = Math.max(peakInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 10));
+      inFlight--;
+    });
+
+    expect(peakInFlight).toBeLessThanOrEqual(3);
   });
 });

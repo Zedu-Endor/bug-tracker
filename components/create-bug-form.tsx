@@ -11,12 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CharacterCounter } from "@/components/ui/character-counter";
 import { AttachmentPicker } from "@/components/attachment-picker";
 import { MarkdownEditor } from "@/components/markdown-editor";
 import { useFormDraft } from "@/components/use-form-draft";
 import { buildDraftKey } from "@/lib/form-drafts";
 import { DraftBanner } from "@/components/draft-banner";
 import { AssigneeCombobox } from "@/components/assignee-combobox";
+
+/** Must match the title limit enforced by createBugSchema. */
+const TITLE_MAX_LENGTH = 200;
 
 type UserOption = { id: string; name: string; role: AppRole };
 type CategoryOption = { id: string; name: string };
@@ -118,10 +122,15 @@ export function CreateBugForm({
             name="title"
             required
             minLength={3}
-            maxLength={200}
+            maxLength={TITLE_MAX_LENGTH}
             placeholder="Short summary of the issue"
             value={values.title}
             onChange={(event) => setValue("title", event.target.value)}
+          />
+          <CharacterCounter
+            length={values.title.length}
+            max={TITLE_MAX_LENGTH}
+            className="text-right"
           />
         </div>
         {types.length > 0 ? (

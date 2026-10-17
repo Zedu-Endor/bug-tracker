@@ -16,6 +16,7 @@ import {
   type TextareaHTMLAttributes,
 } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { CharacterCounter } from "@/components/ui/character-counter";
 import { RichText } from "@/components/rich-text";
 import {
   BoldIcon,
@@ -508,13 +509,11 @@ export const MarkdownEditor = forwardRef<
       <div className="flex flex-wrap items-start justify-between gap-2">
         {footer}
         {maxLength ? (
-          <p
-            className={`ml-auto shrink-0 text-xs tabular-nums ${
-              value.length > maxLength ? "text-red-600" : "text-slate-500"
-            }`}
-          >
-            {value.length}/{maxLength}
-          </p>
+          <CharacterCounter
+            length={value.length}
+            max={maxLength}
+            className="ml-auto shrink-0"
+          />
         ) : null}
       </div>
     </div>

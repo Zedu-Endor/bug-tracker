@@ -353,7 +353,7 @@ export default async function BugDetailPage({ params }: BugPageProps) {
                   {severityLabels[bug.severity]}
                 </Badge>
                 {bug.category ? (
-                  <Badge className="border border-teal-200 bg-teal-50 text-teal-800">
+                  <Badge className="border border-teal-200 bg-teal-50 text-teal-950">
                     {bug.category.name}
                   </Badge>
                 ) : null}

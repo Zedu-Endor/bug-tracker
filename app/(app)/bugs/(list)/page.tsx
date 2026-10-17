@@ -447,7 +447,7 @@ export default async function BugsPage({
                         </span>
                       ) : null}
                       {bug.isBoosted && !bug.isDeleted ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-950">
                           <span aria-hidden="true">⚡</span> Boosted
                         </span>
                       ) : null}
@@ -461,7 +461,7 @@ export default async function BugsPage({
                         </span>
                       ) : null}
                       {bug.category ? (
-                        <Badge className="border border-teal-200 bg-teal-50 text-teal-800">
+                        <Badge className="border border-teal-200 bg-teal-50 text-teal-950">
                           {bug.category.name}
                         </Badge>
                       ) : null}

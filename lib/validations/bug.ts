@@ -15,23 +15,33 @@ export const proofLinksInputSchema = z
   .string()
   .optional()
   .transform((value, ctx) => {
-    const rawLinks = splitProofLinkLines(value);
-    const links = [...new Set(rawLinks)];
-    if (links.length > MAX_PROOF_LINKS) {
-      ctx.addIssue({
-        code: "custom",
-        message: `At most ${MAX_PROOF_LINKS} proof links`,
-      });
-      return z.NEVER;
-    }
-    for (const link of links) {
-      if (!isGitHubUrl(link)) {
+    if (!value?.trim()) return [];
+
+    const rawLines = value.split(/\r?\n/);
+    for (let i = 0; i < rawLines.length; i++) {
+      const line = rawLines[i]?.trim();
+      if (!line) continue;
+      if (!isGitHubUrl(line)) {
         ctx.addIssue({
           code: "custom",
-          message: `Each proof link must be a valid GitHub URL (e.g. https://github.com/org/repo/issues/123) (got: ${link})`,
+          message: `Line ${i + 1} is not a valid GitHub URL: "${line}"`,
         });
         return z.NEVER;
       }
+    }
+
+    const rawLinks = splitProofLinkLines(value);
+    const links = [...new Set(rawLinks)];
+    const count =
+      rawLinks.length > links.length && rawLinks.length > MAX_PROOF_LINKS
+        ? rawLinks.length
+        : links.length;
+    if (links.length > MAX_PROOF_LINKS || rawLinks.length > MAX_PROOF_LINKS) {
+      ctx.addIssue({
+        code: "custom",
+        message: `You entered ${count} links. At most ${MAX_PROOF_LINKS} proof links are allowed.`,
+      });
+      return z.NEVER;
     }
     return links;
   });

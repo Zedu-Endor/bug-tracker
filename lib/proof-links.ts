@@ -21,6 +21,9 @@ export function isHttpUrl(value: string): boolean {
  * Requires http(s) protocol, a GitHub host, and an actual path.
  */
 export function isGitHubUrl(value: string): boolean {
+  if (/[\[\]<>"\\^|]/.test(value)) {
+    return false;
+  }
   try {
     const url = new URL(value);
     if (url.protocol !== "http:" && url.protocol !== "https:") {

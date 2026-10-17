@@ -60,6 +60,7 @@ describe("isGitHubUrl", () => {
     expect(isGitHubUrl("ftp://github.com/org/repo/issues/1")).toBe(false);
     expect(isGitHubUrl("not-a-url")).toBe(false);
     expect(isGitHubUrl("")).toBe(false);
+    expect(isGitHubUrl("https://github.com/org/repo/pull/12]")).toBe(false);
   });
 });
 

@@ -343,13 +343,18 @@ describe("createBugSchema proofLinks", () => {
     }
   });
 
-  it("rejects non-GitHub proof URLs", () => {
+  it("rejects non-GitHub proof URLs with line number and URL", () => {
     const nonHttpResult = createBugSchema.safeParse({
       title: "Broken upload button",
       description: "Upload never completes on Chrome 130.",
       proofLinks: "ftp://files.example.com/shot.png",
     });
     expect(nonHttpResult.success).toBe(false);
+    if (!nonHttpResult.success) {
+      expect(nonHttpResult.error.issues[0]?.message).toBe(
+        'Line 1 is not a valid GitHub URL: "ftp://files.example.com/shot.png"',
+      );
+    }
 
     const nonGitHubResult = createBugSchema.safeParse({
       title: "Broken upload button",
@@ -357,6 +362,58 @@ describe("createBugSchema proofLinks", () => {
       proofLinks: "https://example.com/screenshot.png",
     });
     expect(nonGitHubResult.success).toBe(false);
+    if (!nonGitHubResult.success) {
+      expect(nonGitHubResult.error.issues[0]?.message).toBe(
+        'Line 1 is not a valid GitHub URL: "https://example.com/screenshot.png"',
+      );
+    }
+  });
+
+  it("identifies the exact 1-indexed line number of malformed proof links (#363)", () => {
+    const lines = [
+      "https://github.com/org/repo/issues/1",
+      "https://github.com/org/repo/issues/2",
+      "https://github.com/org/repo/issues/3",
+      "https://github.com/org/repo/issues/4",
+      "https://github.com/org/repo/issues/5",
+      "https://github.com/org/repo/issues/6",
+      "https://github.com/org/repo/issues/7",
+      "https://github.com/org/repo/pull/12]",
+      "https://github.com/org/repo/issues/9",
+    ].join("\n");
+
+    const result = createBugSchema.safeParse({
+      title: "Broken upload button",
+      description: "Upload never completes on Chrome 130.",
+      proofLinks: lines,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        'Line 8 is not a valid GitHub URL: "https://github.com/org/repo/pull/12]"',
+      );
+    }
+  });
+
+  it("displays received link count and maximum limit when exceeding 20 links (#363)", () => {
+    const twentyFourLinks = Array.from(
+      { length: 24 },
+      (_, i) => `https://github.com/org/repo/issues/${i + 1}`,
+    ).join("\n");
+
+    const result = createBugSchema.safeParse({
+      title: "Broken upload button",
+      description: "Upload never completes on Chrome 130.",
+      proofLinks: twentyFourLinks,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "You entered 24 links. At most 20 proof links are allowed.",
+      );
+    }
   });
 
   it("deduplicates identical proof links", () => {

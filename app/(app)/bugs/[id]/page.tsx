@@ -22,6 +22,7 @@ import {
 import { ActivityTimeline } from "@/components/activity-timeline";
 import { Badge } from "@/components/ui/badge";
 import { VoteButton } from "@/components/vote-button";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { WatchButton } from "@/components/watch-button";
 import { isWatchingIssue } from "@/lib/watch";
 import { UpdateBugForm } from "@/components/update-bug-form";
@@ -332,6 +333,7 @@ export default async function BugDetailPage({ params }: BugPageProps) {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2 self-start sm:pt-6">
+          <CopyLinkButton />
           {!bug.isDeleted ? (
             <WatchButton
               bugId={bug.id}

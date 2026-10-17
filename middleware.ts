@@ -14,10 +14,10 @@ const { auth } = NextAuth(authConfig);
 /** Bug detail paths only — enough for unfurl bots to hit generateMetadata. */
 const BUG_DETAIL_PATH = /^\/bugs\/[^/]+\/?$/;
 
-export default auth((req) => {
-  const pathWithoutBase = toAppPath(req.nextUrl.pathname);
-  const isLoggedIn = !!req.auth?.user;
-
+export function isPublicPath(
+  pathWithoutBase: string,
+  userAgent?: string | null,
+): boolean {
   const isAuthPage =
     pathWithoutBase.startsWith("/login") || pathWithoutBase.startsWith("/signup");
   const isPasswordResetPage =
@@ -25,15 +25,27 @@ export default auth((req) => {
     pathWithoutBase.startsWith("/reset-password");
   const isBugPreview =
     BUG_DETAIL_PATH.test(pathWithoutBase) &&
-    isLinkPreviewBot(req.headers.get("user-agent"));
-  const isPublic =
+    isLinkPreviewBot(userAgent);
+
+  return (
     isAuthPage ||
     isPasswordResetPage ||
     isBugPreview ||
+    pathWithoutBase.startsWith("/session-expired") ||
     pathWithoutBase.startsWith("/api/auth") ||
     pathWithoutBase.startsWith("/api/health") ||
     pathWithoutBase.startsWith("/_next") ||
-    pathWithoutBase === "/favicon.ico";
+    pathWithoutBase === "/favicon.ico"
+  );
+}
+
+export default auth((req) => {
+  const pathWithoutBase = toAppPath(req.nextUrl.pathname);
+  const isLoggedIn = !!req.auth?.user;
+
+  const isAuthPage =
+    pathWithoutBase.startsWith("/login") || pathWithoutBase.startsWith("/signup");
+  const isPublic = isPublicPath(pathWithoutBase, req.headers.get("user-agent"));
 
   if (!isLoggedIn && !isPublic) {
     const url = new URL(

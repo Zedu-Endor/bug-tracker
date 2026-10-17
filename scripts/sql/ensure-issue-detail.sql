@@ -6,6 +6,7 @@ ALTER TABLE "Comment" ADD COLUMN IF NOT EXISTS "editedAt" TIMESTAMP(3);
 ALTER TABLE "Comment" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);
 
 CREATE INDEX IF NOT EXISTS "Comment_parentId_idx" ON "Comment"("parentId");
+CREATE INDEX IF NOT EXISTS "Comment_bugId_createdAt_idx" ON "Comment"("bugId", "createdAt");
 
 DO $$
 BEGIN

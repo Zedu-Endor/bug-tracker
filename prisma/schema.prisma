@@ -232,6 +232,7 @@ model Comment {
   replies   Comment[] @relation("CommentReplies")
 
   @@index([bugId])
+  @@index([bugId, createdAt])
   @@index([parentId])
   attachments Attachment[]
 }

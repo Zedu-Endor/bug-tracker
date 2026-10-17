@@ -14,7 +14,7 @@ const ALLOWED = new Set(["components/ui/confirm-dialog.tsx"]);
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
-    const path = join(dir, entry.name);
+    const path = join(dir, entry.name).replace(/\\/g, "/");
     if (entry.isDirectory()) sourceFiles(path, out);
     else if (entry.name.endsWith(".tsx")) out.push(path);
   }

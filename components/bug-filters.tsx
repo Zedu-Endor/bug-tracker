@@ -30,6 +30,17 @@ import {
 
 type TagType = { id: string; name: string; isActive?: boolean };
 
+/** URL params owned by the filter bar. `page` is paging, not a filter. */
+const FILTER_PARAMS = [
+  "q",
+  TAGS_PARAM,
+  "mine",
+  "status",
+  "severity",
+  PLATFORM_PARAM,
+  "sort",
+];
+
 export function BugFilters({
   tagTypes = [],
   platforms = [],
@@ -107,6 +118,18 @@ export function BugFilters({
     parsePlatformFilter(params.get(PLATFORM_PARAM), platforms) ?? "";
   const platformOptions = platformChoices(platforms, currentPlatform || null);
   const currentMine = parseMineFilter(params.get("mine")) ?? "";
+
+  // Only worth offering when there is something to clear (#336).
+  const hasActiveFilters = FILTER_PARAMS.some((key) => (params.get(key) ?? "") !== "");
+
+  function clearAllFilters() {
+    // Empty the box straight away: until the navigation lands, the local draft
+    // would otherwise keep showing the text that was just cleared.
+    setText("");
+    setOpen(false);
+    setActive(-1);
+    router.push("/bugs");
+  }
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
@@ -325,6 +348,17 @@ export function BugFilters({
           ))}
         </select>
       </div>
+      {hasActiveFilters ? (
+        <div className="col-span-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-xs hover:bg-slate-50 hover:text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 sm:w-auto"
+          >
+            Clear all filters
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

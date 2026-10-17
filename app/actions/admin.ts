@@ -37,7 +37,10 @@ async function changeUserRole(
 
   await prisma.user.update({
     where: { id: userId },
-    data: { role: nextRole },
+    data: {
+      role: nextRole,
+      sessionVersion: { increment: 1 },
+    },
   });
 
   revalidatePath("/admin/users");

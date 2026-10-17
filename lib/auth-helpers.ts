@@ -44,19 +44,20 @@ export async function requireUser(): Promise<SessionAppUser> {
   let userId: string;
   if ("error" in resolved) {
     const email = session.user.email?.toLowerCase();
-    // Google-only production has no password reset. A session with an email
-    // and no matching row was saved under Google's subject, not User.id.
+    // A session with an email and no matching row was saved under Google's subject, not User.id.
     if (!email || isPasswordAuthEnabled()) {
       redirect(SESSION_EXPIRED_PATH);
     }
     try {
-      userId = (
-        await upsertGoogleUser({
-          email,
-          name: session.user.name,
-          image: session.user.image,
-        })
-      ).id;
+      const googleAccount = await upsertGoogleUser({
+        email,
+        name: session.user.name,
+        image: session.user.image,
+      });
+      if ((session.user.sessionVersion ?? 0) !== googleAccount.sessionVersion) {
+        redirect(SESSION_EXPIRED_PATH);
+      }
+      userId = googleAccount.id;
     } catch (error) {
       console.error("[auth] Google session could not be linked to a user", error);
       redirect(SESSION_EXPIRED_PATH);

@@ -6,6 +6,7 @@ import { isSuperAdminEmail } from "@/lib/super-admin";
 export type GoogleAccount = {
   id: string;
   role: Role;
+  sessionVersion: number;
 };
 
 /**
@@ -41,9 +42,9 @@ export async function upsertGoogleUser(input: {
         emailVerified: new Date(),
         ...(role === "super_admin" ? { role } : {}),
       },
-      select: { id: true, role: true },
+      select: { id: true, role: true, sessionVersion: true },
     });
-    return { id: user.id, role: user.role };
+    return { id: user.id, role: user.role, sessionVersion: user.sessionVersion };
   } catch (error) {
     console.error("[auth] Google user upsert failed:", error);
   }
@@ -53,9 +54,9 @@ export async function upsertGoogleUser(input: {
       where: { email },
       create: { email, name },
       update: {},
-      select: { id: true },
+      select: { id: true, sessionVersion: true },
     });
-    return { id: user.id, role };
+    return { id: user.id, role, sessionVersion: user.sessionVersion ?? 0 };
   } catch (error) {
     console.error("[auth] Minimal Google user upsert failed:", error);
   }
@@ -78,10 +79,10 @@ export async function upsertGoogleUser(input: {
 
   const saved = await prisma.user.findUnique({
     where: { email },
-    select: { id: true },
+    select: { id: true, sessionVersion: true },
   });
   if (!saved) {
     throw new Error("Google sign-in could not save the user");
   }
-  return { id: saved.id, role };
+  return { id: saved.id, role, sessionVersion: saved.sessionVersion ?? 0 };
 }

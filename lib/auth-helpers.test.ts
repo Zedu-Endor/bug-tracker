@@ -59,7 +59,7 @@ describe("requireUser", () => {
     });
     mockResolve.mockResolvedValue({ error: "Session expired, sign in again" });
     const upsert = prisma.user.upsert as unknown as ReturnType<typeof vi.fn>;
-    upsert.mockResolvedValue({ id: "db1", role: "user" });
+    upsert.mockResolvedValue({ id: "db1", role: "user", sessionVersion: 0 });
     findUser.mockResolvedValue({
       id: "db1",
       name: "Ada",
@@ -70,6 +70,19 @@ describe("requireUser", () => {
 
     await expect(requireUser()).resolves.toMatchObject({ id: "db1", email: "ada@zedu.chat" });
     expect(upsert.mock.calls[0][0].where).toEqual({ email: "ada@zedu.chat" });
+  });
+
+  it("redirects to /session-expired when Google relink sessionVersion does not match", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("AUTH_PASSWORD_LOGIN", "false");
+    mockAuth.mockResolvedValue({
+      user: { id: "google-sub", email: "ada@zedu.chat", name: "Ada", sessionVersion: 0 },
+    });
+    mockResolve.mockResolvedValue({ error: "Session expired, sign in again" });
+    const upsert = prisma.user.upsert as unknown as ReturnType<typeof vi.fn>;
+    upsert.mockResolvedValue({ id: "db1", role: "user", sessionVersion: 1 });
+
+    await expect(requireUser()).rejects.toMatchObject({ to: "/session-expired" });
   });
 
   it("still clears a session that has no email", async () => {

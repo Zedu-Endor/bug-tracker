@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { canDeleteIssueType, issueTypeInputSchema } from "@/lib/issue-types";
+import { typeChangedSummary } from "@/lib/activity-log";
 
 export type IssueTypeActionResult = { error?: string; ok?: boolean };
 
@@ -80,7 +81,7 @@ export async function updateIssueTypeAction(
   id: string,
   formData: FormData,
 ): Promise<IssueTypeActionResult> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   if (!id || typeof id !== "string") {
     return { error: "Invalid type ID" };
@@ -103,6 +104,14 @@ export async function updateIssueTypeAction(
 
   const normalizedName = parsed.data.name.trim();
 
+  const currentType = await prisma.issueType.findUnique({
+    where: { id },
+  });
+
+  if (!currentType) {
+    return { error: TYPE_NOT_FOUND };
+  }
+
   const existing = await prisma.issueType.findFirst({
     where: {
       name: {
@@ -117,14 +126,42 @@ export async function updateIssueTypeAction(
     return { error: `Another type named "${existing.name}" already exists.` };
   }
 
+  let linkedBugIds: string[] = [];
+
   try {
-    await prisma.issueType.update({
-      where: { id },
-      data: {
-        name: normalizedName,
-        description: parsed.data.description,
-        isActive: parsed.data.isActive,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.issueType.update({
+        where: { id },
+        data: {
+          name: normalizedName,
+          description: parsed.data.description,
+          isActive: parsed.data.isActive,
+        },
+      });
+
+      if (currentType.name !== normalizedName) {
+        const linkedBugs = await tx.bug.findMany({
+          where: { typeId: id },
+          select: { id: true },
+        });
+
+        if (linkedBugs.length > 0) {
+          linkedBugIds = linkedBugs.map((b) => b.id);
+          await tx.bugActivity.createMany({
+            data: linkedBugs.map((b) => ({
+              bugId: b.id,
+              actorId: admin.id,
+              type: "type_changed",
+              summary: typeChangedSummary(currentType.name, normalizedName),
+              metadata: {
+                field: "type",
+                from: currentType.name,
+                to: normalizedName,
+              },
+            })),
+          });
+        }
+      }
     });
   } catch (err: unknown) {
     if (
@@ -144,6 +181,9 @@ export async function updateIssueTypeAction(
   revalidatePath("/admin/types");
   revalidatePath("/bugs/new");
   revalidatePath("/bugs");
+  for (const bugId of linkedBugIds) {
+    revalidatePath(`/bugs/${bugId}`);
+  }
   return { ok: true };
 }
 

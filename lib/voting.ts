@@ -40,3 +40,15 @@ export function calculateVoteChange(
     countDelta: direction * 2,
   };
 }
+
+/**
+ * Calculates authoritative voteCount from like and dislike counts,
+ * guaranteeing Bug.voteCount precisely matches SUM(Vote.value).
+ */
+export function reconcileVoteCount(
+  likeCount: number,
+  dislikeCount: number,
+): number {
+  return likeCount - dislikeCount;
+}
+

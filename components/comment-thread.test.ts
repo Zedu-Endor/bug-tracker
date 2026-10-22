@@ -160,6 +160,89 @@ describe("CommentThread read-only mode (#122)", () => {
     expect(html).toContain("Delivery");
     expect(html).toContain('href="https://github.com/pr/1"');
   });
+
+  it("renders distinct review verdict badges, request_to_merge, and agent comment badge (#455)", () => {
+    const comments: CommentNode[] = [
+      {
+        id: "c-rev-accept",
+        authorId: "u1",
+        parentId: null,
+        body: "Looks good to me",
+        type: "review",
+        metadata: { verdict: "accept" },
+        createdAt: new Date("2026-10-16T12:00:00Z"),
+        editedAt: null,
+        deletedAt: null,
+        depth: 0,
+        author: { name: "Reviewer One", role: "user" },
+        parent: null,
+        children: [],
+      },
+      {
+        id: "c-rev-reject",
+        authorId: "u2",
+        parentId: null,
+        body: "Needs changes",
+        type: "review",
+        metadata: { verdict: "reject" },
+        createdAt: new Date("2026-10-16T12:05:00Z"),
+        editedAt: null,
+        deletedAt: null,
+        depth: 0,
+        author: { name: "Reviewer Two", role: "user" },
+        parent: null,
+        children: [],
+      },
+      {
+        id: "c-merge",
+        authorId: "u1",
+        parentId: null,
+        body: "Ready to merge",
+        type: "request_to_merge",
+        metadata: null,
+        createdAt: new Date("2026-10-16T12:10:00Z"),
+        editedAt: null,
+        deletedAt: null,
+        depth: 0,
+        author: { name: "Agent Alpha", role: "user" },
+        parent: null,
+        children: [],
+      },
+      {
+        id: "c-agent-std",
+        authorId: "u1",
+        parentId: null,
+        body: "Diagnostic report attached",
+        type: "comment",
+        agentId: "agent-123",
+        agent: { name: "DiagnosticAgent" },
+        metadata: null,
+        createdAt: new Date("2026-10-16T12:15:00Z"),
+        editedAt: null,
+        deletedAt: null,
+        depth: 0,
+        author: { name: "Agent Owner", role: "user" },
+        parent: null,
+        children: [],
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      createElement(CommentThread, {
+        bugId: "b1",
+        issueUrl: "https://issues.example/bugs/b1",
+        reporterId: "u1",
+        comments,
+        users: [{ id: "u1", name: "User" }],
+      }),
+    );
+
+    expect(html).toContain("Review");
+    expect(html).toContain("· accept");
+    expect(html).toContain("· reject");
+    expect(html).toContain("Request to Merge");
+    expect(html).toContain("Agent Comment");
+  });
 });
 
 describe("CommentThread Admin label (#489)", () => {

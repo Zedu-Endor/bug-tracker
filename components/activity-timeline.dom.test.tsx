@@ -63,4 +63,23 @@ describe("ActivityTimeline collapsed by default (#418)", () => {
     expect(container.querySelector("details")).toBeNull();
     expect(screen.getByText("No activity recorded yet.")).toBeVisible();
   });
+
+  it("renders distinct type tags and icons for different activity event kinds (#455)", () => {
+    render(
+      <ActivityTimeline
+        activities={[
+          entry({ type: "created", summary: "Created issue #455" }),
+          entry({ type: "status_changed", summary: "Changed status to in progress" }),
+          entry({ type: "status_changed", summary: "Resolved issue via PR merge" }),
+          entry({ type: "assignee_changed", summary: "Assigned to Alice" }),
+        ]}
+        totalCount={4}
+      />,
+    );
+
+    expect(screen.getByText("Created")).toBeInTheDocument();
+    expect(screen.getByText("Work Started")).toBeInTheDocument();
+    expect(screen.getByText("Resolved")).toBeInTheDocument();
+    expect(screen.getByText("Assignee")).toBeInTheDocument();
+  });
 });

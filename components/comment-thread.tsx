@@ -28,35 +28,70 @@ type OrganizationRoles = Record<string, OrganizationRole>;
 
 type UserOption = { id: string; name: string };
 
-function CommentTypeBadge({ type, metadata }: { type?: CommentType | null; metadata?: unknown }) {
-  if (!type || type === "comment") return null;
-
+function CommentTypeBadge({
+  type,
+  metadata,
+  isAgent,
+}: {
+  type?: CommentType | null;
+  metadata?: unknown;
+  isAgent?: boolean;
+}) {
   const meta = typeof metadata === "object" && metadata !== null ? (metadata as Record<string, unknown>) : null;
 
   switch (type) {
     case "bid":
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200">
-          <span>🏷️</span>
+          <span aria-hidden="true">🏷️</span>
           <span>Bid</span>
           {typeof meta?.eta === "string" ? <span className="text-amber-700">· ETA: {meta.eta}</span> : null}
         </span>
       );
-    case "review":
+    case "review": {
+      const verdict = typeof meta?.verdict === "string" ? meta.verdict : null;
+      const isAccept = verdict === "accept";
+      const isReject = verdict === "reject";
       return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-800 border border-purple-200">
-          <span>🔍</span>
+        <span
+          className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium border ${
+            isAccept
+              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+              : isReject
+                ? "bg-rose-50 text-rose-800 border-rose-200"
+                : "bg-purple-50 text-purple-800 border-purple-200"
+          }`}
+        >
+          <span aria-hidden="true">{isAccept ? "✅" : isReject ? "❌" : "🔍"}</span>
           <span>Review</span>
-          {typeof meta?.verdict === "string" ? <span className="text-purple-700">· {meta.verdict}</span> : null}
+          {verdict ? (
+            <span
+              className={
+                isAccept
+                  ? "text-emerald-700 font-semibold"
+                  : isReject
+                    ? "text-rose-700 font-semibold"
+                    : "text-purple-700"
+              }
+            >
+              · {verdict}
+            </span>
+          ) : null}
         </span>
       );
+    }
     case "delivery":
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800 border border-emerald-200">
-          <span>📦</span>
+          <span aria-hidden="true">📦</span>
           <span>Delivery</span>
           {typeof meta?.prUrl === "string" ? (
-            <a href={meta.prUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-emerald-900">
+            <a
+              href={meta.prUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-semibold hover:text-emerald-950"
+            >
               PR
             </a>
           ) : null}
@@ -65,11 +100,19 @@ function CommentTypeBadge({ type, metadata }: { type?: CommentType | null; metad
     case "request_to_merge":
       return (
         <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-800 border border-rose-200">
-          <span>🔀</span>
+          <span aria-hidden="true">🔀</span>
           <span>Request to Merge</span>
         </span>
       );
     default:
+      if (isAgent) {
+        return (
+          <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800 border border-sky-200">
+            <span aria-hidden="true">🤖</span>
+            <span>Agent Comment</span>
+          </span>
+        );
+      }
       return null;
   }
 }
@@ -86,7 +129,7 @@ function CommentConfidence({ metadata }: { metadata?: unknown }) {
   );
 }
 
-function commentCardStyle(type?: CommentType | null): string {
+function commentCardStyle(type?: CommentType | null, isAgent?: boolean): string {
   switch (type) {
     case "bid":
       return "border-amber-200 bg-amber-50/30";
@@ -97,6 +140,9 @@ function commentCardStyle(type?: CommentType | null): string {
     case "request_to_merge":
       return "border-rose-200 bg-rose-50/30 ring-1 ring-rose-200";
     default:
+      if (isAgent) {
+        return "border-sky-200 bg-sky-50/20";
+      }
       return "border-slate-100 bg-slate-50";
   }
 }
@@ -231,6 +277,8 @@ function CommentItem({
     });
   };
 
+  const isAgent = Boolean(comment.agentId || comment.agent);
+
   return (
     <li
       id={`comment-${comment.id}`}
@@ -240,9 +288,10 @@ function CommentItem({
       className="group/comment scroll-mt-24 space-y-3 break-inside-avoid"
     >
       <article
-        className={`rounded-lg border px-4 py-3 group-target/comment:border-teal-400 group-target/comment:bg-teal-50 group-target/comment:ring-2 group-target/comment:ring-teal-500/40 motion-safe:transition-colors ${commentCardStyle(comment.type)} ${
-          comment.depth > 0 ? "border-l-2 border-l-teal-600" : ""
-        }`}
+        className={`rounded-lg border px-4 py-3 group-target/comment:border-teal-400 group-target/comment:bg-teal-50 group-target/comment:ring-2 group-target/comment:ring-teal-500/40 motion-safe:transition-colors ${commentCardStyle(
+          comment.type,
+          isAgent,
+        )} ${comment.depth > 0 ? "border-l-2 border-l-teal-600" : ""}`}
       >
         {isDeleted ? (
           <p className="text-sm italic text-slate-500">This comment was deleted.</p>
@@ -261,7 +310,11 @@ function CommentItem({
                   agentName={comment.agent?.name}
                   className="font-medium text-slate-700"
                 />
-                <CommentTypeBadge type={comment.type} metadata={comment.metadata} />
+                <CommentTypeBadge
+                  type={comment.type}
+                  metadata={comment.metadata}
+                  isAgent={isAgent}
+                />
               </div>
               <span className="inline-flex items-center gap-1.5">
                 <a

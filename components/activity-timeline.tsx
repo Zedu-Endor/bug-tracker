@@ -31,6 +31,156 @@ const typeLabel: Record<ActivityType, string> = {
   duplicate_changed: "Duplicate",
 };
 
+type ActivityVisualConfig = {
+  label: string;
+  icon: string;
+  badgeClass: string;
+  dotClass: string;
+};
+
+export function getActivityVisualConfig(type: ActivityType, summary: string): ActivityVisualConfig {
+  if (type === "status_changed") {
+    const s = summary.toLowerCase();
+    if (s.includes("in progress") || s.includes("in_progress") || s.includes("claimed")) {
+      return {
+        label: "Work Started",
+        icon: "⚡",
+        badgeClass: "bg-blue-50 text-blue-800 border-blue-200",
+        dotClass: "bg-blue-600 ring-2 ring-blue-100",
+      };
+    }
+    if (s.includes("resolved") || s.includes("closed")) {
+      return {
+        label: "Resolved",
+        icon: "✅",
+        badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
+        dotClass: "bg-emerald-600 ring-2 ring-emerald-100",
+      };
+    }
+    return {
+      label: "Status Changed",
+      icon: "🔄",
+      badgeClass: "bg-indigo-50 text-indigo-800 border-indigo-200",
+      dotClass: "bg-indigo-600 ring-2 ring-indigo-100",
+    };
+  }
+
+  switch (type) {
+    case "created":
+      return {
+        label: "Created",
+        icon: "✨",
+        badgeClass: "bg-teal-50 text-teal-800 border-teal-200",
+        dotClass: "bg-teal-600 ring-2 ring-teal-100",
+      };
+    case "assignee_changed":
+      return {
+        label: "Assignee",
+        icon: "👤",
+        badgeClass: "bg-violet-50 text-violet-800 border-violet-200",
+        dotClass: "bg-violet-600 ring-2 ring-violet-100",
+      };
+    case "commented":
+      return {
+        label: "Comment",
+        icon: "💬",
+        badgeClass: "bg-slate-100 text-slate-800 border-slate-200",
+        dotClass: "bg-slate-500 ring-2 ring-slate-100",
+      };
+    case "severity_changed":
+      return {
+        label: "Severity",
+        icon: "⚠️",
+        badgeClass: "bg-amber-50 text-amber-800 border-amber-200",
+        dotClass: "bg-amber-600 ring-2 ring-amber-100",
+      };
+    case "milestone_changed":
+      return {
+        label: "Milestone",
+        icon: "🎯",
+        badgeClass: "bg-purple-50 text-purple-800 border-purple-200",
+        dotClass: "bg-purple-600 ring-2 ring-purple-100",
+      };
+    case "boosted":
+      return {
+        label: "Boost",
+        icon: "🚀",
+        badgeClass: "bg-pink-50 text-pink-800 border-pink-200",
+        dotClass: "bg-pink-600 ring-2 ring-pink-100",
+      };
+    case "unboosted":
+      return {
+        label: "Unboost",
+        icon: "📉",
+        badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+        dotClass: "bg-slate-400 ring-2 ring-slate-100",
+      };
+    case "deleted":
+      return {
+        label: "Deleted",
+        icon: "🗑️",
+        badgeClass: "bg-rose-50 text-rose-800 border-rose-200",
+        dotClass: "bg-rose-600 ring-2 ring-rose-100",
+      };
+    case "restored":
+      return {
+        label: "Restored",
+        icon: "♻️",
+        badgeClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
+        dotClass: "bg-emerald-600 ring-2 ring-emerald-100",
+      };
+    case "comment_deleted":
+      return {
+        label: "Moderation",
+        icon: "🛡️",
+        badgeClass: "bg-rose-50 text-rose-800 border-rose-200",
+        dotClass: "bg-rose-500 ring-2 ring-rose-100",
+      };
+    case "edited":
+      return {
+        label: "Edit",
+        icon: "✏️",
+        badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+        dotClass: "bg-slate-500 ring-2 ring-slate-100",
+      };
+    case "type_changed":
+      return {
+        label: "Type",
+        icon: "🏷️",
+        badgeClass: "bg-blue-50 text-blue-800 border-blue-200",
+        dotClass: "bg-blue-500 ring-2 ring-blue-100",
+      };
+    case "category_changed":
+      return {
+        label: "Category",
+        icon: "📁",
+        badgeClass: "bg-amber-50 text-amber-800 border-amber-200",
+        dotClass: "bg-amber-500 ring-2 ring-amber-100",
+      };
+    case "area_changed":
+      return {
+        label: "Area",
+        icon: "🧭",
+        badgeClass: "bg-indigo-50 text-indigo-800 border-indigo-200",
+        dotClass: "bg-indigo-500 ring-2 ring-indigo-100",
+      };
+    case "duplicate_changed":
+      return {
+        label: "Duplicate",
+        icon: "🔗",
+        badgeClass: "bg-amber-50 text-amber-800 border-amber-200",
+        dotClass: "bg-amber-600 ring-2 ring-amber-100",
+      };
+    default:
+      return {
+        label: typeLabel[type] ?? "Activity",
+        icon: "📋",
+        badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
+        dotClass: "bg-slate-400 ring-2 ring-slate-100",
+      };
+  }
+}
+
 export function ActivityTimeline({
   activities,
   totalCount,
@@ -83,38 +233,44 @@ export function ActivityTimeline({
           </p>
         </summary>
         <ol className="relative mt-5 space-y-0 border-l border-slate-200 pl-4 sm:pl-5">
-          {activities.map((entry) => (
-            <li key={entry.id} className="relative pb-5 last:pb-0">
-              <span
-                aria-hidden
-                className="absolute -left-[1.2rem] sm:-left-[1.45rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-teal-600"
-              />
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  {typeLabel[entry.type]}
-                </span>
-                <LocalTime
-                  className="text-xs text-slate-500"
-                  date={entry.createdAt}
+          {activities.map((entry) => {
+            const config = getActivityVisualConfig(entry.type, entry.summary);
+            return (
+              <li key={entry.id} className="relative pb-5 last:pb-0">
+                <span
+                  aria-hidden="true"
+                  className={`absolute -left-[1.2rem] sm:-left-[1.45rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white ${config.dotClass}`}
                 />
-              </div>
-              <p className="mt-1 text-sm text-slate-800">
-                <span className="font-medium text-slate-900">
-                  {entry.actor.name}
-                </span>{" "}
-                <ExpandableText maxLines={2} expandText="View more" collapseText="View less">
-                  {entry.summary}
-                </ExpandableText>
-              </p>
-              {entry.type === "status_changed" && activityNote(entry.metadata) ? (
-                <ExpandableText maxLines={3} expandText="View more" collapseText="View less">
-                  <blockquote className="mt-1 whitespace-pre-wrap break-words border-l-2 border-emerald-300 pl-3 text-sm text-slate-700">
-                    {activityNote(entry.metadata)}
-                  </blockquote>
-                </ExpandableText>
-              ) : null}
-            </li>
-          ))}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium border ${config.badgeClass}`}
+                  >
+                    <span aria-hidden="true">{config.icon}</span>
+                    <span>{config.label}</span>
+                  </span>
+                  <LocalTime
+                    className="text-xs text-slate-500"
+                    date={entry.createdAt}
+                  />
+                </div>
+                <div className="mt-1 text-sm text-slate-800">
+                  <span className="font-medium text-slate-900">
+                    {entry.actor.name}
+                  </span>{" "}
+                  <ExpandableText maxLines={2} expandText="View more" collapseText="View less">
+                    {entry.summary}
+                  </ExpandableText>
+                </div>
+                {entry.type === "status_changed" && activityNote(entry.metadata) ? (
+                  <ExpandableText maxLines={3} expandText="View more" collapseText="View less">
+                    <blockquote className="mt-1 whitespace-pre-wrap break-words border-l-2 border-emerald-300 pl-3 text-sm text-slate-700">
+                      {activityNote(entry.metadata)}
+                    </blockquote>
+                  </ExpandableText>
+                ) : null}
+              </li>
+            );
+          })}
         </ol>
       </details>
     </section>

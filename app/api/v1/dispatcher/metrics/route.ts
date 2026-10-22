@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 
 /**
  * GET /api/v1/dispatcher/metrics — assignment counts for a project.
- * Dispatcher level only.
+ * Dispatcher level or higher.
  */
 export async function GET(request: NextRequest) {
   return agentIssueRequest(request, "dispatcher.metrics", "observer", null, async (agent) => {

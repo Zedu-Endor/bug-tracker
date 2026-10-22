@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 
 /**
  * GET /api/v1/dispatcher/ready-issues — issues confirmed, at the upvote
- * threshold, and without an active or pending claim. Dispatcher level only.
+ * threshold, and without an active or pending claim. Dispatcher level or higher.
  */
 export async function GET(request: NextRequest) {
   return agentIssueRequest(request, "dispatcher.ready", "observer", null, async (agent) => {

@@ -48,10 +48,11 @@ export async function listAgentProjects(tenantId: string) {
   }));
 }
 
-/** One project in the agent's tenant; foreign project ids are a 404, not a leak. */
+/** One project in the agent's tenant by internal id or slug; foreign ids are a
+ * 404, not a leak. */
 export async function getAgentProject(tenantId: string, projectId: string) {
   const project = await prisma.project.findFirst({
-    where: { id: projectId, tenantId },
+    where: { tenantId, OR: [{ id: projectId }, { slug: projectId }] },
     select: projectSelect,
   });
   if (!project) throw new IssueApiError(404, "Project not found.");

@@ -94,7 +94,7 @@ describe("agent project discovery (#607)", () => {
     expect(db.bug.groupBy).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ tenantId: "tenant-a", isDeleted: false, status: "open" }) }));
   });
 
-  it("reads one project by id, tenant-scoped; foreign ids are 404", async () => {
+  it("reads one project by id or slug, tenant-scoped; foreign ids are 404", async () => {
     db.project.findFirst.mockResolvedValue({ id: "project-web", slug: "web", name: "Web", goal: "Ship Ziki", repoUrl: null, stagingUrl: null });
     db.bug.count.mockResolvedValue(7);
     const response = await readOne(request("http://localhost/api/v1/projects/project-web"), { params: Promise.resolve({ id: "project-web" }) });
@@ -107,10 +107,18 @@ describe("agent project discovery (#607)", () => {
         volunteerWindowSeconds: 120, autoMerge: true,
       },
     });
-    expect(db.project.findFirst).toHaveBeenCalledWith({ where: { id: "project-web", tenantId: "tenant-a" }, select: expect.objectContaining({ goal: true }) });
+    expect(db.project.findFirst).toHaveBeenCalledWith({
+      where: { tenantId: "tenant-a", OR: [{ id: "project-web" }, { slug: "project-web" }] },
+      select: expect.objectContaining({ goal: true }),
+    });
+
+    const bySlug = await readOne(request("http://localhost/api/v1/projects/web"), { params: Promise.resolve({ id: "web" }) });
+    expect(bySlug.status).toBe(200);
+    await expect(bySlug.json()).resolves.toMatchObject({ id: "project-web", slug: "web", openIssueCount: 7 });
+
     db.project.findFirst.mockResolvedValueOnce(null);
     expect((await readOne(request("http://localhost/api/v1/projects/elsewhere"), { params: Promise.resolve({ id: "elsewhere" }) })).status).toBe(404);
-    expect(db.bug.count).toHaveBeenCalledTimes(1);
+    expect(db.bug.count).toHaveBeenCalledTimes(2);
     expect(db.agentAuditEvent.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ action: "projects.read" }) }));
   });
 

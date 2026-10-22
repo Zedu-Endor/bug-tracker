@@ -61,7 +61,16 @@ export async function POST(request: NextRequest) {
   return agentIssueRequest(request, "webhooks.create", "contributor", null, async (agent) => {
     const body = await issueJson(request);
     const parsed = createWebhookSchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: "Send a valid webhook URL." }, { status: 400 });
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      const reason = first
+        ? (first.path.length ? `${first.path.join(".")}: ${first.message}` : first.message)
+        : "Invalid webhook request.";
+      return NextResponse.json(
+        { error: `Invalid webhook request: ${reason}`, details: parsed.error.issues },
+        { status: 400 },
+      );
+    }
     const input = parsed.data;
 
     const ssrf = await checkSsrf(input.url);

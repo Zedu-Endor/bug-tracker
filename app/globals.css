@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Brand colour (#475): the primary accent, re-pointed at a modern palette. Generated. */
+@import "./theme-brand.css";
 /* Dark mode (#277): the palette, mirrored. Generated; see the file header. */
 @import "./theme-dark.css";
 

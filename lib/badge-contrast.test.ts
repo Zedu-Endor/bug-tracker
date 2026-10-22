@@ -36,10 +36,10 @@ const TAILWIND_COLORS: Record<string, string> = {
   // Emerald
   "emerald-100": "#d1fae5",
   "emerald-950": "#022c22",
-  // Teal
-  "teal-50": "#f0fdfa",
-  "teal-100": "#ccfbf1",
-  "teal-950": "#042f2e",
+  // Teal — the brand scale (#475), generated in app/theme-brand.css
+  "teal-50": "#e8fbfd",
+  "teal-100": "#cbf6fb",
+  "teal-950": "#00383e",
   // Sky
   "sky-100": "#e0f2fe",
   "sky-950": "#082f49",

@@ -21,7 +21,7 @@ describe("avatarTone", () => {
 describe("tone contrast", () => {
   // Tailwind's published hex values for the shades used.
   const hex: Record<string, string> = {
-    "teal-100": "#ccfbf1", "teal-800": "#115e59",
+    "teal-100": "#cbf6fb", "teal-800": "#005860",
     "sky-100": "#e0f2fe", "sky-800": "#075985",
     "indigo-100": "#e0e7ff", "indigo-800": "#3730a3",
     "violet-100": "#ede9fe", "violet-800": "#5b21b6",

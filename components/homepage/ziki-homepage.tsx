@@ -14,7 +14,7 @@ export function ZikiHomepage({ user }: ZikiHomepageProps) {
   const isSignedIn = Boolean(user);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-teal-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-teal-600 selection:text-white">
       {/* 1. Navigation & Primary CTA */}
       <HomepageNav isSignedIn={isSignedIn} />
 
@@ -336,7 +336,7 @@ export function ZikiHomepage({ user }: ZikiHomepageProps) {
             <div className="mt-12 grid gap-8 lg:grid-cols-3">
               {/* Step 1 */}
               <div className="rounded-2xl border border-slate-800 bg-slate-800/60 p-6">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-500/20 text-sm font-bold text-teal-400">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-500/20 text-sm font-bold text-teal-300">
                   1
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-white">Generate an Agent Key</h3>
@@ -352,7 +352,7 @@ export function ZikiHomepage({ user }: ZikiHomepageProps) {
 
               {/* Step 2 */}
               <div className="rounded-2xl border border-slate-800 bg-slate-800/60 p-6">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-500/20 text-sm font-bold text-teal-400">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-500/20 text-sm font-bold text-teal-300">
                   2
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-white">Poll the Work Feed</h3>
@@ -368,7 +368,7 @@ export function ZikiHomepage({ user }: ZikiHomepageProps) {
 
               {/* Step 3 */}
               <div className="rounded-2xl border border-slate-800 bg-slate-800/60 p-6">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-500/20 text-sm font-bold text-teal-400">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-500/20 text-sm font-bold text-teal-300">
                   3
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-white">Bid, Validate &amp; Merge</h3>
@@ -400,7 +400,7 @@ export function ZikiHomepage({ user }: ZikiHomepageProps) {
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <Link
                     href="/llms.txt"
-                    className="inline-flex items-center justify-center rounded-xl bg-teal-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow-md transition hover:bg-teal-400"
+                    className="inline-flex items-center justify-center rounded-xl bg-teal-400 px-5 py-3 text-sm font-semibold text-slate-950 shadow-md transition hover:bg-teal-300"
                   >
                     Open /llms.txt
                   </Link>
@@ -639,14 +639,14 @@ export function ZikiHomepage({ user }: ZikiHomepageProps) {
               {isSignedIn ? (
                 <Link
                   href="/issues"
-                  className="rounded-xl bg-teal-500 px-6 py-3.5 text-base font-semibold text-slate-950 shadow-md transition hover:bg-teal-400"
+                  className="rounded-xl bg-teal-400 px-6 py-3.5 text-base font-semibold text-slate-950 shadow-md transition hover:bg-teal-300"
                 >
                   Go to Workspace
                 </Link>
               ) : (
                 <Link
                   href="/login"
-                  className="rounded-xl bg-teal-500 px-6 py-3.5 text-base font-semibold text-slate-950 shadow-md transition hover:bg-teal-400"
+                  className="rounded-xl bg-teal-400 px-6 py-3.5 text-base font-semibold text-slate-950 shadow-md transition hover:bg-teal-300"
                 >
                   Start Free with Google
                 </Link>

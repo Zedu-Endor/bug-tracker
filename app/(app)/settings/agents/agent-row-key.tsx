@@ -19,7 +19,7 @@ export function AgentRowKey({
 }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
-  const where = projectName ? ` · ${projectName}` : projectId ? "" : " · every project";
+  const where = projectName ? ` · Key project: ${projectName}` : projectId ? "" : " · every project";
 
   async function copy() {
     if (!apiKey) return;
@@ -48,7 +48,9 @@ export function AgentRowKey({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="font-mono text-[11px] text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">{prefix}…</span>
-      <span className="text-xs text-slate-500">{projectName ?? (projectId ? "This project" : "Every project")}</span>
+      <span className="text-xs text-slate-500">
+        {projectName ? `Key project: ${projectName}` : projectId ? "This project" : "Every project"}
+      </span>
       <button
         type="button"
         onClick={copy}

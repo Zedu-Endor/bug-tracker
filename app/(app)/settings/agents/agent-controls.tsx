@@ -260,40 +260,42 @@ export function AgentControls({
 
   return (
     <div className="flex flex-col gap-2 sm:items-end">
-      <div className="flex flex-wrap items-center gap-2">
-        <label htmlFor={`level-${agentId}`} className="sr-only">
-          Level for {agentName}
+      <div className="flex flex-wrap items-end gap-2">
+        {/* #404: keep these labels visible. A bare project name reads as a workspace. */}
+        <label htmlFor={`level-${agentId}`} className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-slate-700">Level</span>
+          <Select
+            id={`level-${agentId}`}
+            value={current}
+            disabled={pending}
+            onChange={(event) => changeLevel(event.target.value as AgentLevel)}
+            className="w-auto"
+          >
+            {/* The current level stays listed even if this person can't set it. */}
+            {[...new Set([current, ...levels])].map((option) => (
+              <option key={option} value={option} disabled={!levels.includes(option)}>
+                {AGENT_LEVEL_LABELS[option]}
+              </option>
+            ))}
+          </Select>
         </label>
-        <Select
-          id={`level-${agentId}`}
-          value={current}
-          disabled={pending}
-          onChange={(event) => changeLevel(event.target.value as AgentLevel)}
-          className="w-auto"
-        >
-          {/* The current level stays listed even if this person can't set it. */}
-          {[...new Set([current, ...levels])].map((option) => (
-            <option key={option} value={option} disabled={!levels.includes(option)}>
-              {AGENT_LEVEL_LABELS[option]}
-            </option>
-          ))}
-        </Select>
-        <label htmlFor={`project-${agentId}`} className="sr-only">
-          Project for the new key
+        <label htmlFor={`project-${agentId}`} className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-slate-700">Project for the new key</span>
+          <Select
+            id={`project-${agentId}`}
+            value={projectId}
+            disabled={pending || projects.length === 0}
+            onChange={(event) => setProjectId(event.target.value)}
+            className="w-auto"
+            title="The project a replacement key will work in"
+          >
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </Select>
         </label>
-        <Select
-          id={`project-${agentId}`}
-          value={projectId}
-          disabled={pending || projects.length === 0}
-          onChange={(event) => setProjectId(event.target.value)}
-          className="w-auto"
-        >
-          {projects.map((project) => (
-            <option key={project.id} value={project.id}>
-              {project.name}
-            </option>
-          ))}
-        </Select>
         {canSetBurst ? (
           <>
             <label className="flex items-center gap-1.5 text-xs text-slate-600">

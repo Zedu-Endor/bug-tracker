@@ -28,6 +28,7 @@ describe("AgentRowKey", () => {
     render(<AgentRowKey apiKey={apiKey} prefix="ziki_secr" projectId="project-1" projectName="Web" />);
 
     expect(screen.getByText("ziki_secr…")).toBeDefined();
+    expect(screen.getByText("Key project: Web")).toBeDefined();
     expect(document.body.textContent).not.toContain(apiKey);
     fireEvent.click(screen.getByRole("button", { name: "Copy key" }));
 

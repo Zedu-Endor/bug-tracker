@@ -50,6 +50,18 @@ describe("DocsPage", () => {
     expect(copySpy).toHaveBeenCalled();
   });
 
+  it("lets the error-codes table scroll on its own, reachable by keyboard", () => {
+    render(<DocsPage />);
+    const region = screen.getByRole("region", { name: /4\. Error Codes & Handling/i });
+
+    // overflow-hidden used to cut the last column off on phones.
+    expect(region.className).toContain("overflow-x-auto");
+    expect(region.className).not.toContain("overflow-hidden");
+    expect(region.getAttribute("tabindex")).toBe("0");
+    expect(region.querySelector("table")?.className).toMatch(/min-w-\[/);
+    expect(screen.getByRole("columnheader", { name: "Resolution" })).toBeTruthy();
+  });
+
   it("sends projectId on the examples whose routes reject a request without it", () => {
     // GET /api/v1/issues and POST /api/v1/issues/{id}/bid answer 400
     // "projectId is required" without it, so a copied example has to carry it.

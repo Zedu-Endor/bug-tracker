@@ -43,4 +43,31 @@ test.describe("no sideways scroll", () => {
     await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Open menu" })).toBeHidden();
   });
+
+  // The error-codes table on /docs used overflow-hidden, so on a phone its
+  // last column was cut off with no way to reach it. It scrolls on its own now.
+  for (const width of [375, 768, 1280]) {
+    test(`the API docs error table at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/docs");
+      await expectNoSidewaysScroll(page);
+
+      const table = page.getByRole("region", { name: "4. Error Codes & Handling" });
+      await expect(table).toBeVisible();
+      const scroll = await table.evaluate((el) => ({
+        overflowX: getComputedStyle(el).overflowX,
+        overflows: el.scrollWidth > el.clientWidth,
+      }));
+      // Wider than its box only where a person can scroll it.
+      if (scroll.overflows) expect(["auto", "scroll"]).toContain(scroll.overflowX);
+
+      // Scrolled to the end, the last column is fully inside the box.
+      await table.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+      const box = await table.boundingBox();
+      // The last header cell, found by element so the check doesn't lean on its accessible name.
+      const last = await table.locator("thead th").last().boundingBox();
+      expect(box && last).toBeTruthy();
+      expect(last!.x + last!.width).toBeLessThanOrEqual(box!.x + box!.width + 1);
+    });
+  }
 });

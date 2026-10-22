@@ -243,16 +243,23 @@ export default function DocsPage() {
 
       {/* HTTP Status & Error Codes */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold text-slate-900 border-b border-slate-200 pb-2">
+        <h2 id="error-codes-heading" className="text-xl font-semibold text-slate-900 border-b border-slate-200 pb-2">
           4. Error Codes &amp; Handling
         </h2>
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+        {/* Three columns don't fit a phone: scroll the table, not the page,
+            and let keyboard users reach the scroll (axe scrollable-region-focusable). */}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrollable region must be focusable */}
+        <div tabIndex={0}
+          role="region"
+          aria-labelledby="error-codes-heading"
+          className="overflow-x-auto rounded-xl border border-slate-200 bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+        >
+          <table className="min-w-[36rem] w-full divide-y divide-slate-200 text-left text-sm">
             <thead className="bg-slate-50 text-xs font-semibold text-slate-600 uppercase">
               <tr>
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Reason</th>
-                <th className="px-4 py-3">Resolution</th>
+                <th scope="col" className="px-4 py-3">Code</th>
+                <th scope="col" className="px-4 py-3">Reason</th>
+                <th scope="col" className="px-4 py-3">Resolution</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-slate-700 text-xs">

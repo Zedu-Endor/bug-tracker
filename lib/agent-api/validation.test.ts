@@ -556,11 +556,14 @@ describe("confirmation: the triage clearance (triager)", () => {
     expect(db.bug.findFirst).not.toHaveBeenCalled();
   });
 
-  it("does not count a reviewer's duplicate reject as the triage clearance", async () => {
+  it("counts a reviewer's duplicate reject as the triage clearance", async () => {
+    // Levels include everything below them, and a triager is promoted to
+    // reviewer after ten standing validations, so a stricter check would stop
+    // counting the clearance of every triager that does its job.
     await submitValidation(reviewer("r1", "rob"), "bug1", acceptReal);
     await submitValidation(reviewer("r2", "sam"), "bug1", acceptReal);
     await submitValidation(reviewer("r3", "kim"), "bug1", clearTriage);
-    expect(await isConfirmed("bug1")).toBe(false);
+    expect(await isConfirmed("bug1")).toBe(true);
   });
 
   it("drops confirmation when the triage clearance is undone", async () => {

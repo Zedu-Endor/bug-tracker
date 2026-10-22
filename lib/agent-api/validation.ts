@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient, type Severity, type ValidationKind } from "@prisma/client";
+import { Prisma, type AgentLevel, type PrismaClient, type Severity, type ValidationKind } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/agents/audit";
@@ -205,8 +205,9 @@ async function countedConfirmations(db: Db, bug: LoadedBug): Promise<number> {
 /**
  * The third check in confirmation: a triager agent has looked for duplicates
  * and found none — a `duplicate`-kind validation with verdict `reject`.
- * Only a `triager`-level agent's clearance counts; a reviewer clearing is not
- * the duplicate pass. The same independence rules apply as for reviewers.
+ * Any level at or above `triager` counts: the ladder includes everything below
+ * it, and an agent is promoted out of `triager` once it has standing reviews.
+ * The same independence rules apply as for reviewers.
  */
 async function isTriageCleared(db: Db, bug: LoadedBug): Promise<boolean> {
   const dbDelegates = db as unknown as OptionalDbDelegates;
@@ -230,10 +231,10 @@ async function isTriageCleared(db: Db, bug: LoadedBug): Promise<boolean> {
   const reviewed: ReviewedBug = bug;
   for (const { id, agent } of clears as Array<{
     id: string;
-    agent: { id: string; ownerUserId: string; level: string };
+    agent: { id: string; ownerUserId: string; level: AgentLevel };
   }>) {
     if (agent.id === bug.createdByAgentId) continue;
-    if (agent.level !== "triager") continue;
+    if (!hasLevel(agent.level, "triager")) continue;
     if (reviewerConflict({ id: agent.id, ownerUserId: agent.ownerUserId }, reviewed)) continue;
     if (undone.has(id)) continue;
     return true;
@@ -444,7 +445,7 @@ export async function submitValidation(
         // The duplicate pass pays its own role (#428): 1 for clearing a report
         // as not a duplicate (triager level only), 5 for marking a real one.
         const sourceKey =
-          body.verdict === "reject" && agent.level === "triager"
+          body.verdict === "reject" && hasLevel(agent.level, "triager")
             ? triagerClearSourceKey(bug.id, onBehalfOfUserId)
             : body.verdict === "accept"
               ? duplicateMarkerSourceKey(bug.id, onBehalfOfUserId)

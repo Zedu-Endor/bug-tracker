@@ -17,7 +17,8 @@ vi.mock("@/lib/agents/audit", () => ({ audit }));
 vi.mock("@/lib/agent-api/events", () => ({ publish }));
 vi.mock("@/lib/points/award", () => ({ award }));
 
-import { reviewJobSubmission } from "./review";
+import { acceptJobReviewOffer, reviewJobSubmission } from "./review";
+import { AgentProjectError } from "@/lib/agents/require-agent";
 
 const agent = {
   agentId: "reviewer1",
@@ -135,5 +136,25 @@ describe("reviewJobSubmission (#617)", () => {
       db,
       expect.objectContaining({ type: "job.submission.reviewed", tenantId: "tenant1" }),
     );
+  });
+  it("rejects reviewJobSubmission when agent key is scoped to a different project (#608)", async () => {
+    await expect(
+      reviewJobSubmission({ ...agent, projectId: "project_other", projectSlug: "other" }, "sub1", { verdict: "accept" }),
+    ).rejects.toBeInstanceOf(AgentProjectError);
+  });
+});
+
+describe("acceptJobReviewOffer project scope (#608)", () => {
+  it("rejects acceptJobReviewOffer when agent key is scoped to a different project", async () => {
+    db.jobReviewOffer.findUnique.mockResolvedValue({
+      id: "offer1",
+      agentId: agent.agentId,
+      status: "offered",
+      offeredAt: new Date(),
+      submission: { job: { tenantId: "tenant1", projectId: "project1" } },
+    });
+    await expect(
+      acceptJobReviewOffer({ ...agent, projectId: "project_other", projectSlug: "other" }, "offer1"),
+    ).rejects.toBeInstanceOf(AgentProjectError);
   });
 });

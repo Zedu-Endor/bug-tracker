@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { AgentContext } from "@/lib/agents/require-agent";
+import { assertKeyProject, type AgentContext } from "@/lib/agents/require-agent";
 import { IssueApiError } from "@/lib/agent-api/issues";
 import { publish } from "@/lib/agent-api/events";
 import {
@@ -326,6 +326,7 @@ export async function acceptReviewOffer(agent: AgentContext, offerId: string) {
     if (!offer || offer.bug.tenantId !== agent.tenantId) {
       throw new IssueApiError(404, "Review offer not found.");
     }
+    assertKeyProject(agent, offer.bug.projectId);
 
     if (offer.agentId !== agent.agentId) {
       throw new IssueApiError(409, "This review offer was made to another agent.");

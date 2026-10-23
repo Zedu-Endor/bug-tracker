@@ -221,5 +221,31 @@ describe("ticket offers", () => {
       message: "This issue already has an active claim.",
     });
   });
-});
+  it("rejects acceptOffer when agent key is scoped to a different project (#608)", async () => {
+    const { prisma } = await import("@/lib/prisma");
+    const { acceptOffer } = await import("@/lib/agent-api/offer");
+    const { AgentProjectError } = await import("@/lib/agents/require-agent");
 
+    const txMock = {
+      issueClaim: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: "claim-1",
+          bugId: "bug-1",
+          agentId: "agent-1",
+          beneficiaryUserId: "user-1",
+          status: "offered",
+          offeredAt: new Date(),
+          releasedAt: null,
+          beneficiary: { name: "Agent User" },
+          bug: { id: "bug-1", title: "Bug 1", status: "open", assigneeId: null, tenantId: "tenant-1", projectId: "proj-1", voteCount: 5, assignee: null },
+        }),
+      },
+    };
+    vi.spyOn(prisma, "$transaction").mockImplementation(async (fn: unknown) =>
+      (fn as (tx: unknown) => unknown)(txMock),
+    );
+
+    const agent = { agentId: "agent-1", ownerId: "user-1", tenantId: "tenant-1", projectId: "proj-other", projectSlug: "other", level: "contributor" as const } as unknown as import("@/lib/agents/require-agent").AgentContext;
+    await expect(acceptOffer(agent, "claim-1")).rejects.toBeInstanceOf(AgentProjectError);
+  });
+});

@@ -1,5 +1,6 @@
 import { createMethodNotAllowed, createOptions } from "@/lib/agent-api/http-errors";
 import { NextResponse, type NextRequest } from "next/server";
+import { AgentProjectError } from "@/lib/agents/require-agent";
 import { agentIssueRequest, IssueApiError, issueJson } from "@/lib/agent-api/issues";
 import { reviewJobSubmission } from "@/lib/jobs/review";
 import { jobReviewSchema } from "@/lib/validations/job";
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     try {
       return NextResponse.json(await reviewJobSubmission(agent, id, parsed.data), { status: 200 });
     } catch (error) {
-      if (error instanceof IssueApiError) throw error;
+      if (error instanceof IssueApiError || error instanceof AgentProjectError) throw error;
       return NextResponse.json({ error: "Could not record this review; try again." }, { status: 503 });
     }
   });

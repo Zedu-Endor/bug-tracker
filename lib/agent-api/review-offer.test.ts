@@ -432,4 +432,28 @@ describe("handleTestVerdictSubmitted and review.completed (#597)", () => {
       }),
     }));
   });
+  it("rejects acceptance when agent key is scoped to a different project (#608)", async () => {
+    const reviewerAgent = {
+      agentId: "agent-bob",
+      name: "bob-agent",
+      ownerId: "bob",
+      tenantId: "tenant-zedu",
+      level: "reviewer" as const,
+    };
+    db.reviewOffer.findUnique.mockResolvedValue({
+      id: "offer-1",
+      bugId: "bug-123",
+      agentId: reviewerAgent.agentId,
+      beneficiaryUserId: "bob",
+      status: "offered",
+      offeredAt: new Date(),
+      pullRequestUrl: "https://github.com/zedu/web/pull/1",
+      bug: { tenantId: "tenant-zedu", projectId: "proj-web" },
+    });
+
+    const { AgentProjectError } = await import("@/lib/agents/require-agent");
+    await expect(
+      acceptReviewOffer({ ...reviewerAgent, projectId: "proj-mobile", projectSlug: "mobile" }, "offer-1"),
+    ).rejects.toBeInstanceOf(AgentProjectError);
+  });
 });

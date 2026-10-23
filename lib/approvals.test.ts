@@ -351,6 +351,68 @@ describe("Human approval rules and gates (#598)", () => {
         expect.anything(),
       );
     });
+
+    it("rejects, publishes approval.rejected, audits, and does not resume pipeline", async () => {
+      db.membership.findUnique.mockResolvedValue({ userId: "admin-1", role: "admin" });
+      db.issueApproval.findFirst.mockResolvedValue({
+        id: "appr-reject",
+        stage: "before_offer",
+        status: "pending",
+        bugId: "bug-300",
+        bug: {
+          id: "bug-300",
+          title: "Rejected feature",
+          tenantId: "tenant-1",
+          projectId: "proj-1",
+          status: "open",
+          assigneeId: null,
+          pullRequestUrl: null,
+        },
+      });
+      db.issueApproval.update.mockResolvedValue({
+        id: "appr-reject",
+        status: "rejected",
+        decidedByUserId: "admin-1",
+      });
+
+      const result = await decideApproval("admin-1", "tenant-1", "appr-reject", "rejected", { db: db as never });
+      expect(result.status).toBe("rejected");
+
+      // Verify audit
+      expect(db.projectAuditEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          tenantId: "tenant-1",
+          projectId: "proj-1",
+          actorUserId: "admin-1",
+          action: "approval.rejected",
+          changes: expect.objectContaining({
+            approvalId: "appr-reject",
+            decision: "rejected",
+          }),
+        }),
+      });
+
+      // Verify event
+      expect(db.agentEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: "approval.rejected",
+            tenantId: "tenant-1",
+            bugId: "bug-300",
+            payload: {
+              approvalId: "appr-reject",
+              issueId: "bug-300",
+              stage: "before_offer",
+              actorUserId: "admin-1",
+            },
+          }),
+        }),
+      );
+
+      // Verify offerNext and mergeAcceptedFix were NOT called
+      expect(offerNext).not.toHaveBeenCalled();
+      expect(mergeAcceptedFix).not.toHaveBeenCalled();
+    });
   });
 
   describe("ApprovalRule management", () => {

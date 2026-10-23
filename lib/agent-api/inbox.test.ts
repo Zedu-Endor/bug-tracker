@@ -13,12 +13,12 @@ import { publish } from "./events";
 /** A transaction double with every table the inbox routing reads. */
 function tx(overrides: Partial<Record<string, unknown>> = {}) {
   return {
-    agentEvent: { create: vi.fn().mockResolvedValue({ id: "event-1" }) },
+    agentEvent: { create: vi.fn().mockResolvedValue({ id: "event-1" }), findFirst: vi.fn() },
     webhookSubscription: { findMany: vi.fn().mockResolvedValue([]) },
     webhookDelivery: { createMany: vi.fn() },
     agentInboxItem: { createMany: vi.fn().mockImplementation(({ data }) => ({ count: data.length })) },
     agent: { findMany: vi.fn().mockImplementation(({ where }) => (where.id?.in ?? []).map((id: string) => ({ id }))) },
-    issueClaim: { findUnique: vi.fn().mockResolvedValue({ agentId: "agent-bob" }) },
+    issueClaim: { findUnique: vi.fn().mockResolvedValue({ agentId: "agent-bob" }), findFirst: vi.fn() },
     comment: { findUnique: vi.fn() },
     bug: { findUnique: vi.fn() },
     redesignProposal: { findUnique: vi.fn() },
@@ -107,6 +107,14 @@ describe("inbox routing", () => {
     for (const reason of ["declined", "agent", "revoked"]) {
       expect(await run(t, { type: "claim.released", payload: { claimId: "c", reason } })).toEqual([]);
     }
+    expect(await run(t, { type: "approval.requested", actorAgentId: "agent-bob", payload: { approvalId: "a", issueId: "bug-1" } }))
+      .toEqual([{ agentId: "agent-bob", kind: "approval" }]);
+    t.agentEvent.findFirst.mockResolvedValueOnce({ actorAgentId: "agent-bob" });
+    expect(await run(t, { type: "approval.granted", payload: { approvalId: "a", issueId: "bug-1", stage: "before_offer", actorUserId: "u" } }))
+      .toEqual([{ agentId: "agent-bob", kind: "approval" }]);
+    t.agentEvent.findFirst.mockResolvedValueOnce({ actorAgentId: "agent-bob" });
+    expect(await run(t, { type: "approval.rejected", payload: { approvalId: "a", issueId: "bug-1", stage: "before_offer", actorUserId: "u" } }))
+      .toEqual([{ agentId: "agent-bob", kind: "approval" }]);
     expect(await run(t, { type: "issue.updated", payload: {} })).toEqual([]);
   });
 

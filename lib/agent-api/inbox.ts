@@ -55,6 +55,84 @@ async function claimAgentId(db: Db, claimId: unknown): Promise<string | null> {
 }
 
 /**
+ * Resolves the agent that requested a human approval (#513).
+ * Matches by approvalId to ensure each decision routes to the specific requesting agent.
+ */
+async function approvalAgentId(db: Db, event: InboxEvent): Promise<string | null> {
+  const payload = event.payload as Record<string, unknown>;
+  const direct = text(payload.agentId);
+  if (direct) return direct;
+
+  const approvalId = text(payload.approvalId);
+  const bugId = text(payload.issueId) ?? text(event.bugId);
+
+  if (typeof (db as { agentEvent?: { findFirst?: unknown; findMany?: unknown } }).agentEvent?.findFirst === "function") {
+    // 1. Primary: match the specific approval.requested event by payload.approvalId
+    if (approvalId) {
+      const byApproval = await (db as {
+        agentEvent: { findFirst: (args: unknown) => Promise<{ actorAgentId: string | null } | null> };
+      }).agentEvent.findFirst({
+        where: {
+          tenantId: event.tenantId,
+          type: "approval.requested",
+          payload: { path: ["approvalId"], equals: approvalId },
+        },
+        select: { actorAgentId: true },
+      });
+      if (byApproval?.actorAgentId) return byApproval.actorAgentId;
+
+      // In-memory / test-double fallback: find candidates and check payload
+      if (typeof (db as { agentEvent?: { findMany?: unknown } }).agentEvent?.findMany === "function") {
+        const candidates = await (db as {
+          agentEvent: { findMany: (args: unknown) => Promise<{ actorAgentId: string | null; payload: unknown }[]> };
+        }).agentEvent.findMany({
+          where: {
+            tenantId: event.tenantId,
+            type: "approval.requested",
+            ...(bugId ? { bugId } : {}),
+          },
+          select: { actorAgentId: true, payload: true },
+        });
+        const matched = candidates.find((c) => {
+          const p = c.payload as Record<string, unknown> | null;
+          return p && p.approvalId === approvalId;
+        });
+        if (matched?.actorAgentId) return matched.actorAgentId;
+      }
+    }
+
+    // 2. Issue fallback if no approvalId was supplied
+    if (bugId) {
+      const reqEvent = await (db as {
+        agentEvent: { findFirst: (args: unknown) => Promise<{ actorAgentId: string | null } | null> };
+      }).agentEvent.findFirst({
+        where: {
+          tenantId: event.tenantId,
+          type: "approval.requested",
+          bugId,
+        },
+        orderBy: { createdAt: "desc" },
+        select: { actorAgentId: true },
+      });
+      if (reqEvent?.actorAgentId) return reqEvent.actorAgentId;
+    }
+  }
+
+  // 3. Claim fallback for before_merge stage tied to active claim on this issue
+  if (bugId && typeof (db as { issueClaim?: { findFirst?: unknown } }).issueClaim?.findFirst === "function") {
+    const claim = await (db as {
+      issueClaim: { findFirst: (args: unknown) => Promise<{ agentId: string } | null> };
+    }).issueClaim.findFirst({
+      where: { bugId, status: "active" },
+      select: { agentId: true },
+    });
+    if (claim?.agentId) return claim.agentId;
+  }
+
+  return null;
+}
+
+/**
  * Agents @mentioned by name (#603), then the tenant's live agents whose owner
  * was @mentioned, except the author. `writeInbox` drops out-of-tenant ids.
  */
@@ -120,6 +198,15 @@ export async function inboxRecipients(db: Db, event: InboxEvent): Promise<InboxD
       if (!event.bugId) return [];
       const bug = await db.bug.findUnique({ where: { id: event.bugId }, select: { description: true } });
       return bug ? mentionDeliveries(db, event.tenantId, bug.description, event.actorAgentId ?? null, null) : [];
+    }
+    case "approval.requested": {
+      const agentId = event.actorAgentId ?? text(payload.agentId);
+      return agentId ? [{ agentId, kind: "approval" }] : [];
+    }
+    case "approval.granted":
+    case "approval.rejected": {
+      const agentId = await approvalAgentId(db, event);
+      return agentId ? [{ agentId, kind: "approval" }] : [];
     }
     default: {
       if (!REDESIGN_DECISIONS.has(event.type)) return [];

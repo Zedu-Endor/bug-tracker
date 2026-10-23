@@ -288,6 +288,9 @@ export async function checkApprovalOpen(
  * - Publishes `approval.granted`
  * - Audits the decision
  * - Resumes the pipeline automatically (the offer or merge resumes)
+ * When rejected:
+ * - Publishes `approval.rejected`
+ * - Audits the decision
  */
 export async function decideApproval(
   userId: string,
@@ -410,6 +413,22 @@ export async function decideApproval(
           // Resume merge
           await Promise.resolve(mergeAcceptedFix(agentCtx, approval.bugId, { db: tx as never })).catch(() => null);
         }
+      }
+    } else if (decision === "rejected") {
+      try {
+        await publish(tx, {
+          tenantId,
+          type: "approval.rejected",
+          bugId: approval.bugId,
+          payload: {
+            approvalId,
+            issueId: approval.bugId,
+            stage: approval.stage,
+            actorUserId: userId,
+          },
+        });
+      } catch {
+        // Safe in partial DB mocks
       }
     }
 

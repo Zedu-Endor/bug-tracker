@@ -24,6 +24,7 @@ import {
   classifyEscalation,
   countPendingEscalations,
   listBugEscalations,
+  readAgentEscalation,
   readAgentQuestion,
   type AskAgentQuestionInput,
 } from "./agent-questions";
@@ -109,14 +110,56 @@ describe("project-scoped keys on questions and escalations (#412)", () => {
 });
 
 describe("readAgentQuestion (#446)", () => {
-  it("returns the answer to the asking agent", async () => {
-    const row = { id: "q1", body: "?", answer: "Yes", answeredAt: new Date(), bugId: null, createdAt: new Date() };
+  it("returns a normalized typed question and its answer to the asking agent", async () => {
+    const answeredAt = new Date();
+    const createdAt = new Date();
+    const row = {
+      id: "q1",
+      body: "[blocker] Should I stop?",
+      answer: "Yes",
+      answeredAt,
+      bugId: null,
+      createdAt,
+    };
     db.agentQuestion.findFirst.mockResolvedValue(row);
 
-    await expect(readAgentQuestion(agent, "q1")).resolves.toEqual(row);
+    await expect(readAgentQuestion(agent, "q1")).resolves.toEqual({
+      ...row,
+      body: "Should I stop?",
+      type: "blocker",
+      status: "resolved",
+    });
     expect(db.agentQuestion.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: "q1", agentId: "a1" } }),
     );
+  });
+
+  it("includes the inferred type and open status for an unanswered legacy question", async () => {
+    const row = { id: "q2", body: "[work_authorization] Can I proceed?", answer: null, answeredAt: null, bugId: "b1", createdAt: new Date() };
+    db.agentQuestion.findFirst.mockResolvedValue(row);
+
+    await expect(readAgentQuestion(agent, "q2")).resolves.toMatchObject({
+      body: "Can I proceed?",
+      type: "work_authorization",
+      status: "open",
+    });
+  });
+
+  it("preserves an explicit type when reading the normalized escalation", async () => {
+    db.agentQuestion.findFirst.mockResolvedValue({
+      id: "q3",
+      body: "[blocker] Can I proceed?",
+      answer: null,
+      answeredAt: null,
+      bugId: null,
+      createdAt: new Date(),
+    });
+
+    await expect(readAgentEscalation(agent, "q3")).resolves.toMatchObject({
+      body: "Can I proceed?",
+      type: "blocker",
+      status: "open",
+    });
   });
 
   it("hides a question that belongs to another agent", async () => {

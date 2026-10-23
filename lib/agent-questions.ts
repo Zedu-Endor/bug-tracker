@@ -139,21 +139,25 @@ export async function readAgentQuestion(agent: AgentContext, questionId: string)
     select: { id: true, body: true, answer: true, answeredAt: true, bugId: true, createdAt: true },
   });
   if (!question) throw new IssueApiError(404, "Question not found.");
-  return question;
+
+  const parsed = parseEscalationBody(question.body);
+  return {
+    ...question,
+    body: parsed.cleanBody,
+    type: escalationTypeToSlug(parsed.type),
+    status: getEscalationStatus(question.answeredAt, question.answer),
+  };
 }
 
 export async function readAgentEscalation(agent: AgentContext, escalationId: string) {
   const question = await readAgentQuestion(agent, escalationId);
-  const parsed = parseEscalationBody(question.body);
-  const typeSlug = escalationTypeToSlug(parsed.type);
-  const status = getEscalationStatus(question.answeredAt, question.answer);
 
   return {
     id: question.id,
     bugId: question.bugId,
-    body: parsed.cleanBody,
-    type: typeSlug,
-    status,
+    body: question.body,
+    type: question.type,
+    status: question.status,
     resolution: question.answer,
     resolvedAt: question.answeredAt,
     createdAt: question.createdAt,

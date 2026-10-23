@@ -37,7 +37,19 @@ describe("POST /api/github/webhook (#474)", () => {
     const response = await call(merged);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ resolved: ["bug-1"] });
-    expect(resolve).toHaveBeenCalledWith("https://github.com/o/r/pull/9");
+    expect(resolve).toHaveBeenCalledWith("https://github.com/o/r/pull/9", undefined, undefined);
+  });
+  it("passes the repository, title and body so an unlinked issue the PR closes is resolved", async () => {
+    resolve.mockResolvedValue(["bug-2"]);
+    const response = await call({
+      action: "closed",
+      pull_request: { merged: true, html_url: "https://github.com/o/r/pull/9", title: "feat: x (#474)", body: "Fixes #474" },
+      repository: { html_url: "https://github.com/o/r" },
+    });
+    expect(await response.json()).toEqual({ resolved: ["bug-2"] });
+    expect(resolve).toHaveBeenCalledWith("https://github.com/o/r/pull/9", undefined, {
+      repositoryUrl: "https://github.com/o/r", text: ["feat: x (#474)", "Fixes #474"],
+    });
   });
   it("links issues named by an opened pull request", async () => {
     link.mockResolvedValue(["bug-2"]);

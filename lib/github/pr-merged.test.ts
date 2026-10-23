@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 const publish = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/agent-api/events", () => ({ publish }));
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
-import { resolveIssuesForMergedPullRequest, verifyGithubSignature } from "./pr-merged";
+import { extractClosedIssueNumbers, resolveIssuesForMergedPullRequest, verifyGithubSignature } from "./pr-merged";
 
 const sign = (body: string, secret: string) => `sha256=${createHmac("sha256", secret).update(body).digest("hex")}`;
 
@@ -60,5 +60,47 @@ describe("resolveIssuesForMergedPullRequest (#474)", () => {
     const db = { bug: { findMany: vi.fn().mockResolvedValue([]) }, $transaction: vi.fn() };
     expect(await resolveIssuesForMergedPullRequest("https://github.com/o/r/pull/2", db as never)).toEqual([]);
     expect(db.$transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe("extractClosedIssueNumbers (#474)", () => {
+  it("reads closing keywords and a trailing (#n) in the title", () => {
+    expect(extractClosedIssueNumbers("feat(api): add q search (#460)", null)).toEqual([460]);
+    expect(extractClosedIssueNumbers("x", "Fixes #12 and closes: #34, resolved #56")).toEqual([12, 34, 56]);
+  });
+  it("ignores bare mentions", () => {
+    expect(extractClosedIssueNumbers("Follow-up to #5", "See #7 for context")).toEqual([]);
+  });
+});
+
+describe("resolveIssuesForMergedPullRequest by reference (#474)", () => {
+  it("resolves an unlinked, person-assigned issue the merged PR closes", async () => {
+    publish.mockClear();
+    const tx = { bug: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) }, bugActivity: { create: vi.fn() }, issueClaim: { updateMany: vi.fn() } };
+    const named = { id: "bug-9", tenantId: "t", projectId: "p", status: "open", assigneeId: "person", reporterId: "rep", claims: [] };
+    const db = {
+      bug: { findMany: vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([named]) },
+      project: { findMany: vi.fn().mockResolvedValue([{ id: "p", tenantId: "t", repoUrl: "https://github.com/o/r" }]) },
+      $transaction: vi.fn((fn: (t: typeof tx) => Promise<boolean>) => fn(tx)),
+    };
+    const ids = await resolveIssuesForMergedPullRequest("https://github.com/o/r/pull/3", db as never, {
+      repositoryUrl: "https://github.com/o/r", text: ["feat: thing (#474)", ""],
+    });
+    expect(ids).toEqual(["bug-9"]);
+    expect(db.bug.findMany).toHaveBeenLastCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ number: { in: [474] }, pullRequestUrl: null, status: { not: "resolved" } }),
+    }));
+  });
+
+  it("skips projects of a different repository", async () => {
+    const db = {
+      bug: { findMany: vi.fn().mockResolvedValue([]) },
+      project: { findMany: vi.fn().mockResolvedValue([{ id: "p", tenantId: "t", repoUrl: "https://github.com/other/repo" }]) },
+      $transaction: vi.fn(),
+    };
+    expect(await resolveIssuesForMergedPullRequest("https://github.com/o/r/pull/3", db as never, {
+      repositoryUrl: "https://github.com/o/r", text: ["Fixes #474", ""],
+    })).toEqual([]);
+    expect(db.bug.findMany).toHaveBeenCalledTimes(1);
   });
 });

@@ -8,7 +8,9 @@ export const runtime = "nodejs";
  * GitHub webhook (#474). Subscribe the repository to "Pull requests" events
  * with content type application/json and the secret in GITHUB_WEBHOOK_SECRET.
  *
- * - `closed` + merged: resolves every issue the pull request was linked to.
+ * - `closed` + merged: resolves every issue the pull request was linked to, and
+ *   any unlinked issue it closes by reference (`Fixes #490`, or `(#490)` ending
+ *   the title), such as one assigned to a person.
  * - `opened` / `reopened` / `edited` / `synchronize`: links issues the pull
  *   request names (`Fixes #490`, `ziki-490` in title, body, or branch) so the
  *   solving agent does not have to call the link endpoint itself.
@@ -45,7 +47,13 @@ export async function POST(request: NextRequest) {
     if (pr?.merged !== true || !pr.html_url) {
       return NextResponse.json({ ignored: true }, { status: 202, headers });
     }
-    const resolved = await resolveIssuesForMergedPullRequest(pr.html_url);
+    const resolved = await resolveIssuesForMergedPullRequest(
+      pr.html_url,
+      undefined,
+      payload.repository?.html_url
+        ? { repositoryUrl: payload.repository.html_url, text: [pr.title ?? "", pr.body ?? ""] }
+        : undefined,
+    );
     return NextResponse.json({ resolved }, { headers });
   }
 

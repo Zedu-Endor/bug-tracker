@@ -10,6 +10,9 @@ import { z } from "zod";
 const fieldTypes = ["string", "number", "integer", "boolean", "array", "object", "null"] as const;
 const fieldTypeSchema = z.enum(fieldTypes);
 
+/** Types whose values can be resolved to a dedupe value. */
+const scalarFieldTypes = new Set<string>(["string", "number", "integer", "boolean"]);
+
 const fieldNameSchema = z
   .string()
   .trim()
@@ -66,7 +69,9 @@ const idSchema = z.string().trim().min(1).max(191);
 /**
  * Create payload for a job (#617). `dedupeKey` names the submission-row field
  * deduplication is keyed on, so it must be one of the schema's fields when a
- * schema is present.
+ * schema is present. A job is rejected at creation when a required field is not
+ * declared in `properties`, or when the dedupe field's declared type can never
+ * produce a value to deduplicate on (Ziki #582).
  */
 export const createJobSchema = z
   .object({
@@ -91,7 +96,38 @@ export const createJobSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    const fields = fieldNamesOf(value.submissionSchema ?? null);
+    const schema = value.submissionSchema ?? null;
+    const fields = fieldNamesOf(schema);
+
+    if (schema && !Array.isArray(schema)) {
+      // A required name outside `properties` can never be submitted: the row
+      // validator rejects it as an unknown field. Reject the job instead of
+      // accepting a schema no submission can satisfy.
+      const propertyNames = new Set(Object.keys(schema.properties));
+      (schema.required ?? []).forEach((field, index) => {
+        if (!propertyNames.has(field)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["submissionSchema", "required", index],
+            message: `required field "${field}" is not declared in submissionSchema.properties.`,
+          });
+        }
+      });
+
+      // Arrays and objects cannot be deduplicated (see `dedupeValue`), and a
+      // null field is always blank, so none of these can key a row. An
+      // omitted type stays allowed because a field with no type may still
+      // hold a scalar value.
+      const dedupeType = schema.properties[value.dedupeKey]?.type;
+      if (dedupeType && !scalarFieldTypes.has(dedupeType)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["dedupeKey"],
+          message: `dedupeKey "${value.dedupeKey}" must be a scalar field (string, number, integer, or boolean); "${dedupeType}" cannot produce a dedupe value.`,
+        });
+      }
+    }
+
     if (fields && !fields.includes(value.dedupeKey)) {
       ctx.addIssue({
         code: "custom",

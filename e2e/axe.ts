@@ -15,6 +15,22 @@ type ScanOptions = {
 };
 
 /**
+ * Axe measures contrast on the colours as painted, so a card that is still
+ * fading in can report its links below AA while they are translucent (the
+ * login card fades up over 600ms). Wait for finite animations to settle
+ * first; infinite decorative loops (the auth frame's floating cards) never
+ * finish and are skipped.
+ */
+async function waitForAnimations(page: Page) {
+  await page.waitForFunction(() =>
+    document.getAnimations().every((animation) => {
+      const iterations = animation.effect?.getTiming().iterations;
+      return iterations === Infinity || animation.playState !== "running";
+    }),
+  );
+}
+
+/**
  * Scans the page axe and fails with a readable list of what broke.
  *
  * Unlike the jsdom unit tests (components/a11y.test.tsx), this runs in a real
@@ -24,6 +40,7 @@ export async function expectNoA11yViolations(
   page: Page,
   options: ScanOptions = {},
 ) {
+  await waitForAnimations(page);
   let builder = new AxeBuilder({ page }).withTags(WCAG_TAGS);
   if (options.include) builder = builder.include(options.include);
   for (const selector of options.exclude ?? []) {

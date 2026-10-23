@@ -53,6 +53,70 @@ describe("createJobSchema (#617)", () => {
     }
   });
 
+  it("accepts required fields that are declared in properties", () => {
+    const result = createJobSchema.safeParse({
+      ...base,
+      submissionSchema: {
+        properties: { url: { type: "string" }, title: { type: "string" } },
+        required: ["url"],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects every required field that is not declared in properties", () => {
+    const result = createJobSchema.safeParse({
+      ...base,
+      submissionSchema: {
+        properties: { url: { type: "string" } },
+        required: ["missing", "url", "other"],
+      },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const requiredIssues = result.error.issues.filter((issue) =>
+        issue.path.join(".").startsWith("submissionSchema.required."),
+      );
+      expect(requiredIssues.map((issue) => issue.path.join("."))).toEqual([
+        "submissionSchema.required.0",
+        "submissionSchema.required.2",
+      ]);
+      expect(requiredIssues.map((issue) => issue.message).join(" ")).toContain('"missing"');
+      expect(requiredIssues.map((issue) => issue.message).join(" ")).toContain('"other"');
+    }
+  });
+
+  it.each(["array", "object", "null"])("rejects a dedupeKey declared as %s", (type) => {
+    const result = createJobSchema.safeParse({
+      ...base,
+      submissionSchema: { properties: { url: { type } }, required: ["url"] },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const issue = result.error.issues.find((candidate) => candidate.path.join(".") === "dedupeKey");
+      expect(issue?.message).toContain("scalar");
+      expect(issue?.message).toContain(`"${type}"`);
+    }
+  });
+
+  it.each(["string", "number", "integer", "boolean"])("accepts a dedupeKey declared as %s", (type) => {
+    expect(
+      createJobSchema.safeParse({
+        ...base,
+        submissionSchema: { properties: { url: { type } }, required: ["url"] },
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts an untyped dedupeKey because the field may still hold a scalar", () => {
+    expect(
+      createJobSchema.safeParse({
+        ...base,
+        submissionSchema: { properties: { url: {} }, required: ["url"] },
+      }).success,
+    ).toBe(true);
+  });
+
   it("accepts a dedupeKey that is one of the array-shaped schema fields", () => {
     const result = createJobSchema.safeParse({
       ...base,

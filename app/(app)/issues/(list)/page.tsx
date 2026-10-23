@@ -776,7 +776,13 @@ export default async function BugsPage({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/*
+              `relative` makes this the containing block for the absolutely
+              positioned `sr-only` spans in each row (the wide table overflows
+              past them). Without it they resolve against the document and
+              widen the page on phones, which breaks mobile layout.
+            */}
+            <div className="relative overflow-x-auto">
               <div className="min-w-[860px]">
                 <div className="flex items-center gap-4 rounded-full bg-zk-tint px-4 py-3.5 text-xs font-bold uppercase tracking-[0.05em] text-zk-accent">
                   <span className="w-[52px]">Votes</span>

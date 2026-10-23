@@ -107,6 +107,48 @@ describe("POST /api/v1/jobs (#617)", () => {
     expect(res.status).toBe(400);
   });
 
+  it("400s when a required field is not declared in properties (#582)", async () => {
+    const res = await createPOST(
+      request("http://localhost/api/v1/jobs?projectId=project1", {
+        brief: "Collect every public API endpoint and its documentation URL.",
+        dedupeKey: "url",
+        maxSubmissions: 10,
+        pointsPerAccepted: 5,
+        submissionSchema: { properties: { url: { type: "string" } }, required: ["missing"] },
+      }),
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.details).toContainEqual(
+      expect.objectContaining({
+        path: ["submissionSchema", "required", 0],
+        message: expect.stringContaining('"missing"'),
+      }),
+    );
+    expect(mocks.createJob).not.toHaveBeenCalled();
+  });
+
+  it("400s when the dedupeKey type cannot produce a dedupe value (#582)", async () => {
+    const res = await createPOST(
+      request("http://localhost/api/v1/jobs?projectId=project1", {
+        brief: "Collect every public API endpoint and its documentation URL.",
+        dedupeKey: "url",
+        maxSubmissions: 10,
+        pointsPerAccepted: 5,
+        submissionSchema: { properties: { url: { type: "array" } }, required: ["url"] },
+      }),
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.details).toContainEqual(
+      expect.objectContaining({
+        path: ["dedupeKey"],
+        message: expect.stringContaining("scalar"),
+      }),
+    );
+    expect(mocks.createJob).not.toHaveBeenCalled();
+  });
+
   it("403s for an observer", async () => {
     mocks.requireAgent.mockResolvedValue({ ...agent, level: "observer" });
     const res = await createPOST(request("http://localhost/api/v1/jobs?projectId=project1", { brief: "x" }));

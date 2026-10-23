@@ -87,7 +87,7 @@ export type AgentEventType = (typeof AGENT_EVENT_TYPES)[number];
 export type EventPayload = Prisma.InputJsonObject;
 
 /** How often to look for the committed row, and how long to wait between looks. */
-const COMMIT_WAIT_ATTEMPTS = 20;
+const COMMIT_WAIT_ATTEMPTS = 60;
 const COMMIT_WAIT_DELAY_MS = 50;
 
 function waitMs(ms: number): Promise<void> {
@@ -131,7 +131,7 @@ export async function broadcastWhenCommitted(
     try {
       committed = await prisma.agentEvent.findUnique({
         where: { id: event.id },
-        select: { id: true },
+        select: { id: true, projectId: true },
       });
     } catch (error) {
       // The row cannot be read, so its visibility is unknown. Treat it as
@@ -144,6 +144,9 @@ export async function broadcastWhenCommitted(
       });
     }
     if (committed) {
+      if ((committed as { projectId?: string | null }).projectId && !event.projectId) {
+        event.projectId = (committed as { projectId?: string | null }).projectId;
+      }
       broadcast(event);
       return true;
     }
@@ -170,6 +173,7 @@ export async function publish(
     actorAgentId?: string | null;
     bugId?: string | null;
   },
+  options?: { attempts?: number; delayMs?: number },
 ): Promise<{ id: string }> {
   const event = await db.agentEvent.create({
     data: {
@@ -203,7 +207,7 @@ export async function publish(
     bugId: params.bugId ?? null,
     tenantId: params.tenantId,
     createdAt: new Date(),
-  }).catch(() => {
+  }, options).catch(() => {
     // Ignore broadcast failures to not block publishing
   });
   return event;

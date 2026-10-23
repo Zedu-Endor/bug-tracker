@@ -126,4 +126,76 @@ describe("event broadcast waits for the committed row (#524)", () => {
     expect(broadcast).toHaveBeenCalledWith(expect.objectContaining({ id: "evt-after-error" }));
     warn.mockRestore();
   });
+  it("emits zero frames when publish is called inside a rolled-back transaction (#581, #1152)", async () => {
+    db.agentEvent.create.mockResolvedValue({ id: "evt-rolled-back-publish" });
+    db.webhookSubscription.findMany.mockResolvedValue([]);
+    // Since the transaction rolls back, findUnique on the committed DB never finds the row
+    db.agentEvent.findUnique.mockResolvedValue(null);
+    const broadcast = vi.spyOn(eventStreamBus, "broadcast");
+
+    const result = await publish(db as unknown as Parameters<typeof publish>[0], {
+      tenantId: "tenant-a",
+      type: "issue.created",
+      payload: { title: "Rollback Issue" },
+      bugId: "bug-1",
+    }, { attempts: 3, delayMs: 1 });
+
+    expect(result.id).toBe("evt-rolled-back-publish");
+    expect(broadcast).not.toHaveBeenCalled();
+
+    // Wait until all attempts exhaust
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(broadcast).not.toHaveBeenCalled();
+    expect(db.agentEvent.findUnique).toHaveBeenCalledTimes(3);
+  });
+
+  it("inherits projectId from the committed row before broadcasting", async () => {
+    db.agentEvent.create.mockResolvedValue({ id: "evt-scoped-publish" });
+    db.webhookSubscription.findMany.mockResolvedValue([]);
+    db.agentEvent.findUnique.mockResolvedValue({ id: "evt-scoped-publish", projectId: "proj-abc" });
+    const broadcast = vi.spyOn(eventStreamBus, "broadcast");
+
+    const result = await publish(db as unknown as Parameters<typeof publish>[0], {
+      tenantId: "tenant-a",
+      type: "issue.validated",
+      payload: { bugId: "bug-1" },
+      bugId: "bug-1",
+    }, { attempts: 3, delayMs: 1 });
+
+    expect(result.id).toBe("evt-scoped-publish");
+    await vi.waitFor(() => expect(broadcast).toHaveBeenCalledTimes(1));
+    expect(broadcast).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "evt-scoped-publish", projectId: "proj-abc" }),
+    );
+  });
+
+  it("enforces barrier: zero frames emitted while transaction is open, exactly one after commit (#581, #1152)", async () => {
+    db.agentEvent.create.mockResolvedValue({ id: "evt-barrier" });
+    db.webhookSubscription.findMany.mockResolvedValue([]);
+    const broadcast = vi.spyOn(eventStreamBus, "broadcast");
+
+    let committed = false;
+    db.agentEvent.findUnique.mockImplementation(async () => {
+      return committed ? { id: "evt-barrier", projectId: "proj-1" } : null;
+    });
+
+    await publish(db as unknown as Parameters<typeof publish>[0], {
+      tenantId: "tenant-a",
+      type: "issue.updated",
+      payload: { bugId: "bug-1" },
+      bugId: "bug-1",
+    }, { attempts: 10, delayMs: 10 });
+
+    // While transaction is open, barrier has not resolved -> no broadcast
+    expect(broadcast).not.toHaveBeenCalled();
+
+    // Simulate transaction commit
+    committed = true;
+
+    // After commit barrier -> exactly one broadcast
+    await vi.waitFor(() => expect(broadcast).toHaveBeenCalledTimes(1));
+    expect(broadcast).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "evt-barrier", projectId: "proj-1" }),
+    );
+  });
 });

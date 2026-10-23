@@ -240,4 +240,70 @@ describe("events/stream SSE endpoint", () => {
     const body = await res.json();
     expect(body.error).toContain("invalid.type");
   });
+
+  it("closes open stream immediately when closeForAgent is called (#606)", async () => {
+    const res = await GET(request("/events/stream"));
+    expect(res.status).toBe(200);
+    const reader = res.body?.getReader();
+    await reader!.read(); // consume connected event
+    expect(eventStreamBus.subscriptionCount).toBe(1);
+
+    eventStreamBus.closeForAgent("agent-a");
+    expect(eventStreamBus.subscriptionCount).toBe(0);
+
+    const next = await reader!.read();
+    expect(next.done).toBe(true);
+  });
+
+  it("closes open stream immediately when closeForKey is called (#606)", async () => {
+    const res = await GET(request("/events/stream"));
+    expect(res.status).toBe(200);
+    const reader = res.body?.getReader();
+    await reader!.read(); // consume connected event
+    expect(eventStreamBus.subscriptionCount).toBe(1);
+
+    eventStreamBus.closeForKey("key-a");
+    expect(eventStreamBus.subscriptionCount).toBe(0);
+
+    const next = await reader!.read();
+    expect(next.done).toBe(true);
+  });
+
+  it("closes open stream during heartbeat if key is revoked (#606)", async () => {
+    vi.useFakeTimers();
+    const res = await GET(request("/events/stream"));
+    const reader = res.body?.getReader();
+    await reader!.read(); // consume connected event
+    expect(eventStreamBus.subscriptionCount).toBe(1);
+
+    db.agentApiKey.findUnique.mockResolvedValueOnce({
+      revokedAt: new Date(),
+      agent: { revokedAt: null },
+    });
+
+    await vi.advanceTimersByTimeAsync(15000);
+    expect(eventStreamBus.subscriptionCount).toBe(0);
+
+    const next = await reader!.read();
+    expect(next.done).toBe(true);
+  });
+
+  it("closes open stream during heartbeat if agent is revoked (#606)", async () => {
+    vi.useFakeTimers();
+    const res = await GET(request("/events/stream"));
+    const reader = res.body?.getReader();
+    await reader!.read(); // consume connected event
+    expect(eventStreamBus.subscriptionCount).toBe(1);
+
+    db.agentApiKey.findUnique.mockResolvedValueOnce({
+      revokedAt: null,
+      agent: { revokedAt: new Date() },
+    });
+
+    await vi.advanceTimersByTimeAsync(15000);
+    expect(eventStreamBus.subscriptionCount).toBe(0);
+
+    const next = await reader!.read();
+    expect(next.done).toBe(true);
+  });
 });

@@ -25,6 +25,7 @@ export type StreamSubscription = {
   agent: AgentContext;
   filters: EventFilters;
   onEvent: (event: StreamEvent) => void;
+  onClose?: () => void;
 };
 
 class EventStreamBus extends EventEmitter {
@@ -42,9 +43,10 @@ class EventStreamBus extends EventEmitter {
     agent: AgentContext,
     filters: EventFilters,
     onEvent: (event: StreamEvent) => void,
+    onClose?: () => void,
   ): string {
     const id = `sub_${Date.now()}_${this.counter++}_${Math.random().toString(36).slice(2)}`;
-    this.subscriptions.set(id, { id, agent, filters, onEvent });
+    this.subscriptions.set(id, { id, agent, filters, onEvent, onClose });
     return id;
   }
 
@@ -54,6 +56,34 @@ class EventStreamBus extends EventEmitter {
    */
   unsubscribe(id: string): void {
     this.subscriptions.delete(id);
+  }
+
+  /**
+   * Closes all active subscriptions for an agent whose credentials or access were revoked (#606).
+   */
+  closeForAgent(agentId: string): void {
+    for (const [id, sub] of this.subscriptions.entries()) {
+      if (sub.agent.agentId === agentId) {
+        this.subscriptions.delete(id);
+        try {
+          sub.onClose?.();
+        } catch {}
+      }
+    }
+  }
+
+  /**
+   * Closes all active subscriptions for a specific revoked key (#606).
+   */
+  closeForKey(keyId: string): void {
+    for (const [id, sub] of this.subscriptions.entries()) {
+      if (sub.agent.keyId === keyId) {
+        this.subscriptions.delete(id);
+        try {
+          sub.onClose?.();
+        } catch {}
+      }
+    }
   }
 
   /**
@@ -133,7 +163,8 @@ export function createStreamSubscription(
   agent: AgentContext,
   filters: EventFilters,
   onEvent: (event: StreamEvent) => void,
+  onClose?: () => void,
 ): () => void {
-  const id = eventStreamBus.subscribe(agent, filters, onEvent);
+  const id = eventStreamBus.subscribe(agent, filters, onEvent, onClose);
   return () => eventStreamBus.unsubscribe(id);
 }

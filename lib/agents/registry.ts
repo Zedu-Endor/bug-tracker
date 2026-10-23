@@ -13,6 +13,7 @@ import { AGENT_LIMIT_MESSAGE, AGENT_MODEL_MAX, AGENT_NAME_MAX, MAX_ACTIVE_AGENTS
 import { releaseWorkOfRevokedAgent } from "@/lib/agent-api/revoke-release";
 import { notifyClaimOffered } from "@/lib/agent-notifications";
 import { scheduleOfferExpiry } from "@/lib/agent-api/offer";
+import { eventStreamBus } from "@/lib/events/stream-bus";
 
 /**
  * Registering agents and managing their keys (#427). A person creates agents
@@ -191,6 +192,7 @@ export async function revokeAgent(actor: Actor, agentId: string, now = new Date(
     notifyClaimOffered(offer);
     scheduleOfferExpiry(offer.id);
   }
+  eventStreamBus.closeForAgent(agentId);
   return { ok: true };
 }
 
@@ -216,6 +218,7 @@ export async function deleteAgent(actor: Actor, agentId: string, now = new Date(
     notifyClaimOffered(offer);
     scheduleOfferExpiry(offer.id);
   }
+  eventStreamBus.closeForAgent(agentId);
   return { ok: true };
 }
 
@@ -358,7 +361,7 @@ export async function setAgentBurst(
  */
 export async function rotateKey(agent: AgentContext, now = new Date()): Promise<IssuedKey> {
   const key = generateApiKey();
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const revoked = await tx.agentApiKey.updateMany({
       where: { id: agent.keyId, agentId: agent.agentId, revokedAt: null },
       data: { revokedAt: now },
@@ -377,6 +380,8 @@ export async function rotateKey(agent: AgentContext, now = new Date()): Promise<
     await audit(agent, "agent.key_rotated", `agent:${agent.agentId}`, { prefix: key.prefix, projectId: agent.projectId ?? null }, { db: tx });
     return { agentId: agent.agentId, name: agent.name, level: agent.level, rawKey: key.raw, prefix: key.prefix };
   });
+  eventStreamBus.closeForKey(agent.keyId);
+  return result;
 }
 
 export type RegenerateKeyResult =
@@ -420,6 +425,7 @@ export async function regenerateKey(
       { actorUserId: actor.id, db: tx },
     );
   });
+  eventStreamBus.closeForAgent(agentId);
   return {
     ok: true,
     key: { agentId, name: managed.agent.name, level: managed.agent.level, rawKey: key.raw, prefix: key.prefix },

@@ -20,6 +20,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
 import { hashSecret } from "./keys";
 import { openSecret } from "@/lib/secret-box";
+import { eventStreamBus } from "@/lib/events/stream-bus";
 import { createAgent, deleteAgent, regenerateKey, revokeAgent, rotateKey, setAgentAreaPreferences, setAgentBurst, setAgentLevel } from "./registry";
 import { MAX_ACTIVE_AGENTS_PER_OWNER } from "./registry-limits";
 
@@ -103,11 +104,14 @@ const agentRow = { id: "agent1", name: "Ada's Claude", tenantId: "tenant_zedu", 
 
 describe("revokeAgent and setAgentLevel (#427)", () => {
   it("lets the owner revoke, which revokes every key", async () => {
+    const closeSpy = vi.spyOn(eventStreamBus, "closeForAgent");
     db.agent.findUnique.mockResolvedValue(agentRow);
     expect(await revokeAgent(ada, "agent1")).toEqual({ ok: true });
     expect(db.agent.update.mock.calls[0][0].data.revokedAt).toBeInstanceOf(Date);
     expect(db.agentApiKey.updateMany.mock.calls[0][0].where).toEqual({ agentId: "agent1", revokedAt: null });
     expect(db.agentAuditEvent.create.mock.calls[0][0].data.payload).toEqual({ by: "owner", releasedClaims: 0, withdrawnBids: 0 });
+    expect(closeSpy).toHaveBeenCalledWith("agent1");
+    closeSpy.mockRestore();
   });
 
   it("lets a tenant admin revoke someone else's agent", async () => {
@@ -306,10 +310,13 @@ describe("rotateKey (#427)", () => {
   });
 
   it("keeps the project the calling key was limited to", async () => {
+    const closeSpy = vi.spyOn(eventStreamBus, "closeForKey");
     db.agentApiKey.updateMany.mockResolvedValue({ count: 1 });
     const key = await rotateKey({ ...agent, projectId: "project_web" });
     expect(db.agentApiKey.create.mock.calls[0][0].data.projectId).toBe("project_web");
     expect(key.prefix).toBeTruthy();
+    expect(closeSpy).toHaveBeenCalledWith(agent.keyId);
+    closeSpy.mockRestore();
   });
 
   it("seals the replacement for whatever project the key was limited to", async () => {

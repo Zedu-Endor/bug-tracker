@@ -8,6 +8,7 @@ import { consumeAgentBudget, agentBudgetExceededResponse } from "@/lib/agents/ra
 import { withAgentBudgetHeaders } from "@/lib/agents/rate-budget-headers";
 import { audit } from "@/lib/agents/audit";
 import { logger } from "@/lib/logger";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -74,9 +75,20 @@ export async function GET(request: NextRequest) {
       const connectMsg = `event: connected\ndata: ${JSON.stringify({ timestamp: new Date().toISOString() })}\n\n`;
       controller.enqueue(encoder.encode(connectMsg));
 
-      heartbeatInterval = setInterval(() => {
+      heartbeatInterval = setInterval(async () => {
         if (closed) return;
         try {
+          const keyRow = await prisma.agentApiKey.findUnique({
+            where: { id: agent.keyId },
+            select: { revokedAt: true, agent: { select: { revokedAt: true } } },
+          });
+          if (!keyRow || keyRow.revokedAt || keyRow.agent?.revokedAt) {
+            cleanup();
+            try {
+              controller.close();
+            } catch {}
+            return;
+          }
           controller.enqueue(encoder.encode(": ping\n\n"));
         } catch (err) {
           cleanup();
@@ -108,16 +120,26 @@ export async function GET(request: NextRequest) {
           .catch(() => {});
       }
 
-      subscriptionId = eventStreamBus.subscribe(agent, filters, (event: StreamEvent) => {
-        if (closed) return;
-        try {
-          const sseLine = formatSseEvent(event);
-          controller.enqueue(encoder.encode(sseLine));
-        } catch (err) {
+      subscriptionId = eventStreamBus.subscribe(
+        agent,
+        filters,
+        (event: StreamEvent) => {
+          if (closed) return;
+          try {
+            const sseLine = formatSseEvent(event);
+            controller.enqueue(encoder.encode(sseLine));
+          } catch (err) {
+            cleanup();
+            controller.error(err);
+          }
+        },
+        () => {
           cleanup();
-          controller.error(err);
-        }
-      });
+          try {
+            controller.close();
+          } catch {}
+        },
+      );
 
       request.signal.addEventListener("abort", () => {
         cleanup();

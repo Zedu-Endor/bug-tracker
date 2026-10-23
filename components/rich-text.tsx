@@ -18,7 +18,7 @@ type RichTextProps = {
 // Inline-code styles are scoped to `:not(pre) > code`; fenced blocks keep the
 // dark `pre` palette instead of light-on-light text (#113).
 export const DEFAULT_CLASS_NAME =
-  "rich-text mt-3 space-y-2 [overflow-wrap:anywhere] break-words text-slate-800 [&_a]:font-medium [&_a]:text-teal-700 [&_a]:underline [&_a]:break-all [&_:not(pre)>code]:break-all [&_:not(pre)>code]:rounded [&_:not(pre)>code]:bg-slate-100 [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:text-[0.9em] [&_del]:text-slate-500 [&_h1]:text-xl [&_h1]:font-semibold [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:text-base [&_h3]:font-semibold [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-slate-900 [&_pre]:p-3 [&_pre]:text-sm [&_pre]:text-slate-100 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5";
+  "rich-text mt-3 space-y-2 [overflow-wrap:anywhere] break-words text-ink-2 [&_a]:font-bold [&_a]:text-accent [&_a]:underline [&_a]:break-all [&_:not(pre)>code]:break-all [&_:not(pre)>code]:rounded [&_:not(pre)>code]:bg-chip [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:text-[0.9em] [&_del]:text-muted [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-deep-ocean [&_pre]:p-3 [&_pre]:text-sm [&_pre]:text-slate-100 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5";
 
 /**
  * Safely render Markdown (or plain text) without raw HTML injection.
@@ -37,7 +37,7 @@ export function RichText({ content, className, renderMentions }: RichTextProps) 
   if (!looksLikeMarkdown(safeContent)) {
     const body = renderMentions ? renderMentions(safeContent) : safeContent;
     return (
-      <div className={`mt-3 whitespace-pre-wrap [overflow-wrap:anywhere] break-words text-slate-800${extra}`}>{body}</div>
+      <div className={`mt-3 whitespace-pre-wrap [overflow-wrap:anywhere] break-words text-ink-2${extra}`}>{body}</div>
     );
   }
 
@@ -168,7 +168,7 @@ function renderListRun(items: ListItem[], renderMentions?: (text: string) => Rea
                   checked={item.checked}
                   readOnly
                   disabled
-                  className="mt-1 h-3.5 w-3.5 shrink-0 accent-teal-600"
+                  className="mt-1 h-3.5 w-3.5 shrink-0 accent-primary"
                 />
                 <span className="min-w-0">
                   {renderInline(item.lines.join(" "), renderMentions)}
@@ -274,7 +274,7 @@ function renderBlocks(
     }
 
     if (RULE_RE.test(line)) {
-      nodes.push(<hr key={`hr-${key++}`} className="border-slate-200" />);
+      nodes.push(<hr key={`hr-${key++}`} className="border-line" />);
       i += 1;
       continue;
     }
@@ -288,7 +288,7 @@ function renderBlocks(
       nodes.push(
         <blockquote
           key={`quote-${key++}`}
-          className="border-l-4 border-slate-200 pl-3 text-slate-700"
+          className="border-l-4 border-line pl-3 text-ink-2"
         >
           {renderBlocks(quoted, renderMentions)}
         </blockquote>,
@@ -374,7 +374,7 @@ function renderInline(
             alt={token.alt}
             loading="lazy"
             referrerPolicy="no-referrer"
-            className="max-h-96 max-w-full rounded-lg border border-slate-200"
+            className="max-h-96 max-w-full rounded-lg border border-line"
           />
         );
       }

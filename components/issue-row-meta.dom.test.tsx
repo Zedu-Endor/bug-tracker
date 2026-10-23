@@ -96,7 +96,7 @@ describe("IssueRowMeta metadata line (#686)", () => {
     );
     const metaLine = container.querySelector("p");
     expect(metaLine).not.toBeNull();
-    expect(metaLine).toHaveClass("text-xs", "text-zk-muted");
+    expect(metaLine).toHaveClass("text-xs", "text-muted");
     expect(metaLine).toHaveTextContent("opened 3 days ago");
     // The metadata is not inside the pill row.
     expect(pillRow(container)).not.toContainElement(metaLine);

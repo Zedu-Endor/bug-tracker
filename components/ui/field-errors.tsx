@@ -61,7 +61,7 @@ export function FieldError({
   const message = errors[field];
   if (!message) return null;
   return (
-    <p id={errorIdFor(formId, field)} className="text-sm text-red-600">
+    <p id={errorIdFor(formId, field)} className="text-sm text-bad-fg">
       {message}
     </p>
   );

@@ -9,7 +9,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: { user: { update: vi.fn() } } }));
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { setThemeAction } from "./settings";
+import { setThemeAction, setGuestThemeAction } from "./settings";
 
 describe("setThemeAction (#277)", () => {
   it("saves the choice on the account and in this device's cookie", async () => {
@@ -25,6 +25,26 @@ describe("setThemeAction (#277)", () => {
     vi.clearAllMocks();
     expect(await setThemeAction("purple")).toEqual({ error: "Invalid setting" });
     expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(cookieSet).not.toHaveBeenCalled();
+  });
+});
+
+describe("setGuestThemeAction", () => {
+  it("stores the choice in the cookie without touching an account", async () => {
+    vi.clearAllMocks();
+    expect(await setGuestThemeAction("light")).toEqual({ ok: true });
+    expect(cookieSet).toHaveBeenCalledWith(
+      "theme",
+      "light",
+      expect.objectContaining({ path: "/", httpOnly: true }),
+    );
+    expect(requireUser).not.toHaveBeenCalled();
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unknown theme", async () => {
+    vi.clearAllMocks();
+    expect(await setGuestThemeAction("sepia")).toEqual({ error: "Invalid setting" });
     expect(cookieSet).not.toHaveBeenCalled();
   });
 });

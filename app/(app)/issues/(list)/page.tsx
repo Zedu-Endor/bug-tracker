@@ -8,18 +8,14 @@ import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-helpers";
 import type { AppRole } from "@/lib/roles";
 import { IssueFilters } from "@/components/issue-filters";
-import {
-  RowAge,
-  RowAssignee,
-  severityPillClass,
-  stagePillClass,
-  statusPillClass,
-} from "@/components/issue-row-meta";
+import { RowAge, RowAssignee } from "@/components/issue-row-meta";
 import { VoteButton } from "@/components/vote-button";
+import { Pill } from "@/components/pill";
 import {
   severityLabels,
   statusLabels,
 } from "@/lib/labels";
+import { severityTone, stageTone, statusTone } from "@/lib/issue-tone";
 import { severities } from "@/lib/validations/issue";
 import { boundSearchTerm, escapeSearchQuery, toSingleQueryParam } from "@/lib/search";
 import {
@@ -74,7 +70,6 @@ import { cookies } from "next/headers";
 import { GettingStarted } from "@/components/getting-started";
 import { GETTING_STARTED_COOKIE, gettingStartedFor, parseDismissed, type GettingStartedStep } from "@/lib/onboarding";
 import {
-  PLATFORM_NONE,
   PLATFORM_PARAM,
   parsePlatformFilter,
   platformChoices,
@@ -116,6 +111,37 @@ async function loadOrEmpty<T>(label: string, load: () => Promise<T>, empty: T): 
     console.error(`[bugs] ${label} lookup failed`, error);
     return empty;
   }
+}
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface";
+
+/** The row's round type mark: shield for security, bug for fixes, a dot otherwise. */
+function IssueGlyph({ typeName }: { typeName?: string | null }) {
+  const name = (typeName ?? "").toLowerCase();
+  const path = name.includes("security")
+    ? "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+    : name.includes("bug") || name.includes("fix")
+      ? "M12 20a6 6 0 0 0 6-6V10a6 6 0 0 0-12 0v4a6 6 0 0 0 6 6zM12 20v-9M4 13h2M18 13h2M5 7l2 2M19 7l-2 2"
+      : "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 8v5M12 16.5h.01";
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-tint text-accent"
+    >
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d={path} />
+      </svg>
+    </span>
+  );
 }
 
 /** The database error stays in the server log under `reference` (#506). */
@@ -371,17 +397,12 @@ export default async function BugsPage({
             count: counts.get(platform.id) ?? 0,
           })),
           {
-            id: PLATFORM_NONE,
-            name: "No platform",
-            count: counts.get(null) ?? 0,
-          },
-          {
             id: "resolved",
             name: "Resolved",
             count: resolvedCount,
             icon: (
               <svg
-                className="h-4 w-4 shrink-0 text-zk-ok-fg"
+                className="h-4 w-4 shrink-0 text-emerald-600"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 aria-hidden="true"
@@ -616,50 +637,50 @@ export default async function BugsPage({
   const confirmedCount = [...stages.values()].filter((stage) => stage === "confirmed").length;
   const readyCount = [...stages.values()].filter((stage) => stage === "ready").length;
 
-  const scopeName = activeProject?.name ?? "this workspace";
-  const emptyPlatform =
-    Boolean(selectedPlatform) &&
-    !isWatchingView &&
-    !qParam &&
-    !statusParam &&
-    !severityParam &&
-    !tagsParam &&
-    !selectedMilestone &&
-    !selectedArea &&
-    !stageView;
-
+  // The shell already provides the persistent sidebar; this page is one column.
   const page = (
-    <div className="mx-auto w-full max-w-6xl space-y-5">
+    <div className="min-w-0 space-y-6">
       {gettingStarted ? <GettingStarted {...gettingStarted} /> : null}
+
       {activeProject?.goal ? (
-        <section aria-labelledby="project-goal-heading" className="rounded-[20px] border border-zk-border bg-zk-surface px-5 py-4">
+        <section
+          aria-labelledby="project-goal-heading"
+          className="rounded-[20px] border border-line bg-surface px-5 py-4"
+        >
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 id="project-goal-heading" className="text-sm font-bold text-zk-text">{activeProject.name} goal</h2>
+            <h2 id="project-goal-heading" className="text-sm font-bold text-ink">
+              {activeProject.name} goal
+            </h2>
             {membershipRole && isOrganizationAdmin(membershipRole, effectiveRole) ? (
-              <Link href={`/projects/${encodeURIComponent(activeProject.slug)}/settings`} className="text-xs font-bold text-zk-accent underline">Edit project settings</Link>
+              <Link
+                href={`/projects/${encodeURIComponent(activeProject.slug)}/settings`}
+                className={`text-xs font-bold text-accent underline ${focusRing}`}
+              >
+                Edit project settings
+              </Link>
             ) : null}
           </div>
-          <RichText content={activeProject.goal} className="mt-1 text-sm text-zk-text2" />
+          <RichText content={activeProject.goal} className="mt-1 text-sm" />
         </section>
       ) : null}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-[28px] font-extrabold tracking-[-0.02em] text-zk-text">
-              {isDeletedView ? "Deleted Issues" : "Issues"}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.02em] text-ink">
+              {/* #1063: the project is the heading; "Ziki" is in the header. */}
+              {isDeletedView ? "Deleted Issues" : (activeProject?.name ?? "Issues")}
             </h1>
-            {isDeletedView ? (
-              <span className="rounded-full bg-zk-bad-bg px-2.5 py-0.5 text-xs font-bold text-zk-bad-fg">Admin view</span>
-            ) : null}
+            {isDeletedView ? <Pill className="bg-bad-bg text-bad-fg">Admin view</Pill> : null}
             {allProjects && !isDeletedView ? (
-              <span className="rounded-full border border-zk-border bg-zk-tint px-2.5 py-0.5 text-xs font-bold text-zk-accent">All projects</span>
+              <Pill className="bg-tint text-accent">All projects</Pill>
             ) : null}
           </div>
           {isDeletedView ? null : (
-            <p className="max-w-xl text-sm text-zk-muted">
+            <p className="max-w-xl text-sm text-muted">
               {allProjects
                 ? "Every issue in this workspace, across all projects."
-                : `Every bug and security report for ${scopeName}, ranked by what the community votes up.`}
+                : `Every bug and security report for ${activeProject?.name ?? "this workspace"}, ranked by what the community votes up.`}
             </p>
           )}
         </div>
@@ -667,59 +688,73 @@ export default async function BugsPage({
           {canDelete ? (
             <Link
               href={isDeletedView ? "/issues" : "/issues?deleted=true"}
-              className={`inline-flex h-[42px] items-center justify-center rounded-full px-4 text-sm font-bold border transition ${
+              className={`inline-flex h-[42px] items-center justify-center rounded-full border px-4 text-sm font-bold transition-colors ${focusRing} ${
                 isDeletedView
-                  ? "border-zk-border bg-zk-surface text-zk-text hover:bg-zk-chip"
-                  : "border-zk-bad-bd bg-zk-bad-soft text-zk-bad-fg hover:bg-zk-bad-bg"
+                  ? "border-line bg-surface text-ink hover:bg-tint"
+                  : "border-bad-bd bg-bad-soft text-bad-fg hover:bg-bad-bg"
               }`}
             >
               {isDeletedView ? "← View active issues" : "View deleted issues"}
             </Link>
           ) : null}
           {finishedWatched > 0 ? <UnwatchFinishedButton count={finishedWatched} /> : null}
-          {!isDeletedView ? (
-            <Link
-              href="/issues/new"
-              className="inline-flex h-[42px] items-center gap-2 rounded-full border-0 bg-electric-blue-strong px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(46,111,239,0.35)] hover:brightness-105"
+          <Link
+            href="/issues/new"
+            className={`inline-flex h-[42px] items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(46,111,239,0.35)] transition-colors hover:bg-electric-blue-strong ${focusRing}`}
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-              New issue
-            </Link>
-          ) : null}
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            New issue
+          </Link>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         {isFirstRun ? null : (
-          <div className="flex flex-wrap items-center gap-2.5">
-            <PlatformTabs
-              tabs={platformTabs}
-              current={isResolvedView ? "resolved" : selectedPlatform}
-              hrefFor={platformHref}
-            />
-            <div className="min-w-0 flex-1 basis-[280px]">
-              <Suspense fallback={<div className="h-[42px] animate-pulse rounded-full bg-zk-chip" />}>
-                <IssueFilters
-                  tagTypes={tagTypes}
-                  platforms={platforms}
-                  milestones={milestones}
-                  areas={areas}
-                  shortcutsEnabled={shortcutsEnabled}
-                  stageCounts={isDeletedView ? undefined : { reported: reportedCount, confirmed: confirmedCount, ready: readyCount }}
+          <Suspense fallback={<div className="h-[42px] animate-pulse rounded-full bg-chip" />}>
+            <IssueFilters
+              leading={
+                <PlatformTabs
+                  tabs={platformTabs}
+                  current={isResolvedView ? "resolved" : selectedPlatform}
+                  hrefFor={platformHref}
                 />
-              </Suspense>
-            </div>
-          </div>
+              }
+              tagTypes={tagTypes}
+              platforms={platforms}
+              milestones={milestones}
+              areas={areas}
+              shortcutsEnabled={shortcutsEnabled}
+              stageCounts={isDeletedView ? undefined : { reported: reportedCount, confirmed: confirmedCount, ready: readyCount }}
+            />
+          </Suspense>
         )}
 
         {milestoneSummary ? (
-          <section aria-label={`Milestone ${milestoneSummary.title}`} className="rounded-[20px] border border-zk-border bg-zk-surface p-5">
+          <section
+            aria-label={`Milestone ${milestoneSummary.title}`}
+            className="rounded-[20px] border border-line bg-surface p-5"
+          >
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-base font-bold text-zk-text">{milestoneSummary.title}</h2>
+              <h2 className="text-base font-bold text-ink">{milestoneSummary.title}</h2>
               <MilestoneDue due={dueDateValue(milestoneSummary.dueDate) || null} isClosed={milestoneSummary.isClosed} />
-              <Link href="/milestones" className="ml-auto text-sm font-bold text-zk-accent hover:underline">All milestones</Link>
+              <Link href="/milestones" className={`ml-auto text-sm font-bold text-accent hover:underline ${focusRing}`}>
+                All milestones
+              </Link>
             </div>
-            {milestoneSummary.description ? <p className="mt-1 text-sm text-zk-muted">{milestoneSummary.description}</p> : null}
+            {milestoneSummary.description ? (
+              <p className="mt-1 text-sm text-muted">{milestoneSummary.description}</p>
+            ) : null}
             <div className="mt-3 max-w-md">
               <MilestoneProgressBar progress={milestoneSummary.progress} label={milestoneSummary.title} />
             </div>
@@ -728,38 +763,22 @@ export default async function BugsPage({
 
         {isFirstRun ? (
           <FirstRunWelcome isAdmin={canDelete} hasTenant={Boolean(tenantId)} />
-        ) : bugs.length === 0 ? (
-          <div className="rounded-[20px] border border-zk-border bg-zk-surface px-4 py-12 text-center">
-            <p className="font-bold text-zk-text">
-              {isWatchingView && !qParam && !statusParam && !severityParam && !tagsParam && !selectedPlatform && !selectedMilestone
-                ? "You're not watching any issues."
-                : emptyPlatform
-                  ? "No issues on this platform"
-                  : "No issues match these filters."}
-            </p>
-            <p className="mt-1.5 text-sm text-zk-muted">
-              {isWatchingView
-                ? "You watch issues you report, are assigned to or comment on, and any you choose to watch from the issue page."
-                : emptyPlatform
-                  ? "Issues tagged for this platform will show up here."
-                  : "Try clearing filters, or report it with New issue."}
-            </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/issues" className="text-sm font-bold text-zk-accent hover:underline">Clear filters</Link>
-            </div>
-          </div>
         ) : (
-          <section className="flex flex-col gap-3.5 rounded-[20px] border border-zk-border bg-zk-surface p-5">
+          <section className="flex flex-col min-w-0 gap-3.5 rounded-[20px] border border-line bg-surface p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2.5">
               <div className="flex flex-wrap items-baseline gap-2.5">
-                <h2 className="text-lg font-bold text-zk-text">All issues</h2>
-                <p role="status" aria-live="polite" className="text-[13px] text-zk-muted">
+                <h2 className="text-lg font-bold text-ink">
+                  {isDeletedView ? "Deleted issues" : "All issues"}
+                </h2>
+                {/* #690: announce the result count so screen readers hear
+                    "N results" after a search lands. */}
+                <p role="status" aria-live="polite" className="text-[13px] text-muted">
                   {resultCountText(totalCount, statusWhere !== undefined ? statusParam ?? null : null)} · sorted by{" "}
                   {bugSortDescriptions[currentSort]}
                   {hiddenResolved > 0 || (showResolved && statusWhere === undefined && !isDeletedView) ? (
                     <>
                       {" · "}
-                      <Link href={resolvedHref} className="font-bold text-zk-accent hover:underline print:hidden">
+                      <Link href={resolvedHref} className="font-bold text-accent hover:underline print:hidden">
                         {showResolved ? "Hide resolved" : `Show ${hiddenResolved} resolved`}
                       </Link>
                     </>
@@ -767,8 +786,10 @@ export default async function BugsPage({
                   {hiddenDuplicates > 0 || showDuplicates ? (
                     <>
                       {" · "}
-                      <Link href={duplicatesHref} className="font-bold text-zk-accent hover:underline print:hidden">
-                        {showDuplicates ? "Hide duplicates" : `Show ${hiddenDuplicates} duplicate${hiddenDuplicates === 1 ? "" : "s"}`}
+                      <Link href={duplicatesHref} className="font-bold text-accent hover:underline print:hidden">
+                        {showDuplicates
+                          ? "Hide duplicates"
+                          : `Show ${hiddenDuplicates} duplicate${hiddenDuplicates === 1 ? "" : "s"}`}
                       </Link>
                     </>
                   ) : null}
@@ -776,165 +797,250 @@ export default async function BugsPage({
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <div className="min-w-[860px]">
-                <div className="flex items-center gap-4 rounded-full bg-zk-tint px-4 py-3.5 text-xs font-bold uppercase tracking-[0.05em] text-zk-accent">
-                  <span className="w-[52px]">Votes</span>
-                  <span className="min-w-0 flex-1">Issue</span>
-                  <span className="w-[92px]">Type</span>
-                  <span className="w-24">Priority</span>
-                  <span className="w-[76px]">Status</span>
-                  <span className="w-[104px]">Stage</span>
-                  <span className="w-[84px]">Reported</span>
-                  <span className="w-10" aria-hidden="true" />
-                </div>
-                <ul>
-                  {bugs.map((bug, index) => {
-                    const userVote =
-                      Array.isArray(bug.votes) && bug.votes.length > 0
-                        ? (bug.votes[0].value ?? 1)
-                        : 0;
-                    const voterSummary =
-                      voterSummaries.get(bug.id) ?? createEmptyVoterSummary();
-                    const stage = stages.get(bug.id);
-                    const typeName = bug.type?.name ?? "—";
-                    const isSecurity = /security/i.test(typeName);
+            <div className="overflow-x-auto min-w-0">
+              <div className="min-w-[900px]">
+                {bugs.length === 0 ? (
+                  <div className="flex flex-col items-center gap-1.5 px-4 py-12 text-center">
+                    <p className="font-bold text-ink">
+                      {isWatchingView && !qParam && !statusParam && !severityParam && !tagsParam && !selectedPlatform && !selectedMilestone
+                        ? "You're not watching any issues."
+                        : "No issues match these filters."}
+                    </p>
+                    <p className="text-muted">
+                      {isWatchingView
+                        ? "You watch issues you report, are assigned to or comment on, and any you choose to watch from the issue page."
+                        : "Try clearing filters, or report it with New issue at the top."}
+                    </p>
+                    <Link
+                      href="/issues"
+                      className={`mt-2 text-sm font-bold text-accent hover:underline ${focusRing}`}
+                    >
+                      Clear filters
+                    </Link>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-4 rounded-full bg-tint px-4 py-3 text-xs font-bold uppercase tracking-[0.05em] text-accent">
+                      {canDelete && !isDeletedView ? <span aria-hidden="true" className="w-4" /> : null}
+                      <span className="w-[52px]">Votes</span>
+                      <span className="min-w-0 flex-1">Issue</span>
+                      <span className="w-[92px]">Type</span>
+                      <span className="w-[96px]">Priority</span>
+                      <span className="w-[104px]">Status</span>
+                      <span className="w-[104px]">Stage</span>
+                      <span className="w-[84px]">Reported</span>
+                      <span aria-hidden="true" className="w-8" />
+                    </div>
 
-                    return (
-                      <li
-                        key={bug.id}
-                        className={`flex items-center gap-4 px-4 py-3.5 ${
-                          index < bugs.length - 1 ? "border-b border-zk-divider" : ""
-                        }`}
-                      >
-                        {canDelete && !isDeletedView ? (
-                          <div className="shrink-0">
-                            <BulkCheckbox id={bug.id} title={bug.title} />
-                          </div>
-                        ) : null}
-                        <div className="w-[52px] shrink-0">
-                          <VoteButton
-                            bugId={bug.id}
-                            voteCount={bug.voteCount}
-                            userVote={userVote}
-                            likeCount={voterSummary.likes.count}
-                            size="sm"
-                            readOnly={isDeletedView}
-                          />
-                        </div>
-                        <Link
-                          href={issuePath(bug.number)}
-                          data-issue-link=""
-                          className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-electric-blue"
-                        >
-                          <span
-                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                              isSecurity ? "bg-zk-bad-bg text-zk-bad-fg" : "bg-zk-tint text-zk-accent"
-                            }`}
-                            aria-hidden="true"
+                    <ul>
+                      {bugs.map((bug) => {
+                        const userVote =
+                          Array.isArray(bug.votes) && bug.votes.length > 0
+                            ? (bug.votes[0].value ?? 1)
+                            : 0;
+                        const voterSummary =
+                          voterSummaries.get(bug.id) ?? createEmptyVoterSummary();
+                        const stage = stages.get(bug.id);
+                        // Category, area and relationship markers stay with
+                        // the issue, after the columns (#686).
+                        const extraPills = [
+                          ...(bug.category
+                            ? [{ key: "category", label: bug.category.name, className: "border border-line bg-chip text-ink-2" }]
+                            : []),
+                          ...(bug.area
+                            ? [{ key: "area", label: bug.area.name, className: "border border-line bg-tint text-accent" }]
+                            : []),
+                          ...(bug.isDeleted
+                            ? [{ key: "deleted", label: "Deleted", className: "border border-bad-bd bg-bad-bg text-bad-fg" }]
+                            : []),
+                          ...(bug.duplicateOf
+                            ? [{
+                                key: "duplicate",
+                                label: `Duplicate of ${formatIssueNumber(bug.duplicateOf.number)}`,
+                                className: "border border-warn-bd bg-warn-bg text-warn-fg",
+                              }]
+                            : []),
+                        ];
+                        return (
+                          <li
+                            key={bug.id}
+                            className="group flex items-center gap-4 border-b border-divider px-4 py-4 transition-colors last:border-b-0 hover:bg-row-sel has-[a[data-issue-link]:focus-visible]:bg-row-sel"
                           >
-                            {isSecurity ? (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-                            ) : (
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20a6 6 0 0 0 6-6V10a6 6 0 0 0-12 0v4a6 6 0 0 0 6 6zM12 20v-9M4 13h2M18 13h2M5 7l2 2M19 7l-2 2" /></svg>
-                            )}
-                          </span>
-                          <span className="flex min-w-0 flex-col gap-0.5">
-                            <span className={`text-sm font-semibold leading-snug ${isDone(bug.status) ? "text-zk-muted" : "text-zk-text"}`}>
-                              {searchText ? (
-                                <Highlighted segments={highlightSegments(bug.title, searchText)} />
+                            {canDelete && !isDeletedView ? (
+                              <div className="shrink-0">
+                                <BulkCheckbox id={bug.id} title={bug.title} />
+                              </div>
+                            ) : null}
+                            <div className="w-[52px] shrink-0">
+                              <VoteButton
+                                bugId={bug.id}
+                                voteCount={bug.voteCount}
+                                userVote={userVote}
+                                likeCount={voterSummary.likes.count}
+                                size="sm"
+                                readOnly={isDeletedView}
+                              />
+                            </div>
+                            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                              <Link
+                                href={issuePath(bug.number)}
+                                data-issue-link=""
+                                className={`flex min-w-0 items-start gap-3 rounded-lg scroll-mt-24 ${focusRing}`}
+                              >
+                                <IssueGlyph typeName={bug.type?.name} />
+                                <span className="flex min-w-0 flex-col gap-1">
+                                  <span
+                                    className={`break-words text-sm font-semibold leading-snug transition-colors group-hover:text-accent ${
+                                      isDone(bug.status) ? "text-muted" : "text-ink"
+                                    }`}
+                                  >
+                                    {searchText ? (
+                                      <Highlighted segments={highlightSegments(bug.title, searchText)} />
+                                    ) : (
+                                      bug.title
+                                    )}
+                                  </span>
+                                  <span className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-muted">
+                                    <span className="font-mono font-bold text-ink-2">
+                                      {formatIssueNumber(bug.number)}
+                                    </span>
+                                    {(bug._count?.comments ?? 0) > 0 ? (
+                                      <span
+                                        className="inline-flex items-center gap-1"
+                                        title={`Conversation: ${bug._count?.comments} item${bug._count?.comments === 1 ? "" : "s"}`}
+                                      >
+                                        <svg
+                                          className="h-3.5 w-3.5"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          aria-hidden="true"
+                                        >
+                                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                                        </svg>
+                                        <span className="sr-only">comments: </span>
+                                        {bug._count?.comments}
+                                      </span>
+                                    ) : null}
+                                    {(bug._count?.attachments ?? 0) > 0 ? (
+                                      <span
+                                        className="inline-flex items-center gap-1"
+                                        title={`${bug._count?.attachments} attachments`}
+                                      >
+                                        <svg
+                                          className="h-3.5 w-3.5"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          aria-hidden="true"
+                                        >
+                                          <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                                        </svg>
+                                        <span className="sr-only">attachments: </span>
+                                        {bug._count?.attachments}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                  {snippets.has(bug.id) ? (
+                                    <SearchSnippet snippet={snippets.get(bug.id)!} />
+                                  ) : null}
+                                </span>
+                              </Link>
+                              {extraPills.length > 0 ? (
+                                <div className="flex flex-wrap gap-1.5 pl-12">
+                                  {extraPills.map((pill) => (
+                                    <Pill key={pill.key} className={pill.className}>
+                                      {pill.label}
+                                    </Pill>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                            <span className="w-[92px] shrink-0 truncate text-[13px] text-ink-2">
+                              {bug.type?.name ?? "—"}
+                            </span>
+                            <span className="w-[96px] shrink-0">
+                              <Pill className={severityTone[bug.severity]}>
+                                {severityLabels[bug.severity]}
+                              </Pill>
+                            </span>
+                            <span className="w-[104px] shrink-0">
+                              <Pill className={statusTone[bug.status]} dot>
+                                {statusLabels[bug.status]}
+                              </Pill>
+                            </span>
+                            <span className="w-[104px] shrink-0">
+                              {stage ? (
+                                <span title={intakeDetail(stage, bug.voteCount)}>
+                                  <Pill className={stageTone[stage]} dot>
+                                    {issueStageLabels[stage]}
+                                  </Pill>
+                                </span>
                               ) : (
-                                bug.title
+                                <span className="text-[13px] text-muted">—</span>
                               )}
                             </span>
-                            <span className="flex items-center gap-2 text-xs text-zk-muted">
-                              <span className="font-mono tabular-nums">{formatIssueNumber(bug.number)}</span>
-                              {(bug._count?.comments ?? 0) > 0 ? (
-                                <span className="inline-flex items-center gap-1" title={`Conversation: ${bug._count?.comments}`}>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-                                  {bug._count?.comments}
-                                </span>
-                              ) : null}
-                              {(bug._count?.attachments ?? 0) > 0 ? (
-                                <span title={`${bug._count?.attachments} attachments`}>📎 {bug._count?.attachments}</span>
-                              ) : null}
-                              {bug.isDeleted ? <span className="font-bold text-zk-bad-fg">Deleted</span> : null}
-                              {bug.duplicateOf ? (
-                                <span>Duplicate of {formatIssueNumber(bug.duplicateOf.number)}</span>
-                              ) : null}
+                            <span className="w-[84px] shrink-0 text-[13px] text-ink-2">
+                              <RowAge
+                                date={currentSort === "newest" ? bug.createdAt : bug.updatedAt}
+                                sort={currentSort === "newest" ? "newest" : "updated"}
+                              />
                             </span>
-                            {snippets.has(bug.id) ? <SearchSnippet snippet={snippets.get(bug.id)!} /> : null}
-                          </span>
-                        </Link>
-                        <span className="w-[92px] shrink-0 text-[13px] text-zk-text2">{typeName}</span>
-                        <span className="w-24 shrink-0">
-                          <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-bold ${severityPillClass(bug.severity)}`}>
-                            {severityLabels[bug.severity]}
-                          </span>
-                        </span>
-                        <span className="w-[76px] shrink-0">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${statusPillClass(bug.status)}`}>
-                            <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
-                            {statusLabels[bug.status]}
-                          </span>
-                        </span>
-                        <span className="w-[104px] shrink-0">
-                          {stage ? (
-                            <span
-                              title={intakeDetail(stage, bug.voteCount)}
-                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${stagePillClass(stage)}`}
-                            >
-                              <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden="true" />
-                              {issueStageLabels[stage]}
-                            </span>
-                          ) : (
-                            <span className="text-[13px] text-zk-muted">—</span>
-                          )}
-                        </span>
-                        <span className="w-[84px] shrink-0 text-[13px] text-zk-text2">
-                          <RowAge
-                            date={currentSort === "newest" ? bug.createdAt : bug.updatedAt}
-                            sort={currentSort === "newest" ? "newest" : "updated"}
-                          />
-                        </span>
-                        <span className="flex w-10 shrink-0 items-center justify-end gap-2">
-                          {bug.assignee ? (
-                            <RowAssignee name={bug.assignee.name} image={bug.assignee.image} />
-                          ) : null}
-                          {isWatchingView && !bug.isDeleted ? (
-                            <UnwatchButton bugId={bug.id} label={`${formatIssueNumber(bug.number)} ${bug.title}`} />
-                          ) : null}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
+                            {bug.assignee ? (
+                              <div className="w-8 shrink-0">
+                                <RowAssignee name={bug.assignee.name} image={bug.assignee.image} />
+                              </div>
+                            ) : (
+                              <span aria-hidden="true" className="w-8 shrink-0" />
+                            )}
+                            {isWatchingView ? (
+                              <UnwatchButton
+                                bugId={bug.id}
+                                label={`${formatIssueNumber(bug.number)} ${bug.title}`}
+                              />
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                )}
               </div>
             </div>
 
-            <PaginationControls
-              page={pagination.page}
-              totalPages={pagination.totalPages}
-              totalCount={totalCount}
-              from={pagination.from}
-              to={pagination.to}
-              queryParams={issueListPaginationParams({
-                status: statusParam,
-                severity: severityParam,
-                mine: mineFilter,
-                q: qParam,
-                sort: sortParam,
-                milestone: milestoneParam,
-                tags: tagsParam,
-                platform: selectedPlatform,
-                area: selectedArea,
-                stage: stageView,
-                deleted: isDeletedView,
-                showDuplicates,
-                showResolved,
-                allProjects,
-              })}
-            />
+            {bugs.length > 0 ? (
+              <div className="border-t border-divider pt-3.5">
+                <PaginationControls
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  totalCount={totalCount}
+                  from={pagination.from}
+                  to={pagination.to}
+                  queryParams={issueListPaginationParams({
+                    status: statusParam,
+                    severity: severityParam,
+                    mine: mineFilter,
+                    q: qParam,
+                    sort: sortParam,
+                    milestone: milestoneParam,
+                    tags: tagsParam,
+                    platform: selectedPlatform,
+                    area: selectedArea,
+                    stage: stageView,
+                    deleted: isDeletedView,
+                    showDuplicates,
+                    showResolved,
+                    allProjects,
+                  })}
+                />
+              </div>
+            ) : null}
           </section>
         )}
       </div>
@@ -956,7 +1062,6 @@ export default async function BugsPage({
   );
 }
 
-
 /** What a brand-new tracker shows instead of an empty list (#292, #444). */
 function FirstRunWelcome({
   isAdmin,
@@ -967,16 +1072,16 @@ function FirstRunWelcome({
 }) {
   if (!hasTenant) {
     return (
-      <section className="rounded-[20px] border border-zk-warn-bd bg-zk-warn-bg px-5 py-8 text-center">
-        <h2 className="text-lg font-bold text-zk-text">No workspace yet</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-zk-text2">
+      <section className="rounded-[20px] border border-warn-bd bg-warn-bg/60 px-5 py-6">
+        <h2 className="text-lg font-bold text-ink">No workspace yet</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted">
           You are not currently a member of any workspace. Join a workspace via an invite from your team,
           or create your own workspace to start filing issues.
         </p>
         <div className="mt-5">
           <Link
             href="/tenants"
-            className="inline-flex h-[42px] items-center justify-center rounded-full bg-electric-blue-strong px-5 text-sm font-bold text-white"
+            className={`inline-flex h-[42px] items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-electric-blue-strong ${focusRing}`}
           >
             Create or join a workspace
           </Link>
@@ -986,28 +1091,34 @@ function FirstRunWelcome({
   }
 
   return (
-    <section className="rounded-[20px] border border-zk-border bg-zk-surface px-5 py-8 text-center">
-      <h2 className="text-lg font-bold text-zk-text">No issues yet</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-zk-muted">
+    <section className="rounded-[20px] border border-line bg-surface px-6 py-10">
+      <h2 className="text-lg font-bold text-ink">No issues yet</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm text-muted">
         This is where reported issues will appear. A good report says what you
         expected, what happened instead, and how to make it happen again.
       </p>
       <div className="mt-5">
         <Link
           href="/issues/new"
-          className="inline-flex h-[42px] items-center justify-center rounded-full bg-electric-blue-strong px-5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(46,111,239,0.35)]"
+          className={`inline-flex h-[42px] items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white hover:bg-electric-blue-strong ${focusRing}`}
         >
           Report the first issue
         </Link>
       </div>
       {isAdmin ? (
-        <p className="mx-auto mt-6 max-w-md text-sm text-zk-muted">
+        <p className="mx-auto mt-6 max-w-md text-sm text-muted">
           Before people start reporting, you may want to set up your{" "}
-          <Link href="/projects" className="font-bold text-zk-accent underline">projects</Link>
+          <Link href="/projects" className="font-bold text-accent underline">
+            projects
+          </Link>
           , and the{" "}
-          <Link href="/admin/categories" className="font-bold text-zk-accent underline">platforms</Link>{" "}
+          <Link href="/admin/categories" className="font-bold text-accent underline">
+            platforms
+          </Link>{" "}
           and{" "}
-          <Link href="/admin/types" className="font-bold text-zk-accent underline">issue types</Link>{" "}
+          <Link href="/admin/types" className="font-bold text-accent underline">
+            issue types
+          </Link>{" "}
           they will choose from.
         </p>
       ) : null}

@@ -3,42 +3,75 @@
 @import "./theme-dark.css";
 /* Ziki brand re-seed: accent families + surfaces, both themes. */
 @import "./theme-brand.css";
+/* Redesign tokens (light + dark), named as in the handoff. */
+@import "./theme-ziki.css";
 
 :root {
-  /* Light canvas from the redesign handoff. */
-  --background: #f5f7fc;
-  --foreground: #15121f;
-  --card: #ffffff;
+  /* Canvas and card follow the redesign tokens in both themes. */
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
   color-scheme: light;
 
-  --zk-bg: #f5f7fc;
-  --zk-surface: #ffffff;
-  --zk-text: #15121f;
-  --zk-text2: #3e4a63;
-  --zk-muted: #5f6577;
-  --zk-border: #e3e8f2;
-  --zk-divider: #eef1f7;
-  --zk-tint: #eaf2fe;
-  --zk-chip: #f0f2f7;
-  --zk-seg: #eef1f6;
-  --zk-accent: #1f5fd9;
-  --zk-ok-bg: #e3f6ec;
-  --zk-ok-fg: #146c43;
-  --zk-bad-bg: #fde8e4;
-  --zk-bad-fg: #a3261a;
-  --zk-bad-bd: #f4b3a8;
-  --zk-bad-soft: #fff4f2;
-  --zk-warn-bg: #fdf3d7;
-  --zk-warn-fg: #7a4e00;
-  --zk-warn-bd: #f0cd72;
-  --zk-info-bg: #e7f0ff;
-  --zk-info-fg: #1d4fb8;
+  /* `zk-*` aliases used by the shared redesign components. They resolve
+     through the same light/dark handoff tokens as the rest of the app. */
+  --zk-bg: var(--bg);
+  --zk-surface: var(--surface);
+  --zk-text: var(--text);
+  --zk-text2: var(--text2);
+  --zk-muted: var(--muted);
+  --zk-border: var(--border);
+  --zk-divider: var(--divider);
+  --zk-tint: var(--tint);
+  --zk-chip: var(--chip);
+  --zk-seg: var(--seg);
+  --zk-accent: var(--accentText);
+  --zk-ok-bg: var(--okBg);
+  --zk-ok-fg: var(--okFg);
+  --zk-bad-bg: var(--badBg);
+  --zk-bad-fg: var(--badFg);
+  --zk-bad-bd: var(--badBd);
+  --zk-bad-soft: var(--badSoft);
+  --zk-warn-bg: var(--warnBg);
+  --zk-warn-fg: var(--warnFg);
+  --zk-warn-bd: var(--warnBd);
+  --zk-info-bg: var(--infoBg);
+  --zk-info-fg: var(--infoFg);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-geist-mono);
+
+  /* Redesign tokens as utilities: bg-surface, text-ink, border-line, ... */
+  --color-surface: var(--surface);
+  --color-ink: var(--text);
+  --color-ink-2: var(--text2);
+  --color-muted: var(--muted);
+  --color-line: var(--border);
+  --color-divider: var(--divider);
+  --color-tint: var(--tint);
+  --color-row-sel: var(--rowSel);
+  --color-chip: var(--chip);
+  --color-chip-2: var(--chip2);
+  --color-seg: var(--seg);
+  --color-accent: var(--accentText);
+  --color-ok-bg: var(--okBg);
+  --color-ok-fg: var(--okFg);
+  --color-bad-bg: var(--badBg);
+  --color-bad-fg: var(--badFg);
+  --color-bad-bd: var(--badBd);
+  --color-bad-soft: var(--badSoft);
+  --color-warn-bg: var(--warnBg);
+  --color-warn-fg: var(--warnFg);
+  --color-warn-bd: var(--warnBd);
+  --color-info-bg: var(--infoBg);
+  --color-info-fg: var(--infoFg);
+  --color-sec-bg: var(--secBg);
+  --color-sec-fg: var(--secFg);
   --color-zk-bg: var(--zk-bg);
   --color-zk-surface: var(--zk-surface);
   --color-zk-text: var(--zk-text);
@@ -61,8 +94,7 @@
   --color-zk-warn-bd: var(--zk-warn-bd);
   --color-zk-info-bg: var(--zk-info-bg);
   --color-zk-info-fg: var(--zk-info-fg);
-  --font-sans: var(--font-manrope);
-  --font-mono: var(--font-geist-mono);
+  --shadow-pop: var(--popShadow);
 }
 
 /* Ziki brand utilities. Chrome navy is theme-independent in the reference
@@ -72,15 +104,29 @@
   --color-sidebar-navy: #0c1938;
   --color-blue-slate: #263b63;
   --color-electric-blue: #3978f6;
-  /* Filled buttons and the active sidebar pill. #2E6FEF is Electric Blue
-     darkened so white text clears 4.5:1. */
-  --color-electric-blue-strong: #2e6fef;
+  /* Filled buttons and the active sidebar pill paint white text on this
+     shade: #3978F6 is only 4.03:1 against white, this one is 5.28:1 (AA). */
+  --color-electric-blue-strong: #2f66d4;
   --color-sky-tint: #8fc9ff;
   --color-porcelain: #f5f7fc;
   --color-surface-border: rgba(143, 201, 255, 0.12);
   --color-surface-hover: rgba(57, 120, 246, 0.08);
+  /* Filled buttons with white text in the redesign: Electric Blue darkened
+     to 4.5:1 against white. */
+  --color-primary: #2e6fef;
+  /* Sidebar chrome (navy in both themes). */
+  --color-sidebar-line: #34507f;
+  --color-sidebar-card: #263b63;
+  --color-sidebar-ink: #dce5f5;
+  --color-sidebar-muted: #a9bcdf;
 }
 
+html {
+  /* Keep fragment/focus/scroll-into-view targets clear of the sticky header,
+     which can wrap to two rows on narrow mobile viewports. */
+  scroll-padding-top: 128px;
+  overflow-x: hidden;
+}
 body {
   background: var(--background);
   color: var(--foreground);

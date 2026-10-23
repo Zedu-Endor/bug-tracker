@@ -13,12 +13,12 @@ import type { EscalationType } from "@/lib/agent-questions";
 
 export function EscalationTypeBadge({ type }: { type: EscalationType | string }) {
   const styles: Record<string, string> = {
-    Blocker: "bg-zk-bad-bg text-zk-bad-fg border-zk-bad-bd",
-    "Work Authorization": "bg-zk-warn-bg text-zk-warn-fg border-zk-warn-bd",
-    "Human Approval": "bg-zk-info-bg text-zk-info-fg border-zk-border",
-    "Scope Expansion": "bg-zk-warn-bg text-zk-warn-fg border-zk-warn-bd",
-    Question: "bg-zk-chip text-zk-text2 border-zk-border",
-    Redesign: "bg-zk-info-bg text-zk-info-fg border-zk-border",
+    Blocker: "border-bad-bd bg-bad-bg text-bad-fg",
+    "Work Authorization": "border-warn-bd bg-warn-bg text-warn-fg",
+    "Human Approval": "border-sec-fg/30 bg-sec-bg text-sec-fg",
+    "Scope Expansion": "border-info-fg/30 bg-info-bg text-info-fg",
+    Question: "border-line bg-chip text-ink-2",
+    Redesign: "border-line bg-tint text-accent",
   };
 
   const icons: Record<string, string> = {
@@ -35,7 +35,7 @@ export function EscalationTypeBadge({ type }: { type: EscalationType | string })
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${badgeStyle}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-bold ${badgeStyle}`}
     >
       <span aria-hidden="true">{icon}</span>
       <span>{type}</span>
@@ -62,6 +62,8 @@ export function QuickResolveButtons({
         onResolved?.();
         router.refresh();
       } else {
+        // A refused action (no permission, gone, already answered) must say
+        // so — otherwise the button just returns to idle as if it worked.
         setError(res.error);
       }
     });
@@ -74,7 +76,7 @@ export function QuickResolveButtons({
           type="button"
           disabled={isPending}
           onClick={() => handleResolve("approve")}
-          className="rounded-full bg-zk-ok-fg px-3.5 py-2 text-xs font-semibold text-white hover:opacity-90 focus-visible:ring-zk-ok-fg"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5"
         >
           {isPending ? "Unblocking…" : "✓ Approve & Unblock"}
         </Button>
@@ -83,13 +85,13 @@ export function QuickResolveButtons({
           variant="secondary"
           disabled={isPending}
           onClick={() => handleResolve("authorize")}
-          className="rounded-full border border-zk-border bg-zk-surface px-3.5 py-2 text-xs font-semibold text-zk-text hover:bg-zk-chip"
+          className="text-xs px-2.5 py-1.5"
         >
           Authorize Work
         </Button>
       </div>
       {error ? (
-        <p role="alert" className="text-sm text-zk-bad-fg">
+        <p role="alert" className="text-sm text-red-700">
           {error}
         </p>
       ) : null}
@@ -115,7 +117,7 @@ export function EscalationAnswerForm({
       <input type="hidden" name="escalationId" value={escalationId} />
       <div className="space-y-1">
         {!labelledBy ? (
-          <label htmlFor="answer" className="block text-sm font-semibold text-zk-text">
+          <label htmlFor="answer" className="block text-sm font-medium text-slate-800">
             Your response
           </label>
         ) : null}
@@ -132,19 +134,15 @@ export function EscalationAnswerForm({
         />
       </div>
       {error ? (
-        <p id="answer-error" role="alert" className="text-sm text-zk-bad-fg">
+        <p id="answer-error" role="alert" className="text-sm text-red-700">
           {error}
         </p>
       ) : null}
       <div className="flex items-center gap-3">
-        <Button
-          type="submit"
-          disabled={pending}
-          className="rounded-full bg-electric-blue-strong px-4 py-2 font-semibold text-white hover:opacity-90 focus-visible:ring-electric-blue"
-        >
+        <Button type="submit" disabled={pending}>
           {pending ? "Sending…" : "Send response"}
         </Button>
-        <span className="text-xs text-zk-muted">
+        <span className="text-xs text-slate-500">
           The response cannot be edited once dispatched to the agent.
         </span>
       </div>

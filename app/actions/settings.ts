@@ -134,6 +134,17 @@ export async function setThemeAction(theme: unknown): Promise<SettingsResult> {
 }
 
 /**
+ * The same choice for signed-out pages (sign-in, password reset). There is no
+ * account to write to yet; the cookie is enough for the server to paint the
+ * next request in the chosen theme.
+ */
+export async function setGuestThemeAction(theme: unknown): Promise<SettingsResult> {
+  if (!isTheme(theme)) return { error: "Invalid setting" };
+  (await cookies()).set(THEME_COOKIE, theme, appCookieOptions(THEME_COOKIE_MAX_AGE));
+  return { ok: true };
+}
+
+/**
  * Turn one kind of email on or off. The master switch above is unchanged, so
  * someone can keep mentions while dropping status changes.
  */

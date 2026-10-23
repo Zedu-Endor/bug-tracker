@@ -33,7 +33,7 @@ const sameDraft = (a: Draft, b: Draft) =>
   (Object.keys(a) as (keyof Draft)[]).every((k) => a[k] === b[k]);
 
 const selectClass =
-  "h-11 w-full rounded-xl border border-zk-border bg-zk-surface px-3 py-2 text-sm text-zk-text shadow-xs focus:border-electric-blue-strong focus:outline-none focus:ring-1 focus:ring-electric-blue-strong";
+  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink shadow-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
 export function UpdateIssueForm({
   bugId,
@@ -124,7 +124,7 @@ export function UpdateIssueForm({
 
   return (
     <form
-      className="space-y-3 rounded-[20px] border border-zk-border bg-zk-surface p-5"
+      className="space-y-3 rounded-[20px] border border-line bg-surface p-5"
       /* Submitted by hand rather than through the `action` prop: React 19
          resets a form after an action runs, which wiped the selects back to
          their pre-save value even though state held the new one. The fields
@@ -157,7 +157,7 @@ export function UpdateIssueForm({
         });
       }}
     >
-      <h2 className="text-sm font-semibold text-zk-text">
+      <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
         {canEditTriage ? "Triage" : "Update status"}
       </h2>
       {/* Remount the fields when the saved values change so they never show
@@ -166,12 +166,12 @@ export function UpdateIssueForm({
         key={triageFieldsKey({ status, severity, typeId, categoryId, areaId, assigneeId, milestoneId })}
         className={
           canEditTriage
-            ? "grid gap-3 sm:grid-cols-4"
+            ? "grid gap-3 sm:grid-cols-2"
             : "grid gap-3 sm:grid-cols-2 sm:max-w-md"
         }
       >
         <div>
-          <label htmlFor="status" className="mb-1 block text-xs font-medium text-zk-text2">
+          <label htmlFor="status" className="mb-1 block text-xs font-bold text-ink-2">
             Status
           </label>
           <select
@@ -191,7 +191,7 @@ export function UpdateIssueForm({
         {canEditTriage ? (
           <>
             <div>
-              <label htmlFor="typeId" className="mb-1 block text-xs font-medium text-zk-text2">
+              <label htmlFor="typeId" className="mb-1 block text-xs font-bold text-ink-2">
                 Type
               </label>
               <select
@@ -212,7 +212,7 @@ export function UpdateIssueForm({
             <div>
               <label
                 htmlFor="severity"
-                className="mb-1 block text-xs font-medium text-zk-text2"
+                className="mb-1 block text-xs font-bold text-ink-2"
               >
                 Severity
               </label>
@@ -233,7 +233,7 @@ export function UpdateIssueForm({
             <div>
               <label
                 htmlFor="categoryId"
-                className="mb-1 block text-xs font-medium text-zk-text2"
+                className="mb-1 block text-xs font-bold text-ink-2"
               >
                 Platform
               </label>
@@ -253,7 +253,7 @@ export function UpdateIssueForm({
               </select>
             </div>
             <div>
-              <label htmlFor="areaId" className="mb-1 block text-xs font-medium text-zk-text2">
+              <label htmlFor="areaId" className="mb-1 block text-xs font-bold text-ink-2">
                 Area
               </label>
               <select
@@ -270,7 +270,7 @@ export function UpdateIssueForm({
             <div>
               <label
                 htmlFor="milestoneId"
-                className="mb-1 block text-xs font-medium text-zk-text2"
+                className="mb-1 block text-xs font-bold text-ink-2"
               >
                 Milestone
               </label>
@@ -293,7 +293,7 @@ export function UpdateIssueForm({
             <div>
               <label
                 htmlFor="assigneeId"
-                className="mb-1 block text-xs font-medium text-zk-text2"
+                className="mb-1 block text-xs font-bold text-ink-2"
               >
                 Assignee
               </label>
@@ -310,7 +310,7 @@ export function UpdateIssueForm({
           <div>
             <label
               htmlFor="assigneeId"
-              className="mb-1 block text-xs font-medium text-zk-text2"
+              className="mb-1 block text-xs font-bold text-ink-2"
             >
               Assignee
             </label>
@@ -330,8 +330,8 @@ export function UpdateIssueForm({
 
       {asksForNote ? (
         <div>
-          <label htmlFor="resolutionNote" className="mb-1 block text-xs font-medium text-zk-text2">
-            Resolution note <span className="font-normal text-zk-muted">(optional)</span>
+          <label htmlFor="resolutionNote" className="mb-1 block text-xs font-bold text-ink-2">
+            Resolution note <span className="font-normal text-muted">(optional)</span>
           </label>
           <Textarea
             id="resolutionNote"
@@ -345,7 +345,7 @@ export function UpdateIssueForm({
             }}
             placeholder="What happened? e.g. Fixed in the 2.4 release. Clear your cache if you still see it."
           />
-          <p className="mt-1 text-xs text-zk-muted">
+          <p className="mt-1 text-xs text-muted">
             Shown at the top of the issue and sent to the reporter and watchers.{" "}
             {[...note].length}/{RESOLUTION_NOTE_MAX}
           </p>
@@ -353,18 +353,18 @@ export function UpdateIssueForm({
       ) : null}
 
       {error ? (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-bad-fg" role="alert">
           {error}
         </p>
       ) : null}
 
       {/* Announced, so the result of a save isn't visual-only. */}
-      <p role="status" aria-live="polite" className="text-sm text-zk-ok-fg empty:hidden">
+      <p role="status" aria-live="polite" className="text-sm text-ok-fg empty:hidden">
         {saved ? (
           <>
             Saved.{" "}
             {savedAt ? (
-              <span className="text-xs text-emerald-600">
+              <span className="text-xs text-ok-fg/80">
                 {savedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}
               </span>
             ) : null}
@@ -377,7 +377,7 @@ export function UpdateIssueForm({
           {pending ? "Saving…" : "Save changes"}
         </Button>
         {dirty && !pending ? (
-          <span className="text-xs text-amber-700">Unsaved changes</span>
+          <span className="text-xs text-warn-fg">Unsaved changes</span>
         ) : null}
       </div>
     </form>

@@ -83,13 +83,13 @@ export function BulkCheckbox({ id, title }: { id: string; title: string }) {
       checked={selection.isSelected(id)}
       onChange={() => selection.toggle(id)}
       aria-label={`Select ${title}`}
-      className="mt-1 h-4 w-4 shrink-0 self-start rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+      className="h-4 w-4 shrink-0 rounded border-line text-primary accent-primary focus:ring-primary"
     />
   );
 }
 
 const selectClass =
-  "rounded-lg border border-slate-300 bg-card px-2.5 py-1.5 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500";
+  "h-9 rounded-xl border border-line bg-surface px-2.5 text-sm font-medium text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20";
 
 function BulkBar({
   selected,
@@ -148,9 +148,9 @@ function BulkBar({
       <div
         role="region"
         aria-label="Bulk actions result"
-        className="sticky bottom-3 z-30 mt-3 rounded-xl border border-slate-300 bg-card p-3 shadow-lg"
+        className="sticky bottom-3 z-30 mt-3 rounded-[20px] border border-line bg-surface p-4 shadow-pop"
       >
-        <p className="text-sm text-slate-700 empty:hidden" role="status" aria-live="polite">
+        <p className="text-sm text-ink-2 empty:hidden" role="status" aria-live="polite">
           {message}
         </p>
         <Failures items={failures} />
@@ -160,7 +160,7 @@ function BulkBar({
             setMessage(null);
             setFailures([]);
           }}
-          className="mt-1 rounded-md text-xs font-medium text-slate-600 underline hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          className="mt-1 rounded-md text-xs font-bold text-muted underline hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Dismiss
         </button>
@@ -172,10 +172,10 @@ function BulkBar({
     <div
       role="region"
       aria-label="Bulk actions"
-      className="sticky bottom-3 z-30 mt-3 rounded-xl border border-slate-300 bg-card p-3 shadow-lg"
+      className="sticky bottom-3 z-30 mt-3 rounded-[20px] border border-line bg-surface p-4 shadow-pop"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <strong className="text-sm font-semibold text-slate-900">
+        <strong className="text-sm font-bold text-ink">
           {count} selected
         </strong>
 
@@ -188,7 +188,7 @@ function BulkBar({
                 : new Set([...selected, ...pageIds]),
             )
           }
-          className="rounded-md px-2 py-1 text-sm font-medium text-teal-700 underline hover:text-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+          className="rounded-md px-2 py-1 text-sm font-bold text-accent underline hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {allOnPage ? "Clear this page" : "Select all on this page"}
         </button>
@@ -199,7 +199,7 @@ function BulkBar({
             setMessage(null);
             setFailures([]);
           }}
-          className="rounded-md px-2 py-1 text-sm font-medium text-slate-600 underline hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          className="rounded-md px-2 py-1 text-sm font-semibold text-muted underline hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Clear selection
         </button>
@@ -238,14 +238,14 @@ function BulkBar({
         which is easy to assume otherwise — so it is stated rather than left
         to be discovered.
       */}
-      <p className="mt-2 text-xs text-slate-600">
+      <p className="mt-2 text-xs text-muted">
         {overLimit
           ? `Select at most ${MAX_BULK_IDS} issues at a time.`
           : `Applies to the ${count} selected ${count === 1 ? "issue" : "issues"}. Changing page or filters clears the selection.`}
       </p>
 
       <p
-        className="mt-1 text-sm text-slate-700 empty:hidden"
+        className="mt-1 text-sm text-ink-2 empty:hidden"
         role="status"
         aria-live="polite"
       >
@@ -260,7 +260,7 @@ function BulkBar({
 function Failures({ items }: { items: { id: string; reason: string }[] }) {
   if (items.length === 0) return null;
   return (
-    <ul className="mt-1 space-y-0.5 text-xs text-amber-800">
+    <ul className="mt-1 space-y-0.5 text-xs text-warn-fg">
       {items.map((failure) => (
         <li key={failure.id}>
           <span className="font-mono">{failure.id}</span>: {failure.reason}
@@ -282,7 +282,7 @@ function Field({
   disabled: boolean;
 }) {
   return (
-    <label className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600">
+    <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-2">
       <span className="sr-only sm:not-sr-only">{label}</span>
       <select
         aria-label={`Set ${label.toLowerCase()} for the selected issues`}

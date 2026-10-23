@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, useTransition } from "react";
-import { setThemeAction } from "@/app/actions/settings";
+import { setThemeAction, setGuestThemeAction } from "@/app/actions/settings";
 import { THEMES, themeAttribute, themeLabels, type Theme } from "@/lib/theme";
 
 /** The theme the server already wrote onto `<html>`. The first client paint must use this same value. */
@@ -64,7 +64,7 @@ function getClientTheme(): Theme {
   return attr === "dark" || attr === "light" ? attr : "system";
 }
 
-export function useTheme(): [Theme, (next: Theme) => void, boolean] {
+export function useTheme(persist: "account" | "device" = "account"): [Theme, (next: Theme) => void, boolean] {
   const serverTheme = useContext(ServerThemeContext);
   const [pending, startTransition] = useTransition();
   // The server snapshot is the theme rendered on <html>. Reading a different
@@ -75,7 +75,10 @@ export function useTheme(): [Theme, (next: Theme) => void, boolean] {
     const previous = theme;
     applyThemeClient(next);
     startTransition(async () => {
-      const result = await setThemeAction(next);
+      const result =
+        persist === "device"
+          ? await setGuestThemeAction(next)
+          : await setThemeAction(next);
       if (result.error) {
         applyThemeClient(previous);
       }
@@ -146,10 +149,13 @@ function usePrefersDark(): boolean {
  */
 export function ThemeToggle({
   className = "",
+  persist = "account",
 }: {
   className?: string;
+  /** "device" is for signed-out pages: the choice goes to this browser only. */
+  persist?: "account" | "device";
 }) {
-  const [theme, setTheme, pending] = useTheme();
+  const [theme, setTheme, pending] = useTheme(persist);
   const prefersDark = usePrefersDark();
   const isDark = theme === "dark" || (theme === "system" && prefersDark);
 
@@ -168,23 +174,33 @@ export function ThemeToggle({
       aria-label={label}
       title={label}
       data-testid="theme-toggle"
-      className={`relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-zk-border bg-zk-surface text-zk-text transition-colors hover:bg-zk-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2 ${className}`}
+      className={`relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-ink transition-colors hover:bg-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${className}`}
     >
-      {isDark ? <SunIcon /> : <MoonIcon />}
+      {isDark ? <SunIcon className="h-[18px] w-[18px]" /> : <MoonIcon className="h-[18px] w-[18px]" />}
     </button>
   );
 }
 
+const THEME_ICONS: Record<Theme, string> = {
+  system: "M3 4h18v12H3zM8 20h8M12 16v4",
+  light:
+    "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4",
+  dark: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z",
+};
+
 /**
- * Compact theme selector for the account menu and mobile menu (#659).
+ * The account menu's theme switch (#659): a segmented control of System,
+ * Light and Dark, as in the redesign's avatar menu.
  */
 export function AccountThemeSelector() {
   const [theme, setTheme, pending] = useTheme();
 
   return (
     <div className="flex flex-col gap-2 px-3 py-2.5" role="group" aria-label="Theme preference">
-      <span className="text-xs font-bold uppercase tracking-[0.06em] text-zk-muted">Theme</span>
-      <div className="grid grid-cols-3 gap-0.5 rounded-xl bg-zk-seg p-1">
+      <span aria-hidden="true" className="text-xs font-bold uppercase tracking-[0.06em] text-muted">
+        Theme
+      </span>
+      <div className="grid grid-cols-3 gap-0.5 rounded-xl bg-seg p-1">
         {THEMES.map((opt) => (
           <button
             key={opt}
@@ -192,10 +208,24 @@ export function AccountThemeSelector() {
             disabled={pending}
             onClick={() => setTheme(opt)}
             aria-pressed={theme === opt}
-            className={`inline-flex h-9 items-center justify-center rounded-lg text-xs font-semibold ${
-              theme === opt ? "bg-zk-surface text-zk-text" : "text-zk-text2 hover:text-zk-text"
+            className={`flex h-[34px] items-center justify-center gap-1.5 rounded-[9px] text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+              theme === opt
+                ? "bg-surface font-bold text-ink shadow-[0_1px_3px_rgba(21,18,31,0.14)]"
+                : "font-medium text-ink-2 hover:text-ink"
             }`}
           >
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d={THEME_ICONS[opt]} />
+            </svg>
             {themeLabels[opt]}
           </button>
         ))}

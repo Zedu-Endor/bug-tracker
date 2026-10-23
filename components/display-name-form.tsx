@@ -30,6 +30,8 @@ export function DisplayNameForm({
         setName(next.name);
         setSavedName(next.name);
         setJustSaved(true);
+      } else {
+        setJustSaved(false);
       }
       return next;
     },
@@ -46,7 +48,6 @@ export function DisplayNameForm({
       clear();
       toast("Display name updated.", "success");
     } else {
-      setJustSaved(false);
       show({ error: result.error ?? "Enter a valid name.", field: result.field, fieldErrors: result.fieldErrors });
       document.getElementById("name")?.focus();
     }

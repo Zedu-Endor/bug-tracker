@@ -169,7 +169,7 @@ function ToolbarButton({
       // fire click, not mousedown) works too.
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
-      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded text-zk-text2 transition hover:bg-zk-chip hover:text-zk-text disabled:cursor-not-allowed disabled:opacity-40 sm:h-7 sm:w-7 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9 sm:[@media(pointer:fine)]:h-7 sm:[@media(pointer:fine)]:w-7"
+      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded text-ink-2 transition hover:bg-chip hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 sm:h-7 sm:w-7 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-9 sm:[@media(pointer:fine)]:h-7 sm:[@media(pointer:fine)]:w-7"
     >
       <span className="flex h-4 w-4 shrink-0 items-center justify-center">
         {icon}
@@ -544,16 +544,16 @@ export const MarkdownEditor = forwardRef<
           The shell must not clip. Rounded corners are preserved by clipping
           the toolbar row itself, which is the only child that needs it. */}
       <div
-        className={`rounded-lg border bg-zk-surface shadow-sm focus-within:border-teal-600 focus-within:ring-2 focus-within:ring-electric-blue-strong/20 ${
-          dragging ? "border-teal-600 ring-2 ring-electric-blue-strong/30" : "border-zk-border"
+        className={`rounded-xl border bg-surface shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 ${
+          dragging ? "border-primary ring-2 ring-primary/30" : "border-line"
         }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <div className="flex flex-nowrap items-center gap-1 overflow-hidden rounded-t-lg border-b border-zk-border bg-zk-chip px-1.5 py-1 sm:flex-wrap">
+        <div className="flex flex-nowrap items-center gap-1 overflow-hidden rounded-t-xl border-b border-line bg-chip px-1.5 py-1 sm:flex-wrap">
           <div
-            className="flex shrink-0 items-center gap-1 border-r border-zk-border pr-1.5"
+            className="flex shrink-0 items-center gap-1 border-r border-line pr-1.5"
             role="group"
             aria-label="Editor view"
           >
@@ -609,14 +609,14 @@ export const MarkdownEditor = forwardRef<
               <div
                 aria-hidden="true"
                 data-testid="fade-cue-left"
-                className="pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-slate-50 to-transparent sm:hidden"
+                className="pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-chip to-transparent sm:hidden"
               />
             )}
             {canScrollRight && (
               <div
                 aria-hidden="true"
                 data-testid="fade-cue-right"
-                className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-slate-50 to-transparent sm:hidden"
+                className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-chip to-transparent sm:hidden"
               />
             )}
           </div>
@@ -655,7 +655,7 @@ export const MarkdownEditor = forwardRef<
             disabled={disabled}
             placeholder={placeholder}
             aria-label={ariaLabel}
-            className={`rounded-b-lg rounded-t-none border-0 shadow-none focus:border-transparent focus:ring-0 ${className}`}
+            className={`rounded-b-xl rounded-t-none border-0 shadow-none focus:border-transparent focus:ring-0 ${className}`}
             onChange={(event) => {
               const next = event.target.value;
               onChange(next);
@@ -715,7 +715,7 @@ export const MarkdownEditor = forwardRef<
           ) : null}
         </div>
         {!writing ? (
-          <div className="max-h-96 overflow-y-auto rounded-b-lg px-3 py-2">
+          <div className="max-h-96 overflow-y-auto rounded-b-xl px-3 py-2">
             <RichText
               content={value}
               className="mt-0"
@@ -726,7 +726,7 @@ export const MarkdownEditor = forwardRef<
       </div>
 
       {uploadError ? (
-        <div role="alert" className="flex items-start justify-between gap-2 rounded-md bg-red-50 px-2 py-1 text-xs text-zk-bad-fg">
+        <div role="alert" className="flex items-start justify-between gap-2 rounded-md bg-bad-bg px-2 py-1 text-xs text-bad-fg">
           <span>{uploadError}</span>
           <button
             type="button"
@@ -737,7 +737,7 @@ export const MarkdownEditor = forwardRef<
           </button>
         </div>
       ) : null}
-      <p aria-live="polite" className="text-xs text-zk-muted empty:hidden">
+      <p aria-live="polite" className="text-xs text-muted empty:hidden">
         {uploading > 0 ? `Uploading ${uploading} file${uploading === 1 ? "" : "s"}…` : ""}
       </p>
 
@@ -745,7 +745,7 @@ export const MarkdownEditor = forwardRef<
         {footer}
         {maxLength ? (
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            {!disabled ? <span className="text-xs text-zk-muted">Paste or drop images · </span> : null}
+            {!disabled ? <span className="text-xs text-muted">Paste or drop images · </span> : null}
             <CharacterCounter
               length={value.length}
               max={maxLength}
@@ -787,8 +787,8 @@ function TabButton({
       onClick={onClick}
       className={`inline-flex shrink-0 items-center gap-1 rounded px-2.5 py-1.5 sm:px-2 sm:py-1 text-xs font-medium transition ${
         active
-          ? "bg-zk-surface text-zk-text shadow-sm ring-1 ring-slate-300"
-          : "text-zk-text2 hover:text-zk-text"
+          ? "bg-surface text-ink shadow-sm ring-1 ring-line"
+          : "text-ink-2 hover:text-ink"
       } disabled:cursor-not-allowed disabled:opacity-50`}
     >
       {children}
@@ -814,7 +814,7 @@ function MentionList({
     <ul
       id={listboxId}
       role="listbox"
-      className="absolute left-0 top-full z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-zk-border bg-zk-surface py-1 shadow-lg"
+      className="absolute left-0 top-full z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-line bg-surface py-1 shadow-lg"
     >
       {suggestions.map((user, index) => {
         const active = index === activeIndex;
@@ -826,8 +826,8 @@ function MentionList({
               tabIndex={-1}
               className={`flex w-full px-3 py-2 text-left text-sm ${
                 active
-                  ? "bg-zk-tint text-zk-accent"
-                  : "text-zk-text hover:bg-zk-chip"
+                  ? "bg-tint text-accent"
+                  : "text-ink hover:bg-chip"
               }`}
               onMouseDown={(event) => {
                 event.preventDefault();
@@ -839,7 +839,7 @@ function MentionList({
                 <span className="flex min-w-0 items-center gap-1.5">
                   <span className="truncate">{user.name}</span>
                   <AgentMentionBadge />
-                  <span className="truncate text-zk-muted">· {user.agentOwner}</span>
+                  <span className="truncate text-muted">· {user.agentOwner}</span>
                 </span>
               ) : (
                 user.name

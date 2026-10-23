@@ -19,6 +19,7 @@ export function AgentRowKey({
 }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
+  const where = projectName ?? (projectId ? "This project" : "Every project");
 
   async function copy() {
     if (!apiKey) return;
@@ -36,33 +37,70 @@ export function AgentRowKey({
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const keyMark = (
+    <span className="inline-flex min-w-0 items-center gap-2 font-mono text-[13px] font-semibold text-ink">
+      <svg
+        aria-hidden="true"
+        className="h-[15px] w-[15px] shrink-0 text-accent"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="7.5" cy="15.5" r="4.5" />
+        <path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2 2" />
+      </svg>
+      <span className="truncate">{prefix}…</span>
+    </span>
+  );
+
   if (!apiKey) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-full border border-zk-warn-bd bg-zk-warn-bg/40 px-3 py-1.5">
-        <span className="font-mono text-[11px] font-semibold text-zk-text2">{prefix}…</span>
-        <span className="text-xs font-semibold text-zk-warn-fg">Not copyable</span>
-        <span className="text-xs text-zk-muted">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {keyMark}
+        <span className="rounded-full bg-warn-bg px-2 py-0.5 text-[11px] font-bold text-warn-fg">
+          Not copyable
+        </span>
+        <span className="min-w-0 flex-1 basis-[240px] text-xs text-muted">
           Issued before it could be copied again. Regenerate it — the new key stays on this row.
         </span>
+        <button
+          type="button"
+          disabled
+          aria-label="Copy key (unavailable)"
+          className="inline-flex h-[34px] cursor-not-allowed items-center rounded-full border border-line px-3 text-[13px] font-semibold text-muted opacity-60"
+        >
+          Copy
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="inline-flex max-w-full flex-wrap items-center gap-2 rounded-full border border-zk-border bg-zk-chip px-1.5 py-1">
-      <span className="rounded-full bg-zk-surface px-2.5 py-1 font-mono text-[11px] font-semibold text-zk-text ring-1 ring-zk-border">
-        {prefix}…
-      </span>
-      <span className="text-xs text-zk-muted">
-        {projectName ?? (projectId ? "This project" : "Every project")}
-      </span>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      {keyMark}
+      <span className="text-xs text-muted">{where}</span>
       <button
         type="button"
         onClick={copy}
-        aria-label="Copy key"
-        className="inline-flex min-h-9 items-center rounded-full bg-electric-blue-strong px-3 text-xs font-bold text-white transition hover:bg-[#2552af] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2"
+        className="ml-auto inline-flex h-[34px] items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-[13px] font-semibold text-ink transition-colors hover:bg-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
       >
-        {copied ? "Copied" : "Copy"}
+        <svg
+          aria-hidden="true"
+          className="h-[13px] w-[13px]"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="9" y="9" width="11" height="11" rx="2" />
+          <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+        </svg>
+        {copied ? "Copied" : "Copy key"}
       </button>
     </div>
   );

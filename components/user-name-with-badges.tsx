@@ -47,7 +47,7 @@ export function UserNameWithBadges({
       {userId ? (
         <Link
           href={`/users/${userId}`}
-          className="truncate rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+          className="truncate rounded-sm hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {name}
         </Link>
@@ -56,12 +56,12 @@ export function UserNameWithBadges({
       )}
       {agentName ? (
         <span
-          className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-normal text-slate-600 ring-1 ring-slate-200/80"
+          className="inline-flex items-center gap-1 rounded-full bg-chip px-2 py-0.5 text-[11px] font-normal text-ink-2 ring-1 ring-line"
           aria-label={`via ${agentName} (agent)`}
         >
           <span>via {agentName}</span>
           <span
-            className="rounded bg-slate-200/90 px-1 text-[10px] font-medium text-slate-700"
+            className="rounded bg-chip-2 px-1 text-[10px] font-medium text-ink-2"
             aria-hidden="true"
           >
             agent

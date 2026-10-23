@@ -11,6 +11,10 @@ import { isRedirectError } from "@/lib/toast-store";
 type SignOutButtonProps = {
   userId?: string | null;
   className?: string;
+  /** "danger" is the red menu row in the redesign's account menu. */
+  tone?: "default" | "danger";
+  /** Shown before the label, e.g. the account menu's sign-out icon. */
+  icon?: React.ReactNode;
 };
 
 /**
@@ -23,6 +27,8 @@ type SignOutButtonProps = {
 export function SignOutButton({
   userId,
   className = "",
+  tone = "default",
+  icon,
 }: SignOutButtonProps) {
   const [pending, startTransition] = useTransition();
   const confirm = useConfirm();
@@ -55,9 +61,14 @@ export function SignOutButton({
       type="button"
       variant="ghost"
       disabled={pending}
-      className={`w-full rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 ${className}`}
+      className={`w-full text-left text-sm ${
+        tone === "danger"
+          ? "flex min-h-11 items-center justify-start! gap-3 rounded-xl! px-3! font-bold! text-bad-fg! hover:bg-bad-soft!"
+          : "rounded-md px-3 py-2 text-slate-700 hover:bg-slate-50"
+      } ${className}`}
       onClick={handleSignOut}
     >
+      {icon}
       <span>{pending ? "Signing out…" : "Sign out"}</span>
     </Button>
   );

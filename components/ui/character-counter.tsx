@@ -24,10 +24,9 @@ export function characterCountTone(
 }
 
 const TONE_CLASS: Record<CharacterCountTone, string> = {
-  normal: "text-slate-500",
-  // amber-700 keeps >=4.5:1 contrast on white (amber-600 falls short).
-  warn: "text-amber-700",
-  limit: "text-red-600",
+  normal: "text-muted",
+  warn: "text-warn-fg",
+  limit: "text-bad-fg",
 };
 
 export function CharacterCounter({

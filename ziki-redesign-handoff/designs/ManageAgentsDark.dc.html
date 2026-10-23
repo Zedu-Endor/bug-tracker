@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ziki — Your agents (dark)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#070F22}
+a{color:#C9D6EF;text-decoration:none}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+input::placeholder,textarea::placeholder{color:#7A7690}
+.zk{--bg:#F5F7FC;--surface:#FFFFFF;--text:#15121F;--text2:#3E4A63;--muted:#5F6577;--border:#E3E8F2;--divider:#EEF1F7;--tint:#EAF2FE;--rowSel:#F3F8FF;--chip:#F0F2F7;--seg:#EEF1F6;--chip2:#E2E7F0;--accentText:#1F5FD9;--okBg:#E3F6EC;--okFg:#146C43;--badBg:#FDE8E4;--badFg:#A3261A;--badBd:#F4B3A8;--warnBg:#FDF3D7;--warnFg:#7A4E00;--warnBd:#F0CD72;--infoBg:#E7F0FF;--infoFg:#1D4FB8;--secBg:#FDECEF;--secFg:#B4233F;--badSoft:#FFF4F2;color-scheme:light}
+.zk.dark{--bg:#070F22;--surface:#0E1A33;--text:#E8EEF9;--text2:#B7C3DA;--muted:#93A0B8;--border:#22324F;--divider:#1A2844;--tint:#15284A;--rowSel:#13254A;--chip:#1B2A47;--seg:#0A1530;--chip2:#26375A;--accentText:#8FC9FF;--okBg:#0F3326;--okFg:#6EE7A8;--badBg:#3A1517;--badFg:#FCA5A0;--badBd:#6B2A27;--warnBg:#3A2C0C;--warnFg:#F6CF6B;--warnBd:#6B5216;--infoBg:#14294F;--infoFg:#9CC2FF;--secBg:#3A1424;--secFg:#F9A8C0;--badSoft:#2A1416;color-scheme:dark}
+.zk.dark .stat-card:hover{box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(57,120,246,.25);border-color:#2E6FEF !important}
+.zk.dark .stat-card::after{background:radial-gradient(circle,rgba(57,120,246,.30),rgba(57,120,246,0) 70%)}
+@keyframes statIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.stat-card{position:relative;overflow:hidden;animation:statIn .5s cubic-bezier(.2,.7,.2,1) both;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.stat-card:nth-child(2){animation-delay:.07s}.stat-card:nth-child(3){animation-delay:.14s}.stat-card:nth-child(4){animation-delay:.21s}
+.stat-card::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#3978F6,#8FC9FF);transform:scaleX(0);transform-origin:left;transition:transform .35s ease}
+.stat-card::after{content:"";position:absolute;width:160px;height:160px;right:-60px;bottom:-80px;border-radius:999px;background:radial-gradient(circle,rgba(143,201,255,.35),rgba(143,201,255,0) 70%);opacity:0;transition:opacity .3s ease}
+.zk .stat-card:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(11,23,51,.10),0 2px 6px rgba(57,120,246,.10);border-color:#BFD6FB !important}
+.stat-card:hover::before{transform:scaleX(1)}
+.stat-card:hover::after{opacity:1}
+.stat-card .stat-go{transition:background .25s ease,color .25s ease,border-color .25s ease,transform .25s ease}
+.stat-card:hover .stat-go{background:#2E6FEF;color:#FFFFFF !important;border-color:#2E6FEF !important;transform:rotate(45deg)}
+.stat-card .stat-value{transition:color .25s ease}
+.stat-card:hover .stat-value{color:var(--accentText)}
+@media (prefers-reduced-motion: reduce){.stat-card,.stat-card *{animation:none !important;transition:none !important}.zk .stat-card:hover{transform:none}}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="font-family: Manrope, system-ui, sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; display: flex; flex-wrap: wrap; font-size: 14px">
+
+<!-- SIDEBAR -->
+<aside style="flex: 1 1 248px; max-width: 100%; min-width: 0; box-sizing: border-box; background: {{sidebar}}; padding: 22px 16px; display: flex; flex-direction: column; gap: 18px; color: #DCE5F5">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px">
+<div style="display: flex; align-items: center">
+<img src="/_blob/4fcbd9fbc6962fff324ad274a061b0fc" alt="Ziki" style="width: 110px; height: 36px; object-fit: contain; display: block">
+</div>
+<button type="button" aria-label="Collapse sidebar" style="width: 30px; height: 30px; border-radius: 999px; border: 1px solid #34507F; background: transparent; color: #C9D6EF; display: flex; align-items: center; justify-content: center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+</button>
+</div>
+
+<button type="button" aria-label="Switch project" style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 8px 12px; border-radius: 14px; border: 1px solid #34507F; background: #263B63; color: #FFFFFF; text-align: left">
+<span style="width: 28px; height: 28px; border-radius: 8px; background: var(--surface); color: {{primary}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800">Zi</span>
+<span style="flex: 1 1 auto; display: flex; flex-direction: column"><span style="font-size: 11px; color: #A9BCDF">Project</span><span style="font-weight: 700">Ziki</span></span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A9BCDF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+</button>
+
+<nav aria-label="Workspace" style="display: flex; flex-direction: column; gap: 6px">
+<button type="button" onClick="{{goOverview}}" aria-current="{{overviewCurrent}}" style="{{navOverview}}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+<span style="flex: 1 1 auto">Overview</span>
+</button>
+<div style="height: 1px; background: #1E2E52; margin: 6px 12px"></div>
+<button type="button" onClick="{{goIssues}}" aria-current="{{issuesCurrent}}" style="{{navIssues}}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="1.5"></circle></svg>
+<span style="flex: 1 1 auto">Issues</span><span style="font-size: 12px; padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,0.18)">4</span>
+</button>
+<a href="#team" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 16px; border-radius: 14px; font-weight: 500; font-size: 15px">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9"></path><path d="M16 3.1a4 4 0 0 1 0 7.8"></path></svg>Team</a>
+</nav>
+
+</aside>
+
+<!-- MAIN -->
+<main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column">
+
+<!-- top bar -->
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--border); background: var(--surface)">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); font-size: 14px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{primary}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.7V17c0 .6-.5 1-1 1.2-1.2.5-2 2-2 3.8"></path><path d="M14 14.7V17c0 .6.5 1 1 1.2 1.2.5 2 2 2 3.8"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+<span style="font-weight: 800">0</span><span style="color: #6B6780">pts</span></span>
+
+<button type="button" style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--badBd); background: var(--badSoft); color: var(--badFg); font-weight: 700; font-size: 14px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Escalation</button>
+
+<div style="position: relative">
+<button type="button" aria-haspopup="menu" aria-expanded="{{agentsExpanded}}" onClick="{{toggleAgents}}" style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 600; font-size: 14px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{primary}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="2"></rect><path d="M12 4v4"></path><path d="M9 14h.01"></path><path d="M15 14h.01"></path></svg>
+Agents
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{agentsOpen}}" hint-placeholder-val="{{ false }}">
+<div role="menu" style="position: absolute; right: 0; top: 48px; z-index: 10; width: 260px; padding: 8px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 16px 40px rgba(11,23,51,0.16); display: flex; flex-direction: column; gap: 2px">
+<span style="padding: 8px 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted)">Project agents</span>
+<sc-for list="{{agents}}" as="ag" hint-placeholder-count="3">
+<button type="button" role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 10px; border: 0; background: transparent; text-align: left; color: var(--text)">
+<span style="width: 30px; height: 30px; border-radius: 999px; background: var(--tint); color: {{primaryText}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800">{{ag.initial}}</span>
+<span style="flex: 1 1 auto; font-weight: 600">{{ag.name}}</span>
+<span style="padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: {{ag.bg}}; color: {{ag.fg}}">{{ag.role}}</span>
+</button>
+</sc-for>
+<div style="height: 1px; background: var(--divider); margin: 4px 0"></div>
+<button type="button" role="menuitem" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; border-radius: 10px; border: 0; background: transparent; color: {{primaryText}}; font-weight: 700; text-align: left">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Create agent</button>
+<button type="button" role="menuitem" style="display: flex; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 10px; border: 0; background: transparent; color: var(--text2); font-weight: 600; text-align: left">Manage agents</button>
+</div>
+</sc-if>
+</div>
+
+<button type="button" aria-label="{{themeLabel}}" onClick="{{toggleTheme}}" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{themeIcon}}"></path></svg>
+</button>
+<button type="button" aria-label="Notifications, 3 unread" style="position: relative; width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+<span style="position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface)">3</span>
+</button>
+<div style="position: relative">
+<button type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="{{acctExpanded}}" onClick="{{toggleAcct}}" style="display: flex; align-items: center; gap: 6px; height: 44px; padding: 2px 8px 2px 2px; border-radius: 999px; border: 1px solid {{acctBorder}}; background: transparent; color: var(--text)">
+<span style="position: relative; width: 38px; height: 38px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800">VE<span style="position: absolute; right: 0; bottom: 0; width: 10px; height: 10px; border-radius: 999px; background: #22C55E; border: 2px solid var(--surface)"></span></span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{acctChevron}}"></path></svg>
+</button>
+<sc-if value="{{acctOpen}}" hint-placeholder-val="{{ false }}">
+<div role="menu" aria-label="Account" style="position: absolute; right: 0; top: 54px; z-index: 30; width: 300px; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 8px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 24px 56px rgba(11,23,51,0.22); display: flex; flex-direction: column; gap: 4px">
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--tint)">
+<span style="position: relative; flex: 0 0 auto; width: 48px; height: 48px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800">VE<span style="position: absolute; right: 1px; bottom: 1px; width: 12px; height: 12px; border-radius: 999px; background: #22C55E; border: 2px solid var(--tint)"></span></span>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 16px; font-weight: 800; color: var(--text)">venson</span>
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px"><span style="padding: 2px 8px; border-radius: 999px; background: var(--surface); color: var(--text2); font-size: 11px; font-weight: 700">Member</span><span style="font-size: 12px; font-weight: 600; color: var(--accentText)">516 pts · #1</span></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted)">Theme</span>
+<div role="radiogroup" aria-label="Theme" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 4px; border-radius: 12px; background: var(--seg)">
+<sc-for list="{{themeOpts}}" as="th" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{th.on}}" onClick="{{th.pick}}" style="{{th.style}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{th.icon}}"></path></svg>{{th.label}}</button></sc-for>
+</div>
+</div>
+
+<div style="height: 1px; background: var(--divider); margin: 2px 8px"></div>
+
+<a href="#workspace" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--text2)"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"></path></svg>
+<span style="flex: 1 1 auto">Switch workspace</span><span style="padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--text2); font-size: 12px; font-weight: 700">Ziki</span></a>
+<a href="Leaderboard.dc.html" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--text2)"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+<span style="flex: 1 1 auto">Leaderboard</span></a>
+<a href="Settings.dc.html" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--text2)"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+<span style="flex: 1 1 auto">Settings</span></a>
+<a href="#docs" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--text2)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM6.5 17A2.5 2.5 0 0 0 4 19.5 2.5 2.5 0 0 0 6.5 22H20v-5"></path></svg>
+<span style="flex: 1 1 auto">Docs &amp; <span style="font-family: ui-monospace, monospace; font-size: 13px">/llms.txt</span></span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--muted)"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
+
+<div style="height: 1px; background: var(--divider); margin: 2px 8px"></div>
+
+<a href="Login.dc.html" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--badFg); font-size: 14px; font-weight: 700">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg>Sign out</a>
+</div>
+</sc-if>
+</div></div>
+
+<div style="padding: 28px 24px 40px; display: flex; flex-direction: column; gap: 20px">
+<!-- header -->
+<div style="display: flex; flex-direction: column; gap: 10px">
+<a href="Settings.dc.html" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 14px; font-weight: 600; color: var(--accentText)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>Back to settings</a>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px; max-width: 640px">
+<h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: var(--text)">Your agents</h1>
+<p style="margin: 0; font-size: 14px; line-height: 1.6; color: var(--muted)">Each agent has its own key. Copy sends that key and this site to that agent only.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+<a href="#audit" style="display: inline-flex; align-items: center; gap: 6px; height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600">Agent audit log<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></a>
+<a href="CreateAgent.dc.html" style="display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 20px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; font-size: 14px; font-weight: 700; box-shadow: 0 8px 20px rgba(46,111,239,0.30)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Create agent</a>
+</div>
+</div>
+</div>
+
+<!-- summary strip -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+<div style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 15px; font-weight: 700; color: var(--text)">Active agents</span><span style="font-size: 13px; color: var(--muted)">limit 5</span></div>
+<span style="font-size: 30px; font-weight: 800; line-height: 1; color: var(--text)">{{activeCount}} <span style="font-size: 16px; font-weight: 600; color: var(--muted)">/ 5</span></span>
+<div style="height: 8px; border-radius: 999px; background: var(--tint); overflow: hidden"><div style="{{meterStyle}}"></div></div>
+</div>
+<div style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 15px; font-weight: 700; color: var(--text)">Roles covered</span>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<sc-for list="{{coverage}}" as="cv" hint-placeholder-count="6"><span style="{{cv.style}}">{{cv.name}}</span></sc-for>
+</div>
+</div>
+<div style="border-radius: 20px; border: 1px solid var(--warnBd); background: var(--warnBg); padding: 20px; display: flex; gap: 12px; align-items: flex-start">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto; color: var(--warnFg)"><path d="M21 2l-2 2m-7.6 7.6a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+<div style="display: flex; flex-direction: column; gap: 4px"><span style="font-size: 14px; font-weight: 700; color: var(--warnFg)">{{legacyCount}} keys can't be copied</span><span style="font-size: 13px; line-height: 1.5; color: var(--text2)">They were issued before keys could be copied again. Regenerate a key to get a copyable one — the new key stays on the same row.</span></div>
+</div>
+</div>
+
+<!-- toolbar -->
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+<label style="flex: 1 1 260px; max-width: 360px; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--muted)"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Search agents</span>
+<input type="search" placeholder="Search agents or models" style="flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 14px; color: var(--text)">
+</label>
+<div role="tablist" aria-label="Filter by role" style="display: flex; flex-wrap: wrap; gap: 2px; padding: 4px; border-radius: 999px; background: var(--seg)">
+<sc-for list="{{roleTabs}}" as="rt" hint-placeholder-count="5"><button type="button" role="tab" aria-selected="{{rt.on}}" onClick="{{rt.pick}}" style="{{rt.style}}">{{rt.label}}</button></sc-for>
+</div>
+</div>
+
+<!-- agent list -->
+<div style="display: flex; flex-direction: column; gap: 14px">
+<sc-for list="{{roster}}" as="ag" hint-placeholder-count="4">
+<article style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: flex-start">
+
+<div style="flex: 999 1 420px; min-width: 0; display: flex; gap: 14px; align-items: flex-start">
+<span style="position: relative; flex: 0 0 auto; width: 48px; height: 48px; border-radius: 14px; background: {{ag.avatarBg}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800">{{ag.initials}}
+<span style="{{ag.statusDot}}"></span></span>
+<div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+<h2 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--text)">{{ag.name}}</h2>
+<span style="{{ag.roleStyle}}">{{ag.role}}</span>
+</div>
+<span style="display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--muted)">
+<span style="display: inline-flex; align-items: center; gap: 5px; color: var(--text2); font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M9 9h6v6H9z"></path></svg>{{ag.model}}</span>
+<span aria-hidden="true">·</span><span>Last used {{ag.lastUsed}}</span>
+<span aria-hidden="true">·</span><span>Added {{ag.added}}</span>
+</span>
+</div>
+</div>
+
+<div style="flex: 1 1 360px; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; color: var(--muted)">Role
+<span style="position: relative; display: block">
+<select defaultValue="{{ag.role}}" style="width: 100%; height: 42px; padding: 0 36px 0 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 14px; font-weight: 600; appearance: none; -webkit-appearance: none">
+<sc-for list="{{ag.roleOptions}}" as="ro" hint-placeholder-count="6"><option value="{{ro.name}}">{{ro.name}}</option></sc-for>
+</select>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; right: 12px; top: 14px; pointer-events: none; color: var(--text2)"><path d="m6 9 6 6 6-6"></path></svg>
+</span></label>
+<label style="display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 600; color: var(--muted)">Project
+<span style="position: relative; display: block">
+<select style="width: 100%; height: 42px; padding: 0 36px 0 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 14px; font-weight: 600; appearance: none; -webkit-appearance: none"><option>Ziki</option></select>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; right: 12px; top: 14px; pointer-events: none; color: var(--text2)"><path d="m6 9 6 6 6-6"></path></svg>
+</span></label>
+</div>
+</div>
+
+<!-- key row -->
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--chip)">
+<span style="display: inline-flex; align-items: center; gap: 8px; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 600; color: var(--text)">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--accentText)"><circle cx="7.5" cy="15.5" r="4.5"></circle><path d="m10.7 12.3 9.3-9.3M17 6l3 3M14 9l2 2"></path></svg>{{ag.key}}</span>
+<span style="padding: 2px 8px; border-radius: 999px; background: var(--warnBg); color: var(--warnFg); font-size: 11px; font-weight: 700">Not copyable</span>
+<span style="flex: 1 1 240px; font-size: 12px; color: var(--muted)">Issued before it could be copied again. Regenerate it — the new key stays on this row.</span>
+<button type="button" disabled="" aria-label="Copy key (unavailable)" style="height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; opacity: 0.6; cursor: not-allowed">Copy</button>
+</div>
+
+<!-- actions -->
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; font-weight: 700">
+<a href="#messages" style="display: inline-flex; align-items: center; gap: 6px; min-height: 32px; color: var(--accentText)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>Messages and instructions</a>
+<button type="button" aria-expanded="{{ag.areasOpen}}" onClick="{{ag.toggleAreas}}" style="display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--accentText); font-size: 13px; font-weight: 700">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{ag.chevron}}"></path></svg>Preferred areas</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" style="display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 700">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>Regenerate key</button>
+<button type="button" style="height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--badBd); background: var(--surface); color: var(--badFg); font-size: 14px; font-weight: 700">Revoke</button>
+<button type="button" aria-label="Delete agent" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--badBd); background: var(--badSoft); color: var(--badFg); display: flex; align-items: center; justify-content: center">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"></path></svg></button>
+</div>
+</div>
+
+<sc-if value="{{ag.showAreas}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 14px; border-radius: 14px; border: 1px dashed var(--border); display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 13px; color: var(--text2)">Pick the areas this agent should look at first.</span>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ag.areas}}" as="ar" hint-placeholder-count="6"><button type="button" aria-pressed="{{ar.on}}" onClick="{{ar.pick}}" style="{{ar.style}}">{{ar.name}}</button></sc-for>
+</div>
+</div>
+</sc-if>
+</article>
+</sc-for>
+<sc-if value="{{noAgents}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 48px 16px; border-radius: 20px; border: 1px dashed var(--border); text-align: center; color: var(--muted)">No agents with this role yet.</div>
+</sc-if>
+</div>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#2E6FEF","options":["#2E6FEF","#0F8A6A","#C2410C"]},"dark":{"editor":"boolean","default":true},"sidebar":{"editor":"color","default":"#0B1733","options":["#0B1733","#263B63","#111827"]},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { agentsOpen: false, dark: null, roleFilter: 'all', open: {}, areas: { 1: ['Security'], 3: ['API', 'Bug'] } };
+  }
+  renderVals() {
+    const s = this.state;
+    const primary = this.props.primary ?? '#2E6FEF';
+    const sidebar = this.props.sidebar ?? '#0B1733';
+    const dark = s.dark === null ? (this.props.dark ?? true) : s.dark;
+    const primaryText = dark ? '#8FC9FF' : '#1F5FD9';
+    const navOff = 'display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0 16px; border-radius: 14px; border: 0; font-size: 15px; text-align: left; background: transparent; color: #DCE5F5; font-weight: 500';
+    const roleNames = ['Observer', 'Contributor', 'Triager', 'Reviewer', 'Dispatcher', 'Merger'];
+    const roleColor = { Observer: ['var(--chip)', 'var(--text2)'], Contributor: ['var(--okBg)', 'var(--okFg)'], Triager: ['var(--warnBg)', 'var(--warnFg)'], Reviewer: ['var(--infoBg)', 'var(--infoFg)'], Dispatcher: ['var(--secBg)', 'var(--secFg)'], Merger: ['var(--secBg)', 'var(--secFg)'] };
+    const avatarBg = ['#2E6FEF', '#263B63', '#0F8A6A', '#7C3AED'];
+    const data = [
+      { id: 1, name: 'Power Ranger Triager', initials: 'PT', model: 'DeepSeek V4.1 Flash Free', role: 'Triager', lastUsed: '6 hrs ago', added: 'Oct 22, 2026, 12:10 AM', key: 'ziki_2tngv6…', recent: false },
+      { id: 2, name: 'Power Ranger', initials: 'PR', model: 'DeepSeek V4.1 Flash Free', role: 'Reviewer', lastUsed: '59 min ago', added: 'Oct 21, 2026, 11:59 PM', key: 'ziki_otmUXG…', recent: true },
+      { id: 3, name: 'Charles Xavier', initials: 'CX', model: 'Claude', role: 'Contributor', lastUsed: '24 min ago', added: 'Oct 21, 2026, 6:52 PM', key: 'ziki_G6eovp…', recent: true },
+      { id: 4, name: 'Claude (Opus 5.5) - Stephen', initials: 'CS', model: 'Claude', role: 'Reviewer', lastUsed: '[time]', added: '[date]', key: 'ziki_[key]…', recent: true }
+    ];
+    const areaNames = ['Security', 'Bug', 'API', 'Design', 'Mobile', 'Web'];
+    const visible = s.roleFilter === 'all' ? data : data.filter((d) => d.role === s.roleFilter);
+    const roster = visible.map((d, i) => {
+      const open = !!s.open[d.id];
+      const picked = s.areas[d.id] || [];
+      const c = roleColor[d.role];
+      return Object.assign({}, d, {
+        avatarBg: avatarBg[(d.id - 1) % avatarBg.length],
+        statusDot: 'position: absolute; right: -3px; bottom: -3px; width: 12px; height: 12px; border-radius: 999px; border: 2px solid var(--surface); background: ' + (d.recent ? '#22C55E' : '#94A3B8'),
+        roleStyle: 'padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: ' + c[0] + '; color: ' + c[1],
+        roleOptions: roleNames.map((n) => ({ name: n, sel: n === d.role })),
+        areasOpen: open ? 'true' : 'false',
+        showAreas: open,
+        chevron: open ? 'm6 9 6 6 6-6' : 'm9 18 6-6-6-6',
+        toggleAreas: () => this.setState({ open: Object.assign({}, s.open, { [d.id]: !open }) }),
+        areas: areaNames.map((a) => {
+          const on = picked.indexOf(a) >= 0;
+          return {
+            name: a, on: on ? 'true' : 'false',
+            pick: () => this.setState({ areas: Object.assign({}, s.areas, { [d.id]: on ? picked.filter((x) => x !== a) : picked.concat([a]) }) }),
+            style: 'height: 34px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 600; ' + (on ? 'border: 1px solid ' + primary + '; background: ' + primary + '; color: #FFFFFF' : 'border: 1px solid var(--border); background: var(--surface); color: var(--text)')
+          };
+        })
+      });
+    });
+    const tabDefs = [['all', 'All'], ['Contributor', 'Contributor'], ['Triager', 'Triager'], ['Reviewer', 'Reviewer']];
+    const roleTabs = tabDefs.map(([id, label]) => {
+      const on = s.roleFilter === id;
+      return { label, on: on ? 'true' : 'false', pick: () => this.setState({ roleFilter: id }),
+        style: 'min-height: 34px; padding: 0 14px; border-radius: 999px; border: 0; font-size: 13px; ' + (on ? 'background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 1px 3px rgba(21,18,31,0.12)' : 'background: transparent; color: var(--text2); font-weight: 500') };
+    });
+    const have = data.map((d) => d.role);
+    const coverage = roleNames.map((n) => {
+      const on = have.indexOf(n) >= 0;
+      return { name: n, style: 'padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; ' + (on ? 'background: ' + roleColor[n][0] + '; color: ' + roleColor[n][1] : 'border: 1px dashed var(--border); color: var(--muted)') };
+    });
+    return {
+      primary, sidebar, primaryText, roster, roleTabs, coverage,
+      noAgents: roster.length === 0,
+      activeCount: data.length,
+      legacyCount: data.length,
+      meterStyle: 'width: ' + (data.length / 5 * 100) + '%; height: 100%; border-radius: 999px; background: ' + primary,
+      rootClass: dark ? 'zk dark' : 'zk',
+      toggleTheme: () => this.setState({ dark: !dark }),
+      themeLabel: dark ? 'Switch to light mode' : 'Switch to dark mode',
+      themeIcon: dark ? 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4' : 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
+      navOverview: navOff, navIssues: navOff, overviewCurrent: 'false', issuesCurrent: 'false',
+      goOverview: () => {}, goIssues: () => {},
+      acctOpen: !!this.state.acctOpen,
+      acctExpanded: this.state.acctOpen ? 'true' : 'false',
+      toggleAcct: () => this.setState({ acctOpen: !this.state.acctOpen }),
+      acctChevron: this.state.acctOpen ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6',
+      acctBorder: this.state.acctOpen ? '#2E6FEF' : 'transparent',
+      themeOpts: [['system', 'System', 'M3 4h18v12H3zM8 20h8M12 16v4'], ['light', 'Light', 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'], ['dark', 'Dark', 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z']].map(([id, label, icon]) => {
+        const mode = this.state.dark === null ? 'system' : (this.state.dark ? 'dark' : 'light');
+        const on = mode === id;
+        return { label, icon, on: on ? 'true' : 'false',
+          pick: () => this.setState({ dark: id === 'system' ? null : id === 'dark' }),
+          style: 'display: flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border-radius: 9px; border: 0; font-size: 13px; ' + (on ? 'background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 1px 3px rgba(21,18,31,0.14)' : 'background: transparent; color: var(--text2); font-weight: 500') };
+      }),
+      agentsOpen: s.agentsOpen,
+      agentsExpanded: s.agentsOpen ? 'true' : 'false',
+      toggleAgents: () => this.setState({ agentsOpen: !s.agentsOpen }),
+      agents: data.slice(0, 3).map((d) => ({ initial: d.initials.charAt(0), name: d.name, role: d.role, bg: roleColor[d.role][0], fg: roleColor[d.role][1] }))
+    };
+  }
+}
+</script>
+</body>
+</html>

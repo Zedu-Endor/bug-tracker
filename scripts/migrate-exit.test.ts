@@ -133,7 +133,9 @@ afterEach(() => {
 
 const DB = "postgresql://u:p@localhost:5432/db";
 
-describe("scripts/migrate.mjs exit code (#580)", () => {
+// The stubs are POSIX shell scripts, so these cases only run on Unix. CI is
+// Linux; Windows checkouts skip them instead of failing on `#!/bin/sh`.
+describe.skipIf(process.platform === "win32")("scripts/migrate.mjs exit code (#580)", () => {
   it("exits 0 when migrations apply", () => {
     const { status, calls } = run(0, { NODE_ENV: "production", DATABASE_URL: DB });
     expect(status).toBe(0);

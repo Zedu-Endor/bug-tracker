@@ -34,8 +34,9 @@ export function Avatar({
    * "tone" is the shared pastel colour derived from the name. "solid" is the
    * saturated green used on the navy chrome (the header and sidebar account
    * cards), where the pastel tints do not read against the dark background.
+   * "brand" is the redesign's account avatar: white initials on primary blue.
    */
-  variant?: "tone" | "solid";
+  variant?: "tone" | "solid" | "brand";
   className?: string;
 }) {
   const src = safeAvatarUrl(image);
@@ -43,7 +44,11 @@ export function Avatar({
     <span
       aria-hidden="true"
       className={`relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full font-semibold ${AVATAR_SIZES[size]} ${
-        variant === "solid" ? "bg-emerald-700 text-white" : avatarTone(name)
+        variant === "solid"
+          ? "bg-emerald-700 text-white"
+          : variant === "brand"
+            ? "bg-primary font-extrabold text-white"
+            : avatarTone(name)
       } ${className}`}
     >
       {initialsOf(name)}

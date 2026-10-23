@@ -22,7 +22,7 @@ export function Highlighted({ segments }: { segments: Segment[] }) {
 /** One line of matching description text under a search result (#301). */
 export function SearchSnippet({ snippet }: { snippet: Snippet }) {
   return (
-    <p className="line-clamp-2 text-sm text-slate-600 break-words" data-testid="search-snippet">
+    <p className="line-clamp-2 text-sm text-muted break-words" data-testid="search-snippet">
       <span className="sr-only">Matched in description: </span>
       {snippet.before ? "…" : null}
       <Highlighted segments={snippet.segments} />

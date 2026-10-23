@@ -8,6 +8,7 @@ import { checkSsrf } from "@/lib/webhooks/ssrf";
 import { generateSigningSecret, encryptSigningSecret } from "@/lib/webhooks/sign";
 import { MAX_SUBSCRIPTIONS_PER_AGENT } from "@/lib/webhooks/manage";
 import { deliverySummaries } from "@/lib/webhooks/history";
+import type { AgentLevel } from "@prisma/client";
 import { z } from "zod";
 import { fromZodError } from "@/lib/form-errors";
 
@@ -19,6 +20,7 @@ const createWebhookSchema = z.object({
 export type AgentChoice = {
   id: string;
   name: string;
+  level: AgentLevel;
 };
 
 export type WebhookSubscriptionRow = {
@@ -47,7 +49,7 @@ export async function listWebhooksAction(): Promise<ListWebhooksResult> {
 
   const agents = await prisma.agent.findMany({
     where: { ownerUserId: user.id, tenantId: tenant.tenantId, revokedAt: null },
-    select: { id: true, name: true },
+    select: { id: true, name: true, level: true },
   });
 
   if (agents.length === 0) {

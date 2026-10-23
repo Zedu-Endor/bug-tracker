@@ -18,14 +18,14 @@ export function MilestoneProgressBar({
         aria-valuemax={100}
         aria-valuenow={progress.percent}
         aria-valuetext={`${progress.done} of ${progress.total} issues done`}
-        className="h-2 w-full overflow-hidden rounded-full bg-zk-chip"
+        className="h-2 w-full overflow-hidden rounded-full bg-chip"
       >
         <div
-          className="h-full rounded-full bg-electric-blue-strong transition-[width]"
+          className="h-full rounded-full bg-primary transition-[width] motion-reduce:transition-none"
           style={{ width: `${progress.percent}%` }}
         />
       </div>
-      <p className="mt-1 text-xs text-zk-text2 tabular-nums">
+      <p className="mt-1 text-xs text-muted tabular-nums">
         {progress.total === 0
           ? "No issues yet"
           : `${progress.done} of ${progress.total} done · ${progress.percent}%`}

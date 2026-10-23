@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * ziki-agent: a small reference client for the Ziki agent API (#611).
  *

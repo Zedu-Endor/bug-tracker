@@ -30,26 +30,26 @@ export function IssueEscalations({
     <section
       id="escalations"
       aria-label="Agent escalations"
-      className="scroll-mt-24 rounded-xl border border-zk-border bg-zk-surface p-4 sm:p-6 space-y-4"
+      className="scroll-mt-24 rounded-[20px] border border-line bg-surface p-5 space-y-4"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zk-divider pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider pb-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zk-muted">
+          <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
             Escalations ({escalations.length})
           </h2>
           {pending.length > 0 ? (
-            <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-zk-warn-fg">
+            <span className="inline-flex items-center rounded-full bg-warn-bg px-2.5 py-0.5 text-[11px] font-bold text-warn-fg">
               {pending.length} unresolved
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+            <span className="inline-flex items-center rounded-full bg-ok-bg px-2.5 py-0.5 text-[11px] font-bold text-ok-fg">
               All resolved
             </span>
           )}
         </div>
         <Link
           href="/escalations"
-          className="text-xs font-medium text-zk-accent hover:underline"
+          className="text-xs font-bold text-accent hover:underline"
         >
           View all workspace escalations →
         </Link>
@@ -64,43 +64,43 @@ export function IssueEscalations({
           return (
             <li
               key={esc.id}
-              className={`rounded-lg border p-4 space-y-3 transition-colors ${
+              className={`rounded-[14px] border p-4 space-y-3 transition-colors ${
                 isPending
-                  ? "border-zk-warn-bd bg-zk-warn-bg/20"
-                  : "border-zk-border bg-zk-chip/40"
+                  ? "border-warn-bd bg-warn-bg/40"
+                  : "border-line bg-chip/40"
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <EscalationTypeBadge type={type} />
-                  <span className="text-sm font-semibold text-zk-text">
+                  <span className="text-sm font-bold text-ink">
                     {esc.agent.name}
                   </span>
-                  <span className="text-xs text-zk-muted">•</span>
-                  <LocalTime date={esc.createdAt} className="text-xs text-zk-muted" />
+                  <span className="text-xs text-muted">•</span>
+                  <LocalTime date={esc.createdAt} className="text-xs text-muted" />
                 </div>
                 {isPending ? (
-                  <span className="text-xs font-medium text-amber-700">Awaiting guidance</span>
+                  <span className="text-xs font-bold text-warn-fg">Awaiting guidance</span>
                 ) : (
-                  <span className="text-xs font-medium text-emerald-700">✓ Resolved</span>
+                  <span className="text-xs font-bold text-ok-fg">✓ Resolved</span>
                 )}
               </div>
 
-              <p className="whitespace-pre-wrap text-sm text-zk-text">{parsed.cleanBody}</p>
+              <p className="whitespace-pre-wrap text-sm text-ink-2">{parsed.cleanBody}</p>
 
               {isPending ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-amber-200/60">
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-warn-bd/60">
                   <QuickResolveButtons escalationId={esc.id} />
                   <Link
                     href={`/escalations/${esc.id}`}
-                    className="text-xs font-medium text-zk-accent hover:underline"
+                    className="text-xs font-bold text-accent hover:underline"
                   >
                     Custom response →
                   </Link>
                 </div>
               ) : (
-                <div className="rounded bg-zk-surface p-3 text-xs text-zk-text2 border border-zk-border space-y-1">
-                  <span className="font-semibold text-zk-text2">Resolution:</span>
+                <div className="rounded-lg bg-surface p-3 text-xs text-ink-2 border border-line space-y-1">
+                  <span className="font-bold text-ink">Resolution:</span>
                   <p className="whitespace-pre-wrap">{esc.answer}</p>
                 </div>
               )}

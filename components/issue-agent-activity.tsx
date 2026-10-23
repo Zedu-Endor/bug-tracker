@@ -47,91 +47,49 @@ function timeOf(decision: AgentDecision): number {
   return new Date(decision.at).getTime();
 }
 
-type VerdictVisual = {
-  label: string;
-  chip: string;
-  iconWrap: string;
-};
-
-function verdictVisual(decision: AgentDecision): VerdictVisual {
+/** The chip and icon tone for each kind of decision, in the redesign palette. */
+function decisionTone(decision: AgentDecision): string {
   switch (decision.kind) {
-    case "rejected":
-      return {
-        label: "Not a real issue",
-        chip: "bg-zk-bad-bg text-zk-bad-fg",
-        iconWrap: "bg-zk-bad-bg text-zk-bad-fg",
-      };
     case "confirmed":
-      return {
-        label: "Confirmed",
-        chip: "bg-zk-ok-bg text-zk-ok-fg",
-        iconWrap: "bg-zk-ok-bg text-zk-ok-fg",
-      };
+      return "bg-ok-bg text-ok-fg";
+    case "rejected":
+      return "bg-bad-bg text-bad-fg";
     case "claimed":
-      return {
-        label: "Claimed",
-        chip: "bg-zk-info-bg text-zk-info-fg",
-        iconWrap: "bg-zk-info-bg text-zk-info-fg",
-      };
+      return "bg-info-bg text-info-fg";
     case "verdict":
-      return decision.goodToMerge
-        ? {
-            label: "Good to merge",
-            chip: "bg-zk-ok-bg text-zk-ok-fg",
-            iconWrap: "bg-zk-ok-bg text-zk-ok-fg",
-          }
-        : {
-            label: "Not ready to merge",
-            chip: "bg-zk-warn-bg text-zk-warn-fg",
-            iconWrap: "bg-zk-warn-bg text-zk-warn-fg",
-          };
+      return decision.goodToMerge ? "bg-ok-bg text-ok-fg" : "bg-warn-bg text-warn-fg";
     case "accepted":
-      return {
-        label: "Good to merge",
-        chip: "bg-zk-ok-bg text-zk-ok-fg",
-        iconWrap: "bg-zk-ok-bg text-zk-ok-fg",
-      };
+      return "bg-ok-bg text-ok-fg";
   }
 }
 
-function VerdictGlyph({ kind, goodToMerge }: { kind: AgentDecision["kind"]; goodToMerge?: boolean }) {
-  const common = "h-[15px] w-[15px]";
-  if (kind === "rejected") {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={common} aria-hidden>
-        <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-      </svg>
-    );
+function decisionLabel(decision: AgentDecision): string {
+  switch (decision.kind) {
+    case "confirmed":
+      return "Confirmed";
+    case "rejected":
+      return "Not a real issue";
+    case "claimed":
+      return "Claimed";
+    case "verdict":
+      return decision.goodToMerge ? "Good to merge" : "Not ready to merge";
+    case "accepted":
+      return "Fix accepted";
   }
-  if (kind === "claimed") {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={common} aria-hidden>
-        <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-      </svg>
-    );
+}
+
+function decisionIcon(decision: AgentDecision): string {
+  switch (decision.kind) {
+    case "confirmed":
+    case "accepted":
+      return "✓";
+    case "rejected":
+      return "✕";
+    case "claimed":
+      return "✋";
+    case "verdict":
+      return decision.goodToMerge ? "⇄" : "!";
   }
-  if (kind === "verdict" && !goodToMerge) {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={common} aria-hidden>
-        <path d="M12 9v4M12 17h.01" strokeLinecap="round" />
-        <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  if (kind === "verdict" || kind === "accepted") {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={common} aria-hidden>
-        <circle cx="18" cy="18" r="3" />
-        <circle cx="6" cy="6" r="3" />
-        <path d="M6 9v12M6 9a9 9 0 0 0 9 9" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={common} aria-hidden>
-      <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
 }
 
 function sentence(decision: AgentDecision) {
@@ -139,12 +97,12 @@ function sentence(decision: AgentDecision) {
     case "confirmed":
       return (
         <>
-          <strong className="font-bold text-zk-text">{decision.agentName}</strong> confirmed this issue as real
+          <span className="font-bold text-ink">{decision.agentName}</span> confirmed this issue as real
           {decision.severity ? (
             <>
               {" "}
               and set the severity to{" "}
-              <strong className="font-bold text-zk-text">{severityLabel[decision.severity]}</strong>
+              <span className="font-bold text-ink">{severityLabel[decision.severity]}</span>
             </>
           ) : null}
           {decision.personName ? <> on behalf of {decision.personName}</> : null}.
@@ -153,14 +111,14 @@ function sentence(decision: AgentDecision) {
     case "rejected":
       return (
         <>
-          <strong className="font-bold text-zk-text">{decision.agentName}</strong> found this isn&apos;t a real
+          <span className="font-bold text-ink">{decision.agentName}</span> found this isn&apos;t a real
           issue{decision.personName ? <> on behalf of {decision.personName}</> : null}.
         </>
       );
     case "claimed":
       return (
         <>
-          <strong className="font-bold text-zk-text">{decision.agentName}</strong> claimed this issue for{" "}
+          <span className="font-bold text-ink">{decision.agentName}</span> claimed this issue for{" "}
           {decision.personName}.
           {decision.waitingOnName ? (
             <>
@@ -179,14 +137,14 @@ function sentence(decision: AgentDecision) {
     case "verdict":
       return (
         <>
-          <strong className="font-bold text-zk-text">{decision.agentName}</strong> said this fix is{" "}
+          <span className="font-bold text-ink">{decision.agentName}</span> said this fix is{" "}
           {decision.goodToMerge ? "good to merge" : "not ready to merge"}.
         </>
       );
     case "accepted":
       return (
         <>
-          <strong className="font-bold text-zk-text">{decision.agentName}</strong> accepted the fix and marked this
+          <span className="font-bold text-ink">{decision.agentName}</span> accepted the fix and marked this
           issue resolved.
         </>
       );
@@ -205,48 +163,43 @@ export function IssueAgentActivity({ decisions }: { decisions: ReadonlyArray<Age
   return (
     <section
       aria-label="Agent decisions"
-      className="rounded-[20px] border border-zk-border bg-zk-surface p-5 sm:p-[22px]"
+      className="rounded-[20px] border border-line bg-surface p-5 sm:p-6"
     >
       <h2 className="sr-only">Agent decisions</h2>
-      <ol className="flex flex-col gap-1">
-        {ordered.map((decision, index) => {
-          const visual = verdictVisual(decision);
-          const isLast = index === ordered.length - 1;
-          return (
-            <li key={decision.id} className="flex gap-3.5">
-              <div className="flex flex-col items-center">
+      <ol className="space-y-0">
+        {ordered.map((decision, index) => (
+          <li key={decision.id} className="flex gap-3.5">
+            <div className="flex flex-col items-center">
+              <span
+                aria-hidden
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${decisionTone(decision)}`}
+              >
+                {decisionIcon(decision)}
+              </span>
+              {index < ordered.length - 1 ? (
+                <span aria-hidden className="mt-1 w-0.5 flex-1 bg-divider" />
+              ) : null}
+            </div>
+            <div className={`min-w-0 flex-1 ${index < ordered.length - 1 ? "pb-5" : ""}`}>
+              <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${visual.iconWrap}`}
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${decisionTone(decision)}`}
                 >
-                  <VerdictGlyph
-                    kind={decision.kind}
-                    goodToMerge={decision.kind === "verdict" ? decision.goodToMerge : undefined}
-                  />
+                  {decisionLabel(decision)}
                 </span>
-                <span
-                  aria-hidden
-                  className={isLast ? "hidden" : "my-1 min-h-4 w-0.5 flex-1 bg-zk-divider"}
-                />
+                <LocalTime className="text-xs text-muted" date={decision.at} />
               </div>
-              <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-4"}`}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${visual.chip}`}>
-                    {visual.label}
-                  </span>
-                  <LocalTime className="text-xs text-zk-muted" date={decision.at} />
-                </div>
-                <p className="mt-1.5 text-sm leading-snug text-zk-text2">{sentence(decision)}</p>
-                {decision.kind === "rejected" && decision.notes ? (
-                  <ExpandableText maxLines={3} expandText="View more" collapseText="View less">
-                    <blockquote className="mt-1.5 whitespace-pre-wrap break-words rounded-r-[10px] border-l-[3px] border-zk-border bg-zk-chip px-3.5 py-2.5 text-[13px] leading-relaxed text-zk-text2">
-                      {decision.notes}
-                    </blockquote>
-                  </ExpandableText>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-2">{sentence(decision)}</p>
+              {decision.kind === "rejected" && decision.notes ? (
+                <ExpandableText maxLines={3} expandText="View more" collapseText="View less">
+                  <blockquote className="mt-2 whitespace-pre-wrap break-words rounded-r-[10px] border-l-[3px] border-line bg-chip px-3.5 py-2.5 text-sm text-ink-2">
+                    {decision.notes}
+                  </blockquote>
+                </ExpandableText>
+              ) : null}
+            </div>
+          </li>
+        ))}
       </ol>
     </section>
   );

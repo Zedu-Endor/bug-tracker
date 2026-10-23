@@ -42,20 +42,20 @@ describe("CharacterCounter", () => {
     const html = renderToStaticMarkup(
       createElement(CharacterCounter, { length: 10, max: 200 }),
     );
-    expect(html).toContain("tabular-nums text-slate-500");
-    expect(html).not.toContain("text-amber-700");
-    expect(html).not.toContain("text-red-600");
+    expect(html).toContain("tabular-nums text-muted");
+    expect(html).not.toContain("text-warn-fg");
+    expect(html).not.toContain("text-bad-fg");
   });
 
   it("turns amber near the limit and red at the limit", () => {
     const amber = renderToStaticMarkup(
       createElement(CharacterCounter, { length: 185, max: 200 }),
     );
-    expect(amber).toContain("text-amber-700");
+    expect(amber).toContain("text-warn-fg");
 
     const red = renderToStaticMarkup(
       createElement(CharacterCounter, { length: 200, max: 200 }),
     );
-    expect(red).toContain("text-red-600");
+    expect(red).toContain("text-bad-fg");
   });
 });

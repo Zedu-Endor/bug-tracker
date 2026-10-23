@@ -20,14 +20,14 @@ export function GettingStarted({
   return (
     <section
       aria-labelledby="getting-started-heading"
-      className="rounded-xl border border-slate-200 bg-card p-4 sm:p-5 print:hidden"
+      className="rounded-[20px] border border-line bg-surface p-5 print:hidden"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="getting-started-heading" className="text-base font-semibold text-slate-900">
+          <h2 id="getting-started-heading" className="text-base font-bold text-ink">
             Getting started with {workspaceName}
           </h2>
-          <p className="mt-0.5 text-sm text-slate-600">
+          <p className="mt-0.5 text-sm text-muted">
             {done} of {steps.length} done. A workspace holds your projects; each project has its own issues.
           </p>
         </div>
@@ -35,7 +35,7 @@ export function GettingStarted({
           <input type="hidden" name="tenantId" value={tenantId} />
           <button
             type="submit"
-            className="rounded-full px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            className="rounded-full px-3 py-1.5 text-sm font-bold text-muted transition-colors hover:bg-tint hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Dismiss
           </button>
@@ -47,7 +47,7 @@ export function GettingStarted({
             <span
               aria-hidden="true"
               className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                step.done ? "bg-teal-600 text-white" : "border border-slate-300 text-transparent"
+                step.done ? "bg-primary text-white" : "border border-line text-transparent"
               }`}
             >
               ✓
@@ -55,15 +55,15 @@ export function GettingStarted({
             <div className="min-w-0">
               <p className="text-sm">
                 {step.done ? (
-                  <span className="text-slate-500 line-through decoration-slate-300">{step.label}</span>
+                  <span className="text-muted line-through decoration-line">{step.label}</span>
                 ) : (
-                  <Link href={step.href} className="font-medium text-teal-700 hover:underline">
+                  <Link href={step.href} className="font-bold text-accent hover:underline">
                     {step.label}
                   </Link>
                 )}
                 <span className="sr-only">{step.done ? " (done)" : " (to do)"}</span>
               </p>
-              {!step.done ? <p className="text-xs text-slate-500">{step.hint}</p> : null}
+              {!step.done ? <p className="text-xs text-muted">{step.hint}</p> : null}
             </div>
           </li>
         ))}

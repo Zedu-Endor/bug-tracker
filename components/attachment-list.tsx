@@ -25,7 +25,7 @@ export function AttachmentList({ attachments }: { attachments: AttachmentView[] 
                 href={href(a.id)}
                 target="_blank"
                 rel="noopener"
-                className="block overflow-hidden rounded-lg border border-zk-border bg-zk-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong"
+                className="block overflow-hidden rounded-lg border border-line bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 title={`${a.filename} (${formatBytes(a.size)})`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- served by our own auth-checked route */}
@@ -48,13 +48,13 @@ export function AttachmentList({ attachments }: { attachments: AttachmentView[] 
                 href={href(a.id)}
                 target="_blank"
                 rel="noopener"
-                className="inline-flex max-w-full items-center gap-2 rounded-lg border border-zk-border bg-zk-surface px-3 py-1.5 text-sm text-zk-text hover:bg-zk-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong"
+                className="inline-flex max-w-full items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-ink hover:bg-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
-                <span aria-hidden="true" className="rounded bg-zk-chip px-1.5 py-0.5 text-[10px] font-semibold text-zk-text2">
+                <span aria-hidden="true" className="rounded bg-chip px-1.5 py-0.5 text-[10px] font-semibold text-ink-2">
                   {attachmentKind(a.contentType) === "pdf" ? "PDF" : "TXT"}
                 </span>
                 <span className="truncate">{a.filename}</span>
-                <span className="shrink-0 text-xs text-zk-muted">{formatBytes(a.size)}</span>
+                <span className="shrink-0 text-xs text-muted">{formatBytes(a.size)}</span>
               </a>
             </li>
           ))}

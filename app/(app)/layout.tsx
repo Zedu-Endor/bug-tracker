@@ -1,8 +1,8 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-helpers";
 import { isLinkPreviewBot } from "@/lib/link-preview";
-import { AppHeader } from "@/components/app-header";
+import { AppHeader, type HeaderAgent } from "@/components/app-header";
 import { AppSidebar } from "@/components/app-sidebar";
 import { getUnreadCount } from "@/lib/lookups";
 import { REPORT_FORM_URL } from "@/lib/report-form";
@@ -16,10 +16,12 @@ import { prisma } from "@/lib/prisma";
 import { currentTenantIdFor } from "@/lib/tenant-context";
 import { tenantsForUser } from "@/lib/tenants";
 import { countPendingEscalations } from "@/lib/agent-questions";
-import { loadOwnAgents, loadSidebarCounts } from "@/lib/dashboard-overview";
 import { pointTotals, tenantRankFor } from "@/lib/points/leaderboard";
+import { loadOwnAgents, loadSidebarCounts } from "@/lib/dashboard-overview";
 import { getPlatformRewardConfig } from "@/lib/points/platform-rewards";
 import { TARGET_POINTS } from "@/lib/points/rules";
+import { SIDEBAR_COOKIE, parseSidebarCollapsed } from "@/lib/sidebar";
+import { headerNavItems } from "@/lib/header-nav";
 
 export default async function AppLayout({
   children,
@@ -76,8 +78,8 @@ export default async function AppLayout({
   let points = 0;
   let solvedTasks = 0;
   let rank: number | null = null;
-  let issueCount = 0;
-  let shellAgents: { id: string; name: string; level: string }[] = [];
+  let sidebarUnresolved = 0;
+  let agents: HeaderAgent[] = [];
   let targetPoints = TARGET_POINTS;
   try {
     targetPoints = (await getPlatformRewardConfig(prisma)).target;
@@ -94,26 +96,35 @@ export default async function AppLayout({
       const totals = await pointTotals(prisma, tenantId, user.id);
       points = totals.points;
       solvedTasks = totals.solvedTasks;
+      const place = await tenantRankFor(prisma, tenantId, user.id);
+      rank = place?.rank ?? null;
     } catch (error) {
       console.error("[layout] points failed", error);
     }
     try {
-      rank = (await tenantRankFor(prisma, tenantId, user.id))?.rank ?? null;
+      sidebarUnresolved = (await loadSidebarCounts({ userId: user.id, tenantId })).unresolved;
     } catch (error) {
-      console.error("[layout] rank failed", error);
+      console.error("[layout] sidebar counts failed", error);
     }
     try {
-      issueCount = (await loadSidebarCounts({ userId: user.id, tenantId })).unresolved;
-    } catch (error) {
-      console.error("[layout] issue count failed", error);
-    }
-    try {
-      const agents = await loadOwnAgents({ userId: user.id, tenantId });
-      shellAgents = agents.map((agent) => ({ id: agent.id, name: agent.name, level: agent.level }));
+      agents = (await loadOwnAgents({ userId: user.id, tenantId })).map((agent) => ({
+        id: agent.id,
+        name: agent.name,
+        level: agent.level as HeaderAgent["level"],
+      }));
     } catch (error) {
       console.error("[layout] agents failed", error);
     }
   }
+
+  const sidebarCollapsed = parseSidebarCollapsed(
+    (await cookies()).get(SIDEBAR_COOKIE)?.value,
+  );
+  // The design keeps the sidebar to the three core destinations. Anything
+  // role-specific that has no other home in the shell rides in "More".
+  const sidebarExtras = headerNavItems(user.role, { agentPlatform: true }).filter(
+    (item) => item.href === "/admin/users",
+  );
 
   // #287: one primary-key read; a failure leaves shortcuts on, the default.
   let shortcutsEnabled = true;
@@ -128,12 +139,14 @@ export default async function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zk-bg lg:flex-row">
+    <div className="flex min-h-screen flex-col bg-background lg:flex-row">
       <SkipLink />
       <AppSidebar
-        issueCount={issueCount}
+        counts={{ unresolved: sidebarUnresolved }}
         workspaces={workspaces}
         activeTenantId={activeTenantId}
+        extraItems={sidebarExtras}
+        initialCollapsed={sidebarCollapsed}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader
@@ -151,7 +164,7 @@ export default async function AppLayout({
           solvedTasks={solvedTasks}
           targetPoints={targetPoints}
           rank={rank}
-          agents={shellAgents}
+          agents={agents}
           reportFormUrl={REPORT_FORM_URL}
         />
         <main
@@ -159,7 +172,7 @@ export default async function AppLayout({
           /* Focusable so the skip link and the route announcer can move focus
              here; -1 keeps it out of the normal tab order. */
           tabIndex={-1}
-          className="flex-1 px-4 py-6 outline-none sm:px-6 sm:py-8"
+          className={`outline-none ${PAGE_CONTAINER_CLASS} flex-1 pb-10 pt-[64px] sm:px-6 sm:pb-12 sm:pt-8`}
         >
           {children}
         </main>

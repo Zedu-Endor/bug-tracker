@@ -141,25 +141,29 @@ export function KeyboardShortcuts({
       onClick={(event) => {
         if (event.target === event.currentTarget) setHelpOpen(false);
       }}
-      className="m-auto max-h-[85vh] w-[min(28rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-card p-0 text-slate-900 shadow-xl backdrop:bg-black/50"
+      className="m-auto max-h-[85vh] w-[min(28rem,calc(100vw-2rem))] overflow-y-auto rounded-[20px] border border-line bg-surface p-0 text-ink shadow-pop backdrop:bg-black/50"
     >
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
-          <h2 id="shortcuts-title" className="text-base font-semibold">
+          <h2 id="shortcuts-title" className="text-lg font-bold">
             Keyboard shortcuts
           </h2>
           <button
             type="button"
             onClick={() => setHelpOpen(false)}
-            className="rounded px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            className="rounded-full px-2.5 py-1 text-sm text-ink-2 transition-colors hover:bg-chip hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Close
           </button>
         </div>
         {!enabled ? (
-          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p className="mt-2 rounded-xl bg-warn-bg px-3 py-2 text-sm text-warn-fg">
             Shortcuts are turned off. Turn them on in{" "}
-            <Link href="/settings" className="font-medium underline" onClick={() => setHelpOpen(false)}>
+            <Link
+              href="/settings#preferences"
+              className="font-bold underline"
+              onClick={() => setHelpOpen(false)}
+            >
               Settings
             </Link>
             .
@@ -167,18 +171,18 @@ export function KeyboardShortcuts({
         ) : null}
         {shortcutGroups({ dashboard }).map((group) => (
           <section key={group.title} className="mt-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{group.title}</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-muted">{group.title}</h3>
             <dl className="mt-2 space-y-1.5">
               {group.items.map((item) => (
                 <div key={item.label} className="flex items-center justify-between gap-3 text-sm">
-                  <dt className="text-slate-700">{item.label}</dt>
+                  <dt className="text-ink-2">{item.label}</dt>
                   <dd className="flex shrink-0 items-center gap-1">
                     {item.keys.map((k, i) => (
                       <span key={k} className="flex items-center gap-1">
                         {i > 0 ? (
-                          <span className="text-xs text-slate-500">{item.joiner === "or" ? "or" : "then"}</span>
+                          <span className="text-xs text-muted">{item.joiner === "or" ? "or" : "then"}</span>
                         ) : null}
-                        <kbd className="min-w-[1.75rem] rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 text-center font-mono text-xs text-slate-800 shadow-[inset_0_-1px_0_rgb(203_213_225)]">
+                        <kbd className="min-w-[1.75rem] rounded-md border border-line bg-chip px-1.5 py-0.5 text-center font-mono text-xs font-bold text-ink">
                           {k}
                         </kbd>
                       </span>
@@ -189,12 +193,16 @@ export function KeyboardShortcuts({
             </dl>
           </section>
         ))}
-        <p className="mt-4 text-xs text-slate-500">
+        <p className="mt-4 text-xs text-muted">
           Shortcuts never fire while you&apos;re typing.{" "}
           {enabled ? (
             <>
               You can turn them off in{" "}
-              <Link href="/settings" className="text-teal-700 underline" onClick={() => setHelpOpen(false)}>
+              <Link
+                href="/settings#preferences"
+                className="font-bold text-accent underline"
+                onClick={() => setHelpOpen(false)}
+              >
                 Settings
               </Link>
               .
@@ -212,7 +220,7 @@ export function ShowShortcutsButton() {
     <button
       type="button"
       onClick={() => window.dispatchEvent(new Event(SHOW_SHORTCUTS_EVENT))}
-      className="text-sm font-medium text-teal-700 hover:underline"
+      className="inline-flex min-h-8 items-center self-start text-sm font-bold text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
     >
       View all shortcuts
     </button>

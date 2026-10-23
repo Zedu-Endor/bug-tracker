@@ -128,9 +128,9 @@ export function CommentForm({
                     el.scrollIntoView({ behavior: "smooth", block: "nearest" });
                     const article = el.querySelector("article");
                     if (article) {
-                      article.classList.add("ring-2", "ring-teal-500", "ring-offset-2");
+                      article.classList.add("ring-2", "ring-primary", "ring-offset-2");
                       setTimeout(() => {
-                        article.classList.remove("ring-2", "ring-teal-500", "ring-offset-2");
+                        article.classList.remove("ring-2", "ring-primary", "ring-offset-2");
                       }, 2000);
                     }
                     const focusTarget =
@@ -156,36 +156,38 @@ export function CommentForm({
     >
       {parentId ? (
         <input type="hidden" name="parentId" value={parentId} />
-      ) : (
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <span className="text-[15px] font-bold text-zk-text">Add to conversation</span>
-          <label htmlFor="comment-type-select" className="inline-flex items-center gap-2 text-[13px] font-semibold text-zk-muted">
-            Type
+      ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label
+          id={`${parentId ? `body-${parentId}` : "body"}-label`}
+          htmlFor={parentId ? `body-${parentId}` : "body"}
+          className="block text-[15px] font-bold text-ink"
+        >
+          {isReply
+            ? `Reply to ${parentAuthorName ?? "comment"}`
+            : "Add to conversation"}
+        </label>
+        {parentId ? null : (
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="comment-type-select" className="text-[13px] font-semibold text-muted">
+              Type
+            </label>
             <select
               id="comment-type-select"
               name="type"
               value={commentType}
               onChange={(e) => setCommentType(e.target.value as CommentType)}
-              className="h-[38px] rounded-full border border-zk-border bg-zk-surface px-3 text-[13px] font-bold text-zk-text shadow-xs focus:border-electric-blue-strong focus:outline-none focus:ring-1 focus:ring-electric-blue-strong"
+              className="h-[38px] rounded-full border border-line bg-surface px-3 text-[13px] font-bold text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="comment">Comment</option>
-              <option value="bid">Bid</option>
-              <option value="review">Review</option>
-              <option value="delivery">Delivery</option>
-              <option value="request_to_merge">Merge request</option>
+              <option value="comment">💬 Comment</option>
+              <option value="bid">🏷️ Bid</option>
+              <option value="review">🔍 Review</option>
+              <option value="delivery">📦 Delivery</option>
+              <option value="request_to_merge">🔀 Request to Merge</option>
             </select>
-          </label>
-        </div>
-      )}
-      <label
-        id={`${parentId ? `body-${parentId}` : "body"}-label`}
-        htmlFor={parentId ? `body-${parentId}` : "body"}
-        className={isReply ? "block text-sm font-medium text-zk-text2" : "sr-only"}
-      >
-        {isReply
-          ? `Reply to ${parentAuthorName ?? "comment"}`
-          : "Add to conversation"}
-      </label>
+          </div>
+        )}
+      </div>
       <MarkdownEditor
         ref={editorRef}
         id={parentId ? `body-${parentId}` : "body"}
@@ -207,7 +209,7 @@ export function CommentForm({
             : "Add to the conversation… Type @ to mention someone (they get notified)"
         }
         footer={
-          <p className="text-xs text-zk-muted">
+          <p className="text-xs text-muted">
             Markdown is supported. People you @mention get an email and an
             in-app notification (they can turn these off in Settings).
           </p>
@@ -219,16 +221,16 @@ export function CommentForm({
         onUploadingChange={setPickerUploading}
       />
       {error ? (
-        <p id={errorId} className="text-sm text-zk-bad-fg" role="alert">
+        <p id={errorId} className="text-sm text-bad-fg" role="alert">
           {error}
         </p>
       ) : null}
       {restored ? (
-        <p className="flex flex-wrap items-center gap-2 text-xs text-zk-text2" role="status">
+        <p className="flex flex-wrap items-center gap-2 text-xs text-ink-2" role="status">
           <span>Restored an unsent draft.</span>
           <button
             type="button"
-            className="rounded-sm font-bold text-zk-accent underline hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong"
+            className="rounded-sm font-bold text-accent underline hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             onClick={() => update("")}
           >
             Discard it
@@ -236,12 +238,12 @@ export function CommentForm({
         </p>
       ) : null}
       {statusMessage ? (
-        <p role="status" aria-live="polite" className="text-xs font-medium text-zk-ok-fg">
+        <p role="status" aria-live="polite" className="text-xs text-ok-fg font-medium">
           {statusMessage}
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={pending || isSettling || !body.trim() || isUploading} className="h-11 rounded-full px-[22px] shadow-[0_8px_20px_rgba(46,111,239,0.30)]">
+        <Button type="submit" disabled={pending || isSettling || !body.trim() || isUploading}>
           {pending || isSettling
             ? isReply
               ? "Replying…"

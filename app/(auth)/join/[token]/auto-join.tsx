@@ -27,17 +27,14 @@ export function AutoJoin({
   }, [auto]);
 
   return (
-    <form ref={formRef} action={acceptShareLinkAction} className="space-y-3">
+    <form ref={formRef} action={acceptShareLinkAction} className="flex flex-col gap-3">
       <input type="hidden" name="token" value={token} />
-      <p role="status" className="text-sm text-zk-text2">
+      <p role="status" className="text-sm text-ink-2">
         {auto
           ? `Adding ${tenantName} to your account…`
           : `You're signed in. Join ${tenantName} to add it to your account.`}
       </p>
-      <Button
-        type="submit"
-        className="h-12 w-full bg-electric-blue-strong text-base font-bold text-white hover:bg-electric-blue focus-visible:ring-electric-blue"
-      >
+      <Button type="submit" className="h-12 w-full rounded-full font-bold">
         Join {tenantName}
       </Button>
     </form>

@@ -8,9 +8,18 @@ export interface PaginationControlsProps {
   from: number;
   to: number;
   queryParams: Record<string, string | undefined>;
+  /** Route the page links point at. Defaults to the issues list. */
   basePath?: string;
+  /** Singular noun for the "Showing 1-25 of 60 …" line. */
   itemLabel?: string;
 }
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface";
+
+const linkClass = `inline-flex h-9 min-w-9 items-center justify-center rounded-full border border-line bg-surface px-3 text-xs font-bold text-ink transition-colors hover:bg-tint ${focusRing}`;
+const disabledClass =
+  "inline-flex h-9 min-w-9 cursor-not-allowed items-center justify-center rounded-full border border-line bg-chip px-3 text-xs font-bold text-muted";
 
 export function PaginationControls({
   page,
@@ -29,20 +38,15 @@ export function PaginationControls({
   const nextUrl =
     page < totalPages ? buildPaginationUrl(basePath, page + 1, queryParams) : null;
 
-  const pill =
-    "inline-flex min-h-10 items-center justify-center rounded-full border border-zk-border bg-zk-surface px-3.5 text-xs font-bold text-zk-text transition hover:bg-zk-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue";
-  const pillDisabled =
-    "inline-flex min-h-10 cursor-not-allowed items-center justify-center rounded-full border border-zk-border bg-zk-chip px-3.5 text-xs font-bold text-zk-muted";
-
   return (
     <nav
       aria-label="Pagination"
       className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
     >
-      <div className="text-xs text-zk-muted">
-        Showing <span className="font-semibold text-zk-text">{from}</span>–
-        <span className="font-semibold text-zk-text">{to}</span> of{" "}
-        <span className="font-semibold text-zk-text">{totalCount}</span>{" "}
+      <div className="text-[13px] text-muted">
+        Showing <span className="font-bold text-ink">{from}</span>–
+        <span className="font-bold text-ink">{to}</span> of{" "}
+        <span className="font-bold text-ink">{totalCount}</span>{" "}
         {itemLabel}
         {totalCount === 1 ? "" : "s"}
       </div>
@@ -50,34 +54,38 @@ export function PaginationControls({
       {totalPages > 1 && (
         <div className="flex flex-wrap items-center gap-1.5">
           {prevUrl ? (
-            <Link href={prevUrl} className={pill}>Previous</Link>
+            <Link href={prevUrl} className={linkClass}>
+              Previous
+            </Link>
           ) : (
-            <span aria-disabled="true" className={pillDisabled}>Previous</span>
+            <span aria-disabled="true" className={disabledClass}>
+              Previous
+            </span>
           )}
 
           <div className="flex items-center gap-1">
             {range.map((item, index) => {
               if (item === "...") {
                 return (
-                  <span key={`ellipsis-${index}`} className="px-1.5 text-xs text-zk-muted">…</span>
+                  <span key={`ellipsis-${index}`} className="px-1.5 text-xs text-muted">
+                    …
+                  </span>
                 );
               }
+
               const isCurrent = item === page;
               const url = buildPaginationUrl(basePath, item, queryParams);
+
               return isCurrent ? (
                 <span
                   key={item}
                   aria-current="page"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-electric-blue-strong text-xs font-bold text-white"
+                  className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-white"
                 >
                   {item}
                 </span>
               ) : (
-                <Link
-                  key={item}
-                  href={url}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-zk-border bg-zk-surface text-xs font-bold text-zk-text transition hover:bg-zk-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
-                >
+                <Link key={item} href={url} className={linkClass}>
                   {item}
                 </Link>
               );
@@ -85,9 +93,13 @@ export function PaginationControls({
           </div>
 
           {nextUrl ? (
-            <Link href={nextUrl} className={pill}>Next</Link>
+            <Link href={nextUrl} className={linkClass}>
+              Next
+            </Link>
           ) : (
-            <span aria-disabled="true" className={pillDisabled}>Next</span>
+            <span aria-disabled="true" className={disabledClass}>
+              Next
+            </span>
           )}
         </div>
       )}

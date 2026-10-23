@@ -6,10 +6,12 @@ const pageSource = readFileSync(path.resolve(__dirname, "page.tsx"), "utf8");
 
 describe("Bug detail header responsive layout (#698)", () => {
   it("renders a compact mobile action row pinned directly under the title before badges and votes", () => {
+    // Mobile action row must be directly under the title
     expect(pageSource).toMatch(
-      /<h1[\s\S]*?<\/h1>[\s\S]*?data-testid="mobile-actions-row"[\s\S]*?Badge[\s\S]*?<VoteButton/
+      /<h1[\s\S]*?<\/h1>[\s\S]*?data-testid="mobile-actions-row"[\s\S]*?<Pill[\s\S]*?<VoteButton/
     );
 
+    // Mobile action row has horizontal scroll and is hidden on desktop (sm:hidden)
     const mobileRowMatch = pageSource.match(
       /data-testid="mobile-actions-row"[\s\S]*?className="([^"]+)"/
     );
@@ -28,10 +30,12 @@ describe("Bug detail header responsive layout (#698)", () => {
   });
 
   it("keeps status and severity visible at every width, folding only supplementary workflow badges into +N", () => {
+    // Workflow row leads with status then severity, both unconditionally visible.
     expect(pageSource).toMatch(
-      /issueStatusChipClass\[bug\.status\][\s\S]*?issueSeverityChipClass\[bug\.severity\]/
+      /statusTone\[bug\.status\][\s\S]*?severityTone\[bug\.severity\]/
     );
 
+    // The +N control still exists for mobile, and now counts only boost/volunteer.
     expect(pageSource).toMatch(
       /<details className="group sm:contents">[\s\S]*?<summary[\s\S]*?\+\{extraBadgeCount\}[\s\S]*?<\/summary>/
     );
@@ -39,6 +43,7 @@ describe("Bug detail header responsive layout (#698)", () => {
       /const extraBadgeCount =[\s\S]*?isBoosted[\s\S]*?volunteerCount/
     );
 
+    // Taxonomy no longer hides inside the overflow control's `contents` span.
     const contentsSpan = pageSource.match(
       /<span className="contents">([\s\S]*?)<\/span>\s*<\/details>/
     );
@@ -47,36 +52,34 @@ describe("Bug detail header responsive layout (#698)", () => {
   });
 
   it("anchors the desktop action cluster to the title's top edge (#687, #451)", () => {
+    // The back arrow now sits inline with the title, so the action cluster
+    // shares the title's top edge without a separate back-link row to clear.
     expect(pageSource).toContain(
       '<div className="flex shrink-0 flex-wrap items-center gap-2 self-start print:hidden">'
     );
-    expect(pageSource).toContain("Back to issues");
+    expect(pageSource).not.toContain("← Back to issues");
 
+    // Danger zone remains at the bottom of the page
     expect(pageSource).toMatch(/Danger zone[\s\S]*?<DeleteIssueButton/);
   });
 
-  it("places an accessible back link to the issues list (#451)", () => {
+  it("places the back arrow beside the issue number with an accessible name (#451)", () => {
     expect(pageSource).toMatch(
-      /href="\/issues"[\s\S]*?aria-label="Back to issues"/
+      /<div className="flex items-start gap-2">[\s\S]*?href="\/issues"[\s\S]*?aria-label="Back to issues"[\s\S]*?<h1/
     );
   });
 });
 
 describe("Bug detail header hierarchy (#687)", () => {
-  it("keeps workflow badges and taxonomy on separate rows", () => {
+  it("keeps status, severity and taxonomy in one meta row under the title", () => {
+    // One wrapped row carries the workflow pills and the taxonomy together.
     expect(pageSource).toMatch(
-      /flex flex-wrap items-center gap-2[\s\S]*?issueSeverityChipClass\[bug\.severity\][\s\S]*?<\/div>[\s\S]*?text-xs text-zk-muted[\s\S]*?bug\.type\.name[\s\S]*?bug\.category\.name/
+      /flex flex-wrap items-center gap-2 text-xs font-bold[\s\S]*?severityTone\[bug\.severity\][\s\S]*?bug\.type\.name[\s\S]*?bug\.category\.name[\s\S]*?Opened <LocalTime/
     );
   });
 
   it("drops the redundant score pill so only VoteButton shows the vote total", () => {
     expect(pageSource).not.toMatch(/score \(\{/);
     expect(pageSource).not.toMatch(/\{bug\.voteCount\} score/);
-  });
-
-  it("uses a main column and side rail layout", () => {
-    expect(pageSource).toContain("flex-[999_1_600px]");
-    expect(pageSource).toContain("flex-[1_1_340px]");
-    expect(pageSource).toContain("IssueSectionTabs");
   });
 });

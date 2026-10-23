@@ -19,12 +19,14 @@ export type HeaderNavItem = {
 export const SWITCH_TENANT_LINK: HeaderNavItem = { href: "/tenants", label: "Switch workspace" };
 
 /**
- * The Agents dropdown in the top bar. Both destinations are real pages: the
- * pairing flow to get an agent connected, and the management page.
+ * The Agents dropdown in the top bar, under the person's own agents. Every
+ * destination is a real page: the create form, the management page and the
+ * pairing approval.
  */
 export const AGENT_MENU_LINKS: HeaderNavItem[] = [
-  { href: "/settings/agents/pair", label: "Get started" },
+  { href: "/settings/agents/new", label: "Create agent" },
   { href: "/settings/agents", label: "Manage agents" },
+  { href: "/settings/agents/pair", label: "Approve a pairing code" },
 ];
 
 /** Links shown in the header for the role the user is currently viewing as (#761). */

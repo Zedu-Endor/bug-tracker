@@ -32,7 +32,7 @@ describe("IssueFilters (#132, #361)", () => {
     const { renderToStaticMarkup } = await import("react-dom/server");
 
     const html = renderToStaticMarkup(createElement(IssueFilters));
-    expect(html).toContain('placeholder="Search, or type a tag like Design (/)"');
+    expect(html).toContain('placeholder="Search, or type a tag like Design"');
     expect(html).toContain("<kbd");
   });
 

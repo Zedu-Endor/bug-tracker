@@ -11,6 +11,47 @@ type BrandLockupProps = {
   tone?: "default" | "chrome";
 };
 
+const asset = (file: string) => (BASE_PATH ? `${BASE_PATH}/${file}` : `/${file}`);
+
+/**
+ * The full Ziki wordmark (mark + "ziki") from the redesign brand sheet.
+ * "onDark" is the white wordmark for navy chrome; "onLight" the navy one.
+ * `collapsed` shows only the brand mark, for the narrow sidebar rail.
+ */
+export function ZikiWordmark({
+  tone = "onLight",
+  collapsed = false,
+  className = "",
+}: {
+  tone?: "onDark" | "onLight";
+  collapsed?: boolean;
+  className?: string;
+}) {
+  if (collapsed) {
+    return (
+      <Image
+        src={asset("homepage/ziki-mark.svg")}
+        alt="Ziki"
+        width={30}
+        height={25}
+        className={`h-[25px] w-[30px] ${className}`}
+        unoptimized
+      />
+    );
+  }
+  return (
+    <Image
+      src={asset(tone === "onDark" ? "ziki-logo-dark.png" : "ziki-logo-light.png")}
+      alt="Ziki"
+      width={110}
+      height={36}
+      className={`h-9 w-[110px] object-contain ${className}`}
+      unoptimized
+      priority
+    />
+  );
+}
+
 /** Icon-only mark from zedu-fe `public/login_logo.svg` (mark path, no wordmark). */
 const sizes = {
   sm: { px: 28, className: "h-7 w-7" },

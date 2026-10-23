@@ -7,9 +7,6 @@ import { Button } from "@/components/ui/button";
 import { FieldError, useFieldErrors } from "@/components/ui/field-errors";
 import { PasswordInput } from "@/components/ui/password-input";
 
-const fieldClass =
-  "h-12 rounded-xl border-zk-border bg-zk-surface text-zk-text shadow-none placeholder:text-zk-muted focus:border-electric-blue focus:ring-electric-blue/20";
-
 export function ResetPasswordForm({ token }: { token: string }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -55,8 +52,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
         });
       }}
     >
-      <div className="space-y-1.5">
-        <label htmlFor="password" className="text-sm font-medium text-zk-text2">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="password" className="text-[13px] font-bold text-ink">
           New password
         </label>
         <PasswordInput
@@ -66,27 +63,25 @@ export function ResetPasswordForm({ token }: { token: string }) {
           required
           minLength={8}
           aria-describedby="password-hint"
-          aria-invalid={
-            password.length > 0 && password.length < 8 ? true : undefined
-          }
+          aria-invalid={password.length > 0 && password.length < 8 ? true : undefined}
           placeholder="At least 8 characters"
           value={password}
           onChange={(event) => {
             setPassword(event.target.value);
             if (error) setError(null);
           }}
-          className={fieldClass}
+          className="h-12 px-3.5"
           {...errs.attrs("password")}
         />
-        <p id="password-hint" className="text-xs text-zk-warn-fg" aria-live="polite">
+        <p id="password-hint" className="text-xs text-warn-fg" aria-live="polite">
           {password.length > 0 && password.length < 8 && !error
             ? "Must be at least 8 characters"
             : ""}
         </p>
         <FieldError formId={errs.formId} field="password" errors={errs.fieldErrors} />
       </div>
-      <div className="space-y-1.5">
-        <label htmlFor="confirmPassword" className="text-sm font-medium text-zk-text2">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="confirmPassword" className="text-[13px] font-bold text-ink">
           Confirm new password
         </label>
         <PasswordInput
@@ -98,24 +93,22 @@ export function ResetPasswordForm({ token }: { token: string }) {
           minLength={8}
           aria-describedby="confirm-password-hint"
           aria-invalid={
-            confirmPassword.length > 0 && password !== confirmPassword
-              ? true
-              : undefined
+            confirmPassword.length > 0 && password !== confirmPassword ? true : undefined
           }
           value={confirmPassword}
           onChange={(event) => {
             setConfirmPassword(event.target.value);
             if (error) setError(null);
           }}
-          className={fieldClass}
+          className="h-12 px-3.5"
           {...errs.attrs("confirmPassword")}
         />
         <p
           id="confirm-password-hint"
           className={`text-xs ${
             confirmPassword.length > 0 && password === confirmPassword
-              ? "text-zk-ok-fg"
-              : "text-zk-bad-fg"
+              ? "text-ok-fg"
+              : "text-bad-fg"
           }`}
           aria-live="polite"
         >
@@ -127,22 +120,17 @@ export function ResetPasswordForm({ token }: { token: string }) {
                 : ""
             : ""}
         </p>
-        <FieldError
-          formId={errs.formId}
-          field="confirmPassword"
-          errors={errs.fieldErrors}
-        />
+        <FieldError formId={errs.formId} field="confirmPassword" errors={errs.fieldErrors} />
       </div>
       {error ? (
-        <p className="text-sm text-zk-bad-fg" role="alert">
+        <p
+          className="rounded-xl border border-bad-bd bg-bad-soft p-3 text-sm text-bad-fg"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
-      <Button
-        type="submit"
-        className="h-12 w-full bg-electric-blue-strong text-base font-bold text-white hover:bg-electric-blue focus-visible:ring-electric-blue"
-        disabled={pending}
-      >
+      <Button type="submit" className="h-12 w-full rounded-full font-bold" disabled={pending}>
         {pending ? "Updating…" : "Update password"}
       </Button>
     </form>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AuthShell } from "@/components/auth-shell";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { Button } from "@/components/ui/button";
 import { LocalTime } from "@/components/local-time";
@@ -9,13 +10,7 @@ import { requireUser } from "@/lib/auth-helpers";
 import { isPasswordAuthEnabled } from "@/lib/auth-mode";
 import { isInviteToken } from "@/lib/invites";
 import { prisma } from "@/lib/prisma";
-import {
-  SHARE_LINK_ERRORS,
-  previewShareLink,
-  shareJoinPath,
-  shareLinkAudience,
-} from "@/lib/share-invites";
-import { AuthSplitFrame } from "../../login/auth-split-frame";
+import { SHARE_LINK_ERRORS, previewShareLink, shareJoinPath, shareLinkAudience } from "@/lib/share-invites";
 import { AutoJoin } from "./auto-join";
 
 export const metadata: Metadata = {
@@ -25,6 +20,8 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+const STATUS = "rounded-xl border border-warn-bd bg-warn-bg p-3 text-sm text-warn-fg";
 
 function errorMessage(code: string | undefined): string | null {
   if (!code) return null;
@@ -51,17 +48,11 @@ export default async function JoinPage({
 
   if (!isInviteToken(token)) {
     return (
-      <main>
-        <AuthSplitFrame
-          panelLabel="Join"
-          title="Join workspace"
-          description={SHARE_LINK_ERRORS.invalid}
-        >
-          <p role="status" className="text-sm text-zk-warn-fg">
-            {SHARE_LINK_ERRORS.invalid}
-          </p>
-        </AuthSplitFrame>
-      </main>
+      <AuthShell title="Organization invite">
+        <p role="status" className={STATUS}>
+          {SHARE_LINK_ERRORS.invalid}
+        </p>
+      </AuthShell>
     );
   }
 
@@ -72,82 +63,64 @@ export default async function JoinPage({
 
   if (!preview) {
     return (
-      <main>
-        <AuthSplitFrame
-          panelLabel="Join"
-          title="Join workspace"
-          description={SHARE_LINK_ERRORS.invalid}
-        >
-          <p role="status" className="text-sm text-zk-warn-fg">
-            {SHARE_LINK_ERRORS.invalid}
-          </p>
-        </AuthSplitFrame>
-      </main>
+      <AuthShell title="Organization invite">
+        <p role="status" className={STATUS}>
+          {SHARE_LINK_ERRORS.invalid}
+        </p>
+      </AuthShell>
     );
   }
 
   return (
-    <main>
-      <AuthSplitFrame
-        panelLabel="Join"
-        title={`Join ${preview.tenant.name}`}
-        description={
-          <>
-            {preview.invitedByName} invited you to {preview.tenant.name} on Ziki. You&apos;ll
-            join as a member.
-          </>
-        }
-      >
+    <AuthShell
+      title={`Join ${preview.tenant.name}`}
+      description={`${preview.invitedByName} invited you to ${preview.tenant.name} on Ziki. You'll join as a member.`}
+      footer={
+        <Link href="/" className="font-semibold text-accent hover:underline">
+          Back to homepage
+        </Link>
+      }
+    >
+      <div className="flex flex-col gap-4">
         {error ? (
-          <p role="alert" className="rounded-xl bg-zk-warn-bg p-3 text-sm text-zk-warn-fg">
+          <p role="alert" className={STATUS}>
             {error}
           </p>
         ) : null}
 
         {preview.alreadyMember && user ? (
-          <div className="space-y-3">
-            <p className="text-sm text-zk-text2">
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-ink-2">
               You&apos;re already a member of{" "}
-              <strong className="text-zk-text">{preview.tenant.name}</strong>.
+              <strong className="font-bold text-ink">{preview.tenant.name}</strong>.
             </p>
             <form action={selectTenantAction}>
               <input type="hidden" name="tenantId" value={preview.tenant.id} />
-              <Button
-                type="submit"
-                className="h-12 w-full bg-electric-blue-strong text-base font-bold text-white hover:bg-electric-blue focus-visible:ring-electric-blue"
-              >
+              <Button type="submit" className="h-12 w-full rounded-full font-bold">
                 Open {preview.tenant.name}
               </Button>
             </form>
           </div>
         ) : preview.state !== "open" ? (
-          <p role="status" className="rounded-xl bg-zk-warn-bg p-3 text-sm text-zk-warn-fg">
-            {
-              SHARE_LINK_ERRORS[
-                preview.state === "expired"
-                  ? "expired"
-                  : preview.state === "revoked"
-                    ? "revoked"
-                    : "used"
-              ]
-            }
+          <p role="status" className={STATUS}>
+            {SHARE_LINK_ERRORS[preview.state === "expired" ? "expired" : preview.state === "revoked" ? "revoked" : "used"]}
           </p>
         ) : user ? (
           <AutoJoin token={token} tenantName={preview.tenant.name} auto={!error} />
         ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-zk-text2">{shareLinkAudience(preview)}</p>
-            <p className="text-sm text-zk-text2">
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-ink-2">{shareLinkAudience(preview)}</p>
+            <p className="text-sm text-ink-2">
               The link expires <LocalTime date={preview.expiresAt} />. Sign in with Google — if
               you don&apos;t have an account yet, one is created — and {preview.tenant.name} is
               added to it.
             </p>
             <GoogleSignInButton callbackUrl={callbackUrl} />
             {isPasswordAuthEnabled() ? (
-              <p className="text-center text-sm text-zk-muted">
+              <p className="text-center text-sm text-muted">
                 <Link
                   href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-                  className="font-semibold text-zk-accent hover:underline"
+                  className="font-semibold text-accent hover:underline"
                 >
                   Sign in with email instead
                 </Link>
@@ -155,7 +128,7 @@ export default async function JoinPage({
             ) : null}
           </div>
         )}
-      </AuthSplitFrame>
-    </main>
+      </div>
+    </AuthShell>
   );
 }

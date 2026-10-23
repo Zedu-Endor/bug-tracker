@@ -20,7 +20,7 @@ vi.mock("@/components/account-data-settings", () => ({
 
 import { prisma } from "@/lib/prisma";
 import SettingsPage from "./page";
-import { DisplayNameForm } from "@/components/display-name-form";
+
 
 function collectHrefs(node: unknown, hrefs: string[] = []): string[] {
   if (!node || typeof node !== "object") return hrefs;
@@ -67,7 +67,7 @@ describe("SettingsPage resilience", () => {
       keyboardShortcuts: true,
     } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
 
-    const element = await SettingsPage();
+    const element = await SettingsPage({});
     expect(element).toBeDefined();
     expect(prisma.user.findUnique).toHaveBeenCalledTimes(1);
   });
@@ -80,7 +80,7 @@ describe("SettingsPage resilience", () => {
         email: "ada@example.com",
       } as unknown as Awaited<ReturnType<typeof prisma.user.findUnique>>);
 
-    const element = await SettingsPage();
+    const element = await SettingsPage({});
     expect(element).toBeDefined();
     expect(prisma.user.findUnique).toHaveBeenCalledTimes(2);
   });
@@ -147,7 +147,7 @@ describe("SettingsPage resilience", () => {
 });
 
 
-it("renders the display-name form on Account and keeps the profile route (#576)", async () => {
+it("links to the profile form on Account and keeps the profile route (#576)", async () => {
   requireUser.mockResolvedValue({ id: "user-1", name: "Ada", email: "ada@example.com", role: "user" });
   vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ name: "Ada", email: "ada@example.com" } as never);
   const page = await SettingsPage({
@@ -155,6 +155,5 @@ it("renders the display-name form on Account and keeps the profile route (#576)"
   });
   const nodes = visitNodes(page);
   expect(nodes.some((node) => node.props?.href === "/settings/profile")).toBe(true);
-  expect(nodes.some((node) => node.type === DisplayNameForm)).toBe(true);
   expect(nodes.some((node) => node.props?.href === "/settings/security")).toBe(true);
 });

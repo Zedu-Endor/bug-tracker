@@ -32,17 +32,17 @@ import {
 } from "@/lib/link-preview";
 import { absoluteUrl } from "@/lib/site-url";
 import { SHARE_IMAGE } from "@/lib/share-image";
-import {
-  severityLabels,
-  statusLabels,
-} from "@/lib/labels";
+import { severityLabels, statusLabels } from "@/lib/labels";
+import { Pill } from "@/components/pill";
+import { severityTone, statusTone } from "@/lib/issue-tone";
+import { CopyLinkButton } from "@/components/copy-link-button";
+import { IssueTabs } from "@/components/issue-tabs";
 import { ActivityTimeline, type ActivityEntry } from "@/components/activity-timeline";
 import { IssueAgentActivity, type AgentDecision } from "@/components/issue-agent-activity";
 import { IssueEscalations, type TicketEscalation } from "@/components/issue-escalations";
 import { listBugEscalations } from "@/lib/agent-questions";
 import { IssueBids } from "@/components/issue-bids";
 import { GoalBudgetSection } from "@/components/goal-budgets";
-import { Badge } from "@/components/ui/badge";
 import { VoteButton } from "@/components/vote-button";
 import { UpdateIssueForm } from "@/components/update-issue-form";
 import { CommentThread } from "@/components/comment-thread";
@@ -53,6 +53,7 @@ import { isTenantAdminRole } from "@/lib/agents/membership";
 import type { OrganizationRole } from "@/lib/organization-role";
 import { UserNameWithBadges } from "@/components/user-name-with-badges";
 import { getActiveIssueTypesCached, getActivePlatforms } from "@/lib/lookups";
+import { getIssueTypeTokenClass } from "@/lib/issue-type-styles";
 import { fetchVoterSummary } from "@/lib/voter-summaries";
 import { createEmptyVoterSummary } from "@/lib/voters";
 import {
@@ -80,15 +81,6 @@ import { IssueTenantSwitch } from "@/components/issue-tenant-hint";
 import { tenantMemberWhere } from "@/lib/tenant-mentions";
 import { readAgentResolution } from "@/lib/agent-resolution";
 import { AgentResolvedNotice } from "@/components/agent-resolved-notice";
-import { issueStageLabels } from "@/lib/issue-stage";
-import { IssueSectionTabs } from "./issue-section-tabs";
-import {
-  issueChipBaseClass,
-  issueSeverityChipClass,
-  issueStageChipClass,
-  issueStatusChipClass,
-} from "./issue-ui";
-import "./issue-detail.css";
 
 type BugPageProps = {
   params: Promise<{ id: string }>;
@@ -213,17 +205,17 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
     if (!bug || bug.isDeleted) notFound();
 
     return (
-      <div className="issue-detail-scope mx-auto max-w-2xl space-y-4 py-10">
-        <p className="text-sm text-zk-muted">Ziki Issues</p>
-        <h1 className="text-2xl font-extrabold text-zk-text">{bug.title}</h1>
+      <div className="mx-auto max-w-2xl space-y-4 py-10">
+        <p className="text-sm text-muted">Ziki Issues</p>
+        <h1 className="text-2xl font-semibold text-ink">{bug.title}</h1>
         <div className="flex flex-wrap gap-2">
-          <Badge className={`${issueChipBaseClass} ${issueStatusChipClass[bug.status]}`}>
+          <Pill className={statusTone[bug.status]} dot>
             {statusLabels[bug.status]}
-          </Badge>
+          </Pill>
         </div>
         <Link
           href={`/login?callbackUrl=${encodeURIComponent(`/issues/${rawId}`)}`}
-          className="inline-flex text-sm font-bold text-zk-accent hover:underline"
+          className="inline-flex text-sm font-medium text-accent hover:underline"
         >
           Sign in to view full details
         </Link>
@@ -678,7 +670,7 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
       {!bug.isDeleted && userId && (bug.reporterId === userId || bug.assigneeId === userId) ? (
         <Link
           href={`/points/disputes/new?bug=${bug.number}`}
-          className="inline-flex min-h-10 items-center text-xs font-bold text-zk-accent hover:underline"
+          className="text-xs font-bold text-accent hover:underline"
           title="Say your points award for this issue is missing or wrong"
         >
           Dispute award
@@ -687,31 +679,20 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
     </>
   );
 
-  const bidList = [...openBids]
-    .sort((a, b) => Number(hasAreaMatch(b)) - Number(hasAreaMatch(a)) || a.createdAt.getTime() - b.createdAt.getTime())
-    .map((bid) => ({
-      id: bid.id,
-      agentName: bid.agent.name,
-      personName: bid.beneficiary.name ?? "A member",
-      note: bid.note,
-      areaMatch: hasAreaMatch(bid),
-    }));
-
   // What a delete keeps, shown the same way in every delete/restore message (#692).
   const keptCounts = deletionCounts(comments.visibleCount, voterSummary);
 
   return (
-    <div className="issue-detail-scope flex flex-col gap-5 pb-10">
+    <div className="space-y-5">
       {bug.isDeleted ? (
-        <div className="rounded-[20px] border border-zk-bad-bd bg-zk-bad-bg p-4 sm:p-5">
+        <div className="rounded-[20px] border border-bad-bd bg-bad-soft p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-zk-bad-fg">
-                This issue was deleted
-              </h3>
-              <p className="text-xs text-zk-bad-fg/90">
-                {deletedSummary(keptCounts)}
-              </p>
+            <div className="flex items-start gap-3">
+              <span className="text-xl" aria-hidden="true">🗑️</span>
+              <div>
+                <h2 className="text-sm font-bold text-bad-fg">This issue was deleted</h2>
+                <p className="text-xs text-bad-fg/80">{deletedSummary(keptCounts)}</p>
+              </div>
             </div>
             <RestoreIssueButton
               bugId={bug.id}
@@ -726,18 +707,18 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
       {bug.duplicateOf ? (
         <section
           aria-label="Duplicate"
-          className="flex flex-col gap-2 rounded-[20px] border border-zk-warn-bd bg-zk-warn-bg p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
+          className="flex flex-col gap-2 rounded-[20px] border border-warn-bd bg-warn-bg p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"
         >
-          <p className="text-sm text-zk-warn-fg">
-            <span className="font-semibold">This issue is a duplicate of </span>
+          <p className="text-sm text-warn-fg">
+            <span className="font-bold">This issue is a duplicate of </span>
             {bug.duplicateOf.isDeleted && !canDelete ? (
               <span>{formatIssueNumber(bug.duplicateOf.number)} (since deleted)</span>
             ) : (
-              <Link href={issuePath(bug.duplicateOf.number)} className="font-semibold text-zk-accent underline-offset-2 hover:underline">
+              <Link href={issuePath(bug.duplicateOf.number)} className="font-bold underline underline-offset-2">
                 {formatIssueNumber(bug.duplicateOf.number)} {bug.duplicateOf.title}
               </Link>
             )}{" "}
-            <span>({statusLabels[bug.duplicateOf.status]})</span>.{" "}
+            <span className="opacity-80">({statusLabels[bug.duplicateOf.status]})</span>.{" "}
             Follow and vote there instead. It&apos;s hidden from the issues list.
           </p>
           {canTriage ? (
@@ -750,22 +731,22 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
       ) : null}
 
       {bug._count.duplicates > 0 ? (
-        <section aria-label="Duplicates of this issue" className="rounded-[20px] border border-zk-border bg-zk-surface p-4 sm:p-5">
-          <h2 className="text-sm font-semibold text-zk-text">
+        <section aria-label="Duplicates of this issue" className="rounded-[20px] border border-line bg-surface p-4 sm:p-5">
+          <h2 className="text-sm font-bold text-ink">
             {bug._count.duplicates} duplicate{bug._count.duplicates === 1 ? "" : "s"} of this issue
           </h2>
           <ul className="mt-2 space-y-1 text-sm">
             {bug.duplicates.map((d) => (
               <li key={d.id}>
-                <Link href={issuePath(d.number)} className="text-zk-accent hover:underline">
-                  <span className="tabular-nums text-zk-muted">{formatIssueNumber(d.number)}</span> {d.title}
+                <Link href={issuePath(d.number)} className="font-bold text-accent hover:underline">
+                  <span className="tabular-nums">{formatIssueNumber(d.number)}</span> {d.title}
                 </Link>{" "}
-                <span className="text-xs text-zk-muted">· {statusLabels[d.status]}</span>
+                <span className="text-xs text-muted">· {statusLabels[d.status]}</span>
               </li>
             ))}
           </ul>
           {bug._count.duplicates > bug.duplicates.length ? (
-            <p className="mt-1 text-xs text-zk-muted">
+            <p className="mt-1 text-xs text-muted">
               And {bug._count.duplicates - bug.duplicates.length} more.
             </p>
           ) : null}
@@ -780,21 +761,21 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
       ) : null}
 
       {redesignProposals.length ? (
-        <section aria-label="Redesign proposals" className="rounded-[20px] border border-zk-border bg-zk-surface p-4 sm:p-5">
-          <h2 className="text-lg font-semibold text-zk-text">Compare redesign proposals</h2>
+        <section aria-label="Redesign proposals" className="rounded-[20px] border border-line bg-surface p-4 sm:p-5">
+          <h2 className="text-lg font-bold text-ink">Compare redesign proposals</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {redesignProposals.map((proposal) => (
-              <article key={proposal.id} className="space-y-3 rounded-[16px] border border-zk-border bg-zk-chip/40 p-4">
+              <article key={proposal.id} className="space-y-3 rounded-2xl border border-line bg-tint/40 p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-semibold text-zk-text">{proposal.title}</h3>
-                  <span className="shrink-0 text-xs capitalize text-zk-muted">{proposal.status}</span>
+                  <h3 className="font-bold text-ink">{proposal.title}</h3>
+                  <span className="shrink-0 text-xs capitalize text-muted">{proposal.status}</span>
                 </div>
-                <p className="text-xs text-zk-muted">By {proposal.authorAgent.name}</p>
-                <p className="whitespace-pre-wrap text-sm text-zk-text2">{proposal.body}</p>
-                {proposal.previewUrl ? <a className="text-sm font-bold text-zk-accent underline" href={proposal.previewUrl} target="_blank" rel="noreferrer">Open live preview</a> : null}
+                <p className="text-xs text-muted">By {proposal.authorAgent.name}</p>
+                <p className="whitespace-pre-wrap text-sm text-ink-2">{proposal.body}</p>
+                {proposal.previewUrl ? <a className="text-sm font-bold text-accent underline" href={proposal.previewUrl} target="_blank" rel="noreferrer">Open live preview</a> : null}
                 {proposal.attachments.length ? <div className="grid grid-cols-2 gap-2">
-                  {proposal.attachments.map((file) => <a key={file.id} href={`/api/attachments/${file.id}`} target="_blank" rel="noreferrer" className="space-y-1 text-sm font-bold text-zk-accent underline">
-                    <Image src={`/api/attachments/${file.id}`} alt={file.filename} width={480} height={320} unoptimized className="h-auto max-h-56 w-full rounded-xl border border-zk-border object-contain" />
+                  {proposal.attachments.map((file) => <a key={file.id} href={`/api/attachments/${file.id}`} target="_blank" rel="noreferrer" className="space-y-1 text-sm font-bold text-accent underline">
+                    <Image src={`/api/attachments/${file.id}`} alt={file.filename} width={480} height={320} unoptimized className="h-auto max-h-56 w-full rounded-xl border border-line object-contain" />
                     <span className="block">{file.filename}</span>
                   </a>)}
                 </div> : null}
@@ -808,146 +789,136 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
       {resolution ? (
         <section
           aria-label="Resolution note"
-          className="rounded-[20px] border border-zk-border bg-zk-ok-bg p-4 sm:p-5"
+          className="rounded-[20px] border border-ok-fg/25 bg-ok-bg p-4 sm:p-5"
         >
-          <h2 className="text-sm font-semibold text-zk-ok-fg">
+          <h2 className="text-sm font-bold text-ok-fg">
             {resolutionStatusLabel[resolution.status]} by {resolution.by}
-            <span className="ml-2 text-xs font-normal">
+            <span className="ml-2 text-xs font-medium opacity-80">
               <LocalTime date={resolution.at} />
             </span>
           </h2>
-          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-zk-text">
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-ok-fg">
             {resolution.note}
           </p>
         </section>
       ) : null}
 
-      {/* Header: number + title, status language, vote */}
-      <div className="flex flex-col gap-3.5">
-        <Link
-          href="/issues"
-          aria-label="Back to issues"
-          className="inline-flex min-h-8 w-fit items-center gap-1.5 text-sm font-semibold text-zk-accent hover:underline print:hidden"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          Back to issues
-        </Link>
+      <div className="space-y-3">
+        {intakeStage ? (
+          <p
+            className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
+              intakeStage === "ready"
+                ? "border-ok-fg/25 bg-ok-bg text-ok-fg"
+                : "border-warn-bd bg-warn-bg text-warn-fg"
+            }`}
+          >
+            {intakeDetail(intakeStage, bug.voteCount)}
+          </p>
+        ) : null}
+        {agentResolution ? (
+          <AgentResolvedNotice bugId={bug.id} resolution={agentResolution} canReopen={canUpdateStatus} />
+        ) : null}
 
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-[1_1_600px] space-y-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
             <div className="flex items-start gap-2">
-              <h1 className="min-w-0 break-words text-[28px] font-extrabold leading-tight tracking-[-0.02em] text-zk-text">
-                <span className="font-bold tabular-nums text-zk-muted">
-                  {formatIssueNumber(bug.number)}
-                </span>{" "}
-                {bug.title}
-              </h1>
-            </div>
-
-            {intakeStage ? (
-              <p
-                className={`rounded-xl border px-3 py-2 text-sm ${
-                  intakeStage === "ready"
-                    ? "border-zk-border bg-zk-ok-bg text-zk-ok-fg"
-                    : "border-zk-warn-bd bg-zk-warn-bg text-zk-warn-fg"
-                }`}
+              <Link
+                href="/issues"
+                aria-label="Back to issues"
+                title="Back to issues"
+                className="-mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-chip hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background print:hidden"
               >
-                {intakeDetail(intakeStage, bug.voteCount)}
-              </p>
-            ) : null}
-            {agentResolution ? (
-              <AgentResolvedNotice bugId={bug.id} resolution={agentResolution} canReopen={canUpdateStatus} />
-            ) : null}
+                <span aria-hidden="true" className="text-lg leading-none">←</span>
+              </Link>
+              <div className="min-w-0 flex-1">
+                <h1 className="min-w-0 break-words text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-ink sm:text-[28px]">
+                  <span className="font-bold text-muted tabular-nums">
+                    {formatIssueNumber(bug.number)}
+                  </span>{" "}
+                  {bug.title}
+                </h1>
 
-            {/* On mobile (<sm): compact horizontal scroll action row pinned directly under the title (#698) */}
-            <div
-              data-testid="mobile-actions-row"
-              className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:hidden print:hidden"
-            >
-              {headerActions}
-            </div>
+                {/* On mobile (<sm): compact horizontal scroll action row pinned directly under title (#698) */}
+                <div
+                  data-testid="mobile-actions-row"
+                  className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:hidden print:hidden"
+                >
+                  {headerActions}
+                </div>
 
-            {/* Row 1 — workflow state (#687). Status and severity stay visible. */}
-            <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-              {bug.isDeleted ? (
-                <span className={`${issueChipBaseClass} bg-zk-bad-bg text-zk-bad-fg`}>
-                  Deleted
-                </span>
-              ) : null}
-              <Badge className={`${issueChipBaseClass} ${issueStatusChipClass[bug.status]}`}>
-                <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-                {statusLabels[bug.status]}
-              </Badge>
-              <Badge className={`${issueChipBaseClass} ${issueSeverityChipClass[bug.severity]}`}>
-                {severityLabels[bug.severity]}
-              </Badge>
-              {intakeStage ? (
-                <Badge className={`${issueChipBaseClass} ${issueStageChipClass[intakeStage]}`}>
-                  {issueStageLabels[intakeStage]}
-                </Badge>
-              ) : null}
-              {bug.isBoosted && !bug.isDeleted ? (
-                <span className={`${issueChipBaseClass} border border-zk-warn-bd bg-zk-warn-bg text-zk-warn-fg`}>
-                  Boosted
-                </span>
-              ) : null}
-              {extraBadgeCount > 0 ? (
-                <details className="group sm:contents">
-                  <summary
-                    aria-label={`${extraBadgeCount} more details`}
-                    className="inline-flex cursor-pointer list-none select-none items-center gap-1 rounded-full border border-zk-border bg-zk-chip px-2 py-0.5 text-xs font-medium text-zk-text2 hover:bg-zk-seg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong sm:hidden"
-                  >
-                    +{extraBadgeCount}
-                  </summary>
-                  <span className="contents">
-                    {volunteerCount > 0 ? (
-                      <span className={`${issueChipBaseClass} bg-zk-info-bg text-zk-info-fg`}>
-                        {volunteerCount} {volunteerCount === 1 ? "agent volunteered" : "agents volunteered"}
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
+                  {bug.isDeleted ? (
+                    <Pill className="border border-bad-bd bg-bad-bg text-bad-fg">🗑️ Deleted</Pill>
+                  ) : null}
+                  <Pill className={statusTone[bug.status]} dot>
+                    {statusLabels[bug.status]}
+                  </Pill>
+                  <Pill className={severityTone[bug.severity]}>
+                    {severityLabels[bug.severity]}
+                  </Pill>
+                  {bug.type ? (
+                    <Pill className={getIssueTypeTokenClass(bug.type.name)}>{bug.type.name}</Pill>
+                  ) : null}
+                  {bug.category ? (
+                    <Pill className="bg-chip text-ink-2">{bug.category.name}</Pill>
+                  ) : null}
+                  {bug.area ? (
+                    <Pill className="bg-tint text-accent">{bug.area.name}</Pill>
+                  ) : null}
+                  {bug.isBoosted && !bug.isDeleted ? (
+                    <Pill className="border border-warn-bd bg-warn-bg text-warn-fg">⚡ Boosted</Pill>
+                  ) : null}
+                  {extraBadgeCount > 0 ? (
+                    <details className="group sm:contents">
+                      <summary
+                        aria-label={`${extraBadgeCount} more details`}
+                        className="inline-flex cursor-pointer list-none select-none items-center gap-1 rounded-full border border-line bg-chip px-2 py-0.5 text-xs font-bold text-ink-2 hover:bg-chip-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:hidden"
+                      >
+                        +{extraBadgeCount}
+                      </summary>
+                      <span className="contents">
+                        {volunteerCount > 0 ? (
+                          <Pill className="bg-info-bg text-info-fg">
+                            {volunteerCount} {volunteerCount === 1 ? "agent volunteered" : "agents volunteered"}
+                          </Pill>
+                        ) : null}
                       </span>
-                    ) : null}
+                    </details>
+                  ) : null}
+                  <span className="font-medium text-muted">
+                    Opened <LocalTime date={bug.createdAt} /> by {bug.reporter.name}
                   </span>
-                </details>
-              ) : null}
-              <span className="font-medium text-zk-muted">
-                Opened <LocalTime date={bug.createdAt} /> by {bug.reporter.name}
-              </span>
+                </div>
+              </div>
             </div>
-
-            {/* Row 2 — taxonomy (#687). */}
-            {bug.type || bug.category ? (
-              <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-zk-muted">
-                {bug.type ? (
-                  <span className={`${issueChipBaseClass} bg-zk-chip text-zk-text2`}>{bug.type.name}</span>
-                ) : null}
-                {bug.category ? (
-                  <span className={`${issueChipBaseClass} bg-zk-chip text-zk-text2`}>{bug.category.name}</span>
-                ) : null}
-              </p>
-            ) : null}
           </div>
 
-          <div className="flex shrink-0 flex-wrap items-center gap-2 self-start print:hidden">
-            <div className="hidden sm:contents">{headerActions}</div>
-            <VoteButton
-              bugId={bug.id}
-              voteCount={bug.voteCount}
-              userVote={userVote}
-              likeCount={voterSummary.likes.count}
-              likeVoters={voterSummary.likes.voters}
-              size="md"
-              showAvatars={false}
-              showReadinessGate={false}
-              readOnly={bug.isDeleted}
-            />
+          <div className="flex flex-col items-start gap-2 lg:items-end">
+            <div className="hidden sm:block">
+              <div className="flex shrink-0 flex-wrap items-center gap-2 self-start print:hidden">
+                {headerActions}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <VoteButton
+                bugId={bug.id}
+                voteCount={bug.voteCount}
+                userVote={userVote}
+                likeCount={voterSummary.likes.count}
+                likeVoters={voterSummary.likes.voters}
+                size="md"
+                showAvatars={false}
+                showReadinessGate={false}
+                readOnly={bug.isDeleted}
+              />
+              <CopyLinkButton url={absoluteUrl(issuePath(bug.number))} label="issue" iconOnly />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-start gap-5">
-        {/* MAIN COLUMN */}
-        <div className="flex min-w-0 flex-[999_1_600px] flex-col gap-5">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+        <div className="min-w-0 space-y-5">
           <EditableIssueDescription
             bugId={bug.id}
             initialTitle={bug.title}
@@ -957,20 +928,145 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
             createdAt={bug.createdAt}
             lastEditedAt={lastRevision?.editedAt ?? null}
             historyHref={issuePath(bug.number, "/history")}
-          >
-            {(bug.area || bug.milestone) ? (
-              <dl className="mt-4 grid grid-cols-1 gap-3 text-sm text-zk-text2 sm:grid-cols-2">
+          />
+
+          <IssueTabs
+            commentCount={comments.visibleCount}
+            decisionCount={agentDecisions.length}
+            conversation={
+              <section
+                id="conversation"
+                className="scroll-mt-24 rounded-[20px] border border-line bg-surface p-5 sm:p-6"
+              >
+                <span id="comments" className="sr-only" aria-hidden="true" />
+                <h2 className="sr-only">Conversation ({comments.visibleCount})</h2>
+                {comments.hiddenThreads > 0 ? (
+                  <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-chip px-4 py-3 text-sm text-ink-2 print:hidden">
+                    <span>
+                      {comments.hiddenThreads} earlier{" "}
+                      {comments.hiddenThreads === 1 ? "thread" : "threads"} not shown.
+                    </span>
+                    <Link
+                      href={earlierThreadsHref(pageQuery, comments.shownThreads)}
+                      scroll={false}
+                      className="font-bold text-accent hover:underline"
+                    >
+                      Show {Math.min(comments.hiddenThreads, COMMENT_THREADS_PER_PAGE)} earlier
+                    </Link>
+                    {comments.hiddenThreads > COMMENT_THREADS_PER_PAGE ? (
+                      <Link
+                        href={earlierThreadsHref(pageQuery, comments.shownThreads, true)}
+                        scroll={false}
+                        className="font-bold text-accent hover:underline"
+                      >
+                        Show all
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : null}
+                <Suspense fallback={null}>
+                  <CommentPermalinkResolver />
+                </Suspense>
+                <CommentThread
+                  bugId={bug.id}
+                  issueUrl={absoluteUrl(issuePath(bug.number))}
+                  reporterId={bug.reporterId}
+                  comments={commentTree}
+                  attachmentsByComment={attachmentsByComment}
+                  organizationRoles={organizationRoles}
+                  users={commentMentionUsers}
+                  currentUserId={user.id}
+                  currentUserRole={user.role}
+                  tenantAdmin={access.admin}
+                  readOnly={bug.isDeleted}
+                />
+              </section>
+            }
+            decisions={<IssueAgentActivity decisions={agentDecisions} />}
+          />
+        </div>
+
+        <aside className="flex min-w-0 flex-col gap-4">
+          <section aria-labelledby="issue-people-heading" className="rounded-[20px] border border-line bg-surface p-5">
+            <h2 id="issue-people-heading" className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
+              People
+            </h2>
+            <div className="mt-3 flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs text-muted">Reporter</span>
+                <UserNameWithBadges
+                  name={bug.reporter.name}
+                  role={bug.reporter.role}
+                  organizationRole={organizationRoles[bug.reporterId]}
+                  image={bug.reporter.image}
+                  avatar="md"
+                  userId={bug.reporterId}
+                  agentName={bug.createdByAgent?.name}
+                  showAuthor
+                  className="text-sm font-bold text-ink"
+                />
+              </div>
+              <div className="h-px bg-divider" />
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs text-muted">Assignee</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {bug.assignee ? (
+                    <UserNameWithBadges
+                      name={bug.assignee.name}
+                      role={bug.assignee.role}
+                      organizationRole={bug.assigneeId ? organizationRoles[bug.assigneeId] : null}
+                      image={bug.assignee.image}
+                      avatar="md"
+                      userId={bug.assigneeId}
+                      className="text-sm font-bold text-ink"
+                    />
+                  ) : (
+                    <span className="text-sm text-muted">Unassigned</span>
+                  )}
+                  {canSelfAssign ? (
+                    <SelfAssignButton
+                      bugId={bug.id}
+                      isAssignedToMe={isAssignee}
+                      variant="ghost"
+                      size="xs"
+                    />
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {bug.type || bug.category || bug.area || bug.milestone ? (
+            <section aria-labelledby="issue-details-heading" className="rounded-[20px] border border-line bg-surface p-5">
+              <h2 id="issue-details-heading" className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
+                Details
+              </h2>
+              <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                {bug.type ? (
+                  <div className="min-w-0">
+                    <dt className="text-xs text-muted">Type</dt>
+                    <dd className="mt-1">
+                      <Pill className={getIssueTypeTokenClass(bug.type.name)}>{bug.type.name}</Pill>
+                    </dd>
+                  </div>
+                ) : null}
+                {bug.category ? (
+                  <div className="min-w-0">
+                    <dt className="text-xs text-muted">Platform</dt>
+                    <dd className="mt-1 truncate font-bold text-ink">{bug.category.name}</dd>
+                  </div>
+                ) : null}
                 {bug.area ? (
-                  <div>
-                    <dt className="font-medium text-zk-muted">Area</dt>
-                    <dd>{bug.area.name}</dd>
+                  <div className="min-w-0">
+                    <dt className="text-xs text-muted">Area</dt>
+                    <dd className="mt-1 truncate font-bold text-ink">{bug.area.name}</dd>
                   </div>
                 ) : null}
                 {bug.milestone ? (
-                  <div>
-                    <dt className="font-medium text-zk-muted">Milestone</dt>
-                    <dd className="flex flex-wrap items-center gap-2">
-                      <Link href={milestoneIssuesHref(bug.milestone.id)} className="font-bold text-zk-accent hover:underline">
+                  <div className="col-span-2 min-w-0">
+                    <dt className="text-xs text-muted">Milestone</dt>
+                    <dd className="mt-1 flex flex-wrap items-center gap-2">
+                      <Link href={milestoneIssuesHref(bug.milestone.id)} className="font-bold text-accent hover:underline">
                         {bug.milestone.title}
                       </Link>
                       <MilestoneDue due={dueDateValue(bug.milestone.dueDate) || null} isClosed={bug.milestone.isClosed} />
@@ -978,23 +1074,31 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
                   </div>
                 ) : null}
               </dl>
-            ) : null}
-          </EditableIssueDescription>
-
-          {issueAttachments.length > 0 ? (
-            <section className="rounded-[20px] border border-zk-border bg-zk-surface p-5 sm:p-6">
-              <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-zk-muted">
-                Attachments
-              </h2>
-              <AttachmentList attachments={issueAttachments} />
             </section>
           ) : null}
 
-          <EditableProofLinks
-            bugId={bug.id}
-            initialLinks={proofLinks}
-            linkedPullRequestUrl={bug.pullRequestUrl}
-            canEdit={(canEdit || isAssignee) && !bug.isDeleted}
+          <IssuePullRequest pullRequestUrl={bug.pullRequestUrl} />
+
+          {proofLinks.length > 0 || canEdit ? (
+            <EditableProofLinks
+              bugId={bug.id}
+              initialLinks={proofLinks}
+              linkedPullRequestUrl={bug.pullRequestUrl}
+              canEdit={(canEdit || isAssignee) && !bug.isDeleted}
+            />
+          ) : null}
+
+          <IssueBids
+            bids={[...openBids]
+              .sort((a, b) => Number(hasAreaMatch(b)) - Number(hasAreaMatch(a)) || a.createdAt.getTime() - b.createdAt.getTime())
+              .map((bid) => ({
+                id: bid.id,
+                agentName: bid.agent.name,
+                personName: bid.beneficiary.name ?? "A member",
+                note: bid.note,
+                areaMatch: hasAreaMatch(bid),
+              }))}
+            canAward={canAwardBid && intakeStage === "ready"}
           />
 
           {canUpdateStatus && !bug.isDeleted ? (
@@ -1020,161 +1124,48 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
             />
           ) : null}
 
-          <IssueEscalations escalations={escalations} />
-
-          <Suspense fallback={null}>
-            <GoalBudgetSection tenantId={bug.tenantId} projectId={bug.projectId} bugId={bug.id} />
-          </Suspense>
-
-          <IssueSectionTabs
-            conversationCount={comments.visibleCount}
-            decisionsCount={agentDecisions.length}
-            conversation={
-              <section
-                id="conversation"
-                className="scroll-mt-24 rounded-[20px] border border-zk-border bg-zk-surface p-5 sm:p-[22px]"
-              >
-                <span id="comments" className="sr-only" aria-hidden="true" />
-                <h2 className="sr-only">
-                  Conversation ({comments.visibleCount})
-                </h2>
-                {comments.hiddenThreads > 0 ? (
-                  <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-zk-chip px-3 py-2 text-sm text-zk-text2 print:hidden">
-                    <span>
-                      {comments.hiddenThreads} earlier{" "}
-                      {comments.hiddenThreads === 1 ? "thread" : "threads"} not shown.
-                    </span>
-                    <Link
-                      href={earlierThreadsHref(pageQuery, comments.shownThreads)}
-                      scroll={false}
-                      className="font-bold text-zk-accent hover:underline"
-                    >
-                      Show {Math.min(comments.hiddenThreads, COMMENT_THREADS_PER_PAGE)} earlier
-                    </Link>
-                    {comments.hiddenThreads > COMMENT_THREADS_PER_PAGE ? (
-                      <Link
-                        href={earlierThreadsHref(pageQuery, comments.shownThreads, true)}
-                        scroll={false}
-                        className="font-bold text-zk-accent hover:underline"
-                      >
-                        Show all
-                      </Link>
-                    ) : null}
-                  </div>
-                ) : null}
-                <Suspense fallback={null}>
-                  <CommentPermalinkResolver />
-                </Suspense>
-                <CommentThread
-                  bugId={bug.id}
-                  issueUrl={absoluteUrl(issuePath(bug.number))}
-                  reporterId={bug.reporterId}
-                  comments={commentTree}
-                  attachmentsByComment={attachmentsByComment}
-                  organizationRoles={organizationRoles}
-                  users={commentMentionUsers}
-                  currentUserId={user.id}
-                  currentUserRole={user.role}
-                  tenantAdmin={access.admin}
-                  readOnly={bug.isDeleted}
-                />
-              </section>
-            }
-            decisions={
-              agentDecisions.length > 0 ? (
-                <IssueAgentActivity decisions={agentDecisions} />
-              ) : (
-                <section
-                  aria-label="Agent decisions"
-                  className="rounded-[20px] border border-dashed border-zk-border bg-zk-surface p-8 text-center text-sm text-zk-muted"
-                >
-                  <h2 className="sr-only">Agent decisions</h2>
-                  No agent decisions yet.
-                </section>
-              )
-            }
-          />
-
-          {canDelete && !bug.isDeleted ? (
-            <section className="rounded-[20px] border border-zk-bad-bd bg-zk-bad-soft/60 p-4 sm:p-6 print:hidden">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-zk-bad-fg">
-                    Danger zone
-                  </h2>
-                  <p className="text-sm text-zk-text2">
-                    Delete this issue. {deleteSummary(keptCounts)}
-                  </p>
-                </div>
-                <DeleteIssueButton
-                  bugId={bug.id}
-                  bugTitle={bug.title}
-                  counts={keptCounts}
-                  variant="danger"
-                />
-              </div>
+          {issueAttachments.length > 0 ? (
+            <section aria-labelledby="issue-attachments-heading" className="rounded-[20px] border border-line bg-surface p-5">
+              <h2 id="issue-attachments-heading" className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
+                Attachments
+              </h2>
+              <AttachmentList attachments={issueAttachments} />
             </section>
           ) : null}
-        </div>
-
-        {/* SIDE RAIL */}
-        <aside className="flex min-w-0 flex-[1_1_340px] flex-col gap-4">
-          <section className="flex flex-col gap-3.5 rounded-[20px] border border-zk-border bg-zk-surface p-5">
-            <span className="text-xs font-bold uppercase tracking-[0.08em] text-zk-muted">People</span>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-zk-muted">Reporter</span>
-              <UserNameWithBadges
-                name={bug.reporter.name}
-                role={bug.reporter.role}
-                organizationRole={organizationRoles[bug.reporterId]}
-                image={bug.reporter.image}
-                avatar="sm"
-                userId={bug.reporterId}
-                agentName={bug.createdByAgent?.name}
-                showAuthor
-              />
-            </div>
-            <div className="h-px bg-zk-divider" />
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-zk-muted">Assignee</span>
-              <div className="flex flex-wrap items-center gap-2">
-                {bug.assignee ? (
-                  <UserNameWithBadges
-                    name={bug.assignee.name}
-                    role={bug.assignee.role}
-                    organizationRole={bug.assigneeId ? organizationRoles[bug.assigneeId] : null}
-                    image={bug.assignee.image}
-                    avatar="sm"
-                    userId={bug.assigneeId}
-                  />
-                ) : (
-                  <span className="text-sm text-zk-muted">Unassigned</span>
-                )}
-                {canSelfAssign ? (
-                  <SelfAssignButton
-                    bugId={bug.id}
-                    isAssignedToMe={isAssignee}
-                    variant="ghost"
-                    size="xs"
-                  />
-                ) : null}
-              </div>
-            </div>
-          </section>
-
-          <IssuePullRequest pullRequestUrl={bug.pullRequestUrl} />
-
-          <IssueBids
-            bids={bidList}
-            canAward={canAwardBid && intakeStage === "ready"}
-          />
 
           <ActivityTimeline
             activities={[...activities].reverse()}
             totalCount={activityCount}
           />
+
+          <IssueEscalations escalations={escalations} />
+
+          <Suspense fallback={null}>
+            <GoalBudgetSection tenantId={bug.tenantId} projectId={bug.projectId} bugId={bug.id} />
+          </Suspense>
         </aside>
       </div>
+
+      {canDelete && !bug.isDeleted ? (
+        <section className="rounded-[20px] border border-bad-bd bg-bad-soft p-4 print:hidden sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-bad-fg">
+                Danger zone
+              </h2>
+              <p className="text-sm text-ink-2">
+                Delete this issue. {deleteSummary(keptCounts)}
+              </p>
+            </div>
+            <DeleteIssueButton
+              bugId={bug.id}
+              bugTitle={bug.title}
+              counts={keptCounts}
+              variant="danger"
+            />
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

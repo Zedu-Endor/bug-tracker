@@ -3,14 +3,16 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setThemeAction } from "@/app/actions/settings";
+import { setThemeAction, setGuestThemeAction } from "@/app/actions/settings";
 import { ThemePreference, ThemeToggle, AccountThemeSelector, applyThemeClient } from "./theme-toggle";
 
 vi.mock("@/app/actions/settings", () => ({
   setThemeAction: vi.fn(),
+  setGuestThemeAction: vi.fn(),
 }));
 
 const mockSetThemeAction = vi.mocked(setThemeAction);
+const mockSetGuestThemeAction = vi.mocked(setGuestThemeAction);
 
 afterEach(() => {
   cleanup();
@@ -21,6 +23,8 @@ afterEach(() => {
 beforeEach(() => {
   mockSetThemeAction.mockReset();
   mockSetThemeAction.mockResolvedValue({ ok: true });
+  mockSetGuestThemeAction.mockReset();
+  mockSetGuestThemeAction.mockResolvedValue({ ok: true });
 });
 
 describe("applyThemeClient (#659)", () => {
@@ -115,6 +119,18 @@ describe("ThemeToggle (#659)", () => {
       expect(document.documentElement.getAttribute("data-theme")).toBe("light");
       expect(localStorage.getItem("theme")).toBe("light");
     });
+  });
+
+  it("uses the device-only action on signed-out pages", async () => {
+    document.documentElement.setAttribute("data-theme", "light");
+    const user = userEvent.setup();
+    render(<ThemeToggle persist="device" />);
+
+    await user.click(screen.getByTestId("theme-toggle"));
+
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(mockSetGuestThemeAction).toHaveBeenCalledWith("dark");
+    expect(mockSetThemeAction).not.toHaveBeenCalled();
   });
 });
 

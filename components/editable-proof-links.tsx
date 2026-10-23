@@ -77,15 +77,15 @@ export function EditableProofLinks({ bugId, initialLinks, linkedPullRequestUrl, 
   };
 
   return (
-    <section className="rounded-xl border border-zk-border bg-zk-surface p-4 sm:p-6">
+    <section className="rounded-[20px] border border-line bg-surface p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zk-muted">
+        <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
           GitHub PR
         </h2>
         {canEdit && !isEditing ? (
           <Button
             variant="ghost"
-            className="px-2.5 py-1 text-xs text-zk-text2 hover:text-zk-text"
+            className="px-2.5 py-1 text-xs text-ink-2 hover:text-ink"
             onClick={handleStartEdit}
           >
             Edit
@@ -97,7 +97,7 @@ export function EditableProofLinks({ bugId, initialLinks, linkedPullRequestUrl, 
         <form onSubmit={handleSave} className="mt-4 space-y-3">
           {error ? (
             <div
-              className="rounded-lg border border-zk-bad-bd bg-zk-bad-bg p-3 text-sm text-zk-bad-fg"
+              className="rounded-lg border border-bad-bd bg-bad-bg p-3 text-sm text-bad-fg"
               role="alert"
             >
               {error}
@@ -118,7 +118,7 @@ export function EditableProofLinks({ bugId, initialLinks, linkedPullRequestUrl, 
               "https://github.com/organization/repo/pull/123"
             }
           />
-          <p className="text-xs text-zk-muted">
+          <p className="text-xs text-muted">
             One GitHub link per line, at most 20. Leave empty to remove them all.
           </p>
 
@@ -132,7 +132,7 @@ export function EditableProofLinks({ bugId, initialLinks, linkedPullRequestUrl, 
           </div>
         </form>
       ) : links.length === 0 ? (
-        <p className="mt-3 text-sm text-zk-muted">No GitHub PR attached to this report.</p>
+        <p className="mt-3 text-sm text-muted">No GitHub PR attached to this report.</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {links.map((url, index) => (
@@ -142,9 +142,9 @@ export function EditableProofLinks({ bugId, initialLinks, linkedPullRequestUrl, 
                 target="_blank"
                 rel="noopener noreferrer"
                 title={url}
-                className="inline-flex items-center gap-1.5 break-all text-sm font-medium text-zk-accent hover:underline"
+                className="inline-flex items-center gap-1.5 break-all text-sm font-bold text-accent hover:underline"
               >
-                <ExternalLinkIcon className="h-4 w-4 shrink-0 text-zk-muted" />
+                <ExternalLinkIcon className="h-4 w-4 shrink-0 text-muted" />
                 <span>{formatProofLinkLabel(url)}</span>
               </a>
             </li>

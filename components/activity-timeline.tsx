@@ -49,66 +49,66 @@ export function ActivityTimeline({
   // entry inside it. Issues without activity keep the empty state visible.
   if (activities.length === 0) {
     return (
-      <section className="rounded-[20px] border border-zk-border bg-zk-surface p-5">
-        <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-zk-muted">
+      <section className="rounded-[20px] border border-line bg-surface p-5">
+        <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
           Activity ({total})
         </h2>
-        <p className="mt-1 text-xs text-zk-muted">
+        <p className="mt-1 text-xs text-muted">
           Read-only history of changes on this issue.
         </p>
-        <p className="mt-4 text-sm text-zk-muted">No activity recorded yet.</p>
+        <p className="mt-4 text-sm text-muted">No activity recorded yet.</p>
       </section>
     );
   }
   return (
-    <section className="rounded-[20px] border border-zk-border bg-zk-surface p-5">
+    <section className="rounded-[20px] border border-line bg-surface p-5">
       <details className="group">
-        <summary className="cursor-pointer list-none select-none -m-1 rounded-md p-1 hover:bg-zk-chip/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong">
+        <summary className="cursor-pointer list-none select-none rounded-md p-1 -m-1 hover:bg-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           <span className="flex items-center justify-between gap-2">
-            <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-zk-muted">
+            <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-muted">
               Activity ({total})
             </h2>
             <span
               aria-hidden="true"
-              className="shrink-0 text-zk-muted transition-transform duration-150 group-open:rotate-90"
+              className="shrink-0 text-muted transition-transform duration-150 group-open:rotate-90"
             >
               ▸
             </span>
           </span>
-          <p className="mt-1 text-xs text-zk-muted">
+          <p className="mt-1 text-xs text-muted">
             Read-only history of changes on this issue.
             {trimmed
               ? ` Showing the ${activities.length} most recent of ${total}.`
               : ""}
           </p>
         </summary>
-        <ol className="relative mt-5 space-y-0 border-l border-zk-divider pl-4 sm:pl-5">
+        <ol className="relative mt-5 space-y-0 border-l border-line pl-4 sm:pl-5">
           {activities.map((entry) => (
             <li key={entry.id} className="relative pb-5 last:pb-0">
               <span
                 aria-hidden
-                className="absolute -left-[1.2rem] sm:-left-[1.45rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-zk-surface bg-electric-blue-strong"
+                className="absolute -left-[1.2rem] sm:-left-[1.45rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-primary"
               />
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <span className="text-xs font-bold uppercase tracking-wide text-muted">
                   {typeLabel[entry.type]}
                 </span>
                 <LocalTime
-                  className="text-xs text-zk-muted"
+                  className="text-xs text-muted"
                   date={entry.createdAt}
                 />
               </div>
-              <p className="mt-1 text-sm text-zk-text2">
-                <span className="font-bold text-zk-text">
+              <div className="mt-1 text-sm text-ink-2">
+                <span className="font-bold text-ink">
                   {entry.actor.name}
                 </span>{" "}
                 <ExpandableText maxLines={2} expandText="View more" collapseText="View less">
                   {entry.summary}
                 </ExpandableText>
-              </p>
+              </div>
               {entry.type === "status_changed" && activityNote(entry.metadata) ? (
                 <ExpandableText maxLines={3} expandText="View more" collapseText="View less">
-                  <blockquote className="mt-1 whitespace-pre-wrap break-words border-l-[3px] border-zk-ok-fg/40 bg-zk-chip pl-3 text-sm text-zk-text2">
+                  <blockquote className="mt-1 whitespace-pre-wrap break-words border-l-2 border-ok-fg/40 pl-3 text-sm text-ink-2">
                     {activityNote(entry.metadata)}
                   </blockquote>
                 </ExpandableText>

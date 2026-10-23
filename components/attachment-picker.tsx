@@ -121,7 +121,7 @@ export function AttachmentPicker({
       <div className="flex flex-wrap items-center gap-2">
         <label
           htmlFor={inputId}
-          className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zk-border bg-zk-surface px-3 py-1.5 text-sm font-medium text-zk-text2 hover:bg-zk-chip has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-electric-blue-strong ${
+          className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-bold text-ink-2 hover:bg-tint has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary ${
             disabled || full ? "pointer-events-none opacity-50" : ""
           }`}
         >
@@ -145,7 +145,7 @@ export function AttachmentPicker({
             className="sr-only"
           />
         </label>
-        <span id={helpId} className="text-xs text-zk-muted">
+        <span id={helpId} className="text-xs text-muted">
           {ATTACHMENT_HELP}
         </span>
       </div>
@@ -154,14 +154,14 @@ export function AttachmentPicker({
           {items.map((item) => (
             <li
               key={item.key}
-              className="flex items-center justify-between gap-3 rounded-xl border border-zk-border bg-zk-chip px-3 py-1.5 text-sm"
+              className="flex items-center justify-between gap-3 rounded-lg border border-line bg-chip px-3 py-1.5 text-sm"
             >
-              <span className="min-w-0 truncate text-zk-text">{item.name}</span>
+              <span className="min-w-0 truncate text-ink">{item.name}</span>
               <span className="flex shrink-0 items-center gap-2 text-xs">
-                {item.state === "uploading" ? <span className="text-zk-muted">Uploading…</span> : null}
-                {item.state === "done" ? <span className="text-zk-muted">{formatBytes(item.size)}</span> : null}
+                {item.state === "uploading" ? <span className="text-muted">Uploading…</span> : null}
+                {item.state === "done" ? <span className="text-muted">{formatBytes(item.size)}</span> : null}
                 {item.state === "error" ? (
-                  <span className="text-zk-bad-fg" role="alert">
+                  <span className="text-bad-fg" role="alert">
                     {item.error}
                   </span>
                 ) : null}
@@ -170,7 +170,7 @@ export function AttachmentPicker({
                     type="button"
                     onClick={() => update((list) => list.filter((i) => i.key !== item.key))}
                     aria-label={`Remove ${item.name}`}
-                    className="rounded px-1 text-zk-muted hover:text-zk-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong"
+                    className="rounded px-1 text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     ×
                   </button>

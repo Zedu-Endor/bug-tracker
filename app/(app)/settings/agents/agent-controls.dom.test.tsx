@@ -49,10 +49,9 @@ describe("AgentControls high-volume budget (#596)", () => {
 
   it.each([false, true])("offers admin-only creation roles only when admin=%s", (isTenantAdmin) => {
     render(<CreateAgentForm projects={[{ id: "project", name: "Ziki" }]} levels={settableLevels({ isOwner: true, isTenantAdmin })} />);
-    const radios = screen.getAllByRole("radio").map((el) => el.textContent ?? "");
-    expect(radios.some((text) => text.startsWith("Dispatcher"))).toBe(isTenantAdmin);
-    expect(radios.some((text) => text.startsWith("Merger"))).toBe(isTenantAdmin);
-    expect(radios.some((text) => text.startsWith("Reviewer"))).toBe(true);
+    expect(Boolean(screen.queryByRole("radio", { name: /Dispatcher/ }))).toBe(isTenantAdmin);
+    expect(Boolean(screen.queryByRole("radio", { name: /Merger/ }))).toBe(isTenantAdmin);
+    expect(screen.getByRole("radio", { name: /Reviewer/ })).toBeTruthy();
   });
 
   it("lets an admin enable high-volume with an optional expiry", async () => {

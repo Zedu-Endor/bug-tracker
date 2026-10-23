@@ -6,9 +6,6 @@ import { Button } from "@/components/ui/button";
 import { FieldError, useFieldErrors } from "@/components/ui/field-errors";
 import { Input } from "@/components/ui/input";
 
-const fieldClass =
-  "h-12 rounded-xl border-zk-border bg-zk-surface text-zk-text shadow-none placeholder:text-zk-muted focus:border-electric-blue focus:ring-electric-blue/20";
-
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -41,8 +38,8 @@ export function ForgotPasswordForm() {
         });
       }}
     >
-      <div className="space-y-1.5">
-        <label htmlFor="email" className="text-sm font-medium text-zk-text2">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="email" className="text-[13px] font-bold text-ink">
           Email
         </label>
         <Input
@@ -54,26 +51,28 @@ export function ForgotPasswordForm() {
           placeholder="you@example.com"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className={fieldClass}
+          className="h-12 rounded-xl px-3.5"
           {...errs.attrs("email")}
         />
         <FieldError formId={errs.formId} field="email" errors={errs.fieldErrors} />
       </div>
       {error ? (
-        <p className="text-sm text-zk-bad-fg" role="alert">
+        <p
+          className="rounded-xl border border-bad-bd bg-bad-soft p-3 text-sm text-bad-fg"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
       {success ? (
-        <p className="text-sm text-zk-ok-fg" role="status">
+        <p
+          className="rounded-xl border border-ok-fg/25 bg-ok-bg p-3 text-sm text-ok-fg"
+          role="status"
+        >
           {success}
         </p>
       ) : null}
-      <Button
-        type="submit"
-        className="h-12 w-full bg-electric-blue-strong text-base font-bold text-white hover:bg-electric-blue focus-visible:ring-electric-blue"
-        disabled={pending}
-      >
+      <Button type="submit" className="h-12 w-full rounded-full font-bold" disabled={pending}>
         {pending ? "Sending…" : "Send reset link"}
       </Button>
     </form>

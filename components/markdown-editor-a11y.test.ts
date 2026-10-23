@@ -38,7 +38,7 @@ describe("MarkdownEditor accessibility (#146)", () => {
     expect(html).not.toContain('aria-autocomplete="list"');
   });
 
-  it("uses text-slate-500 for the character counter to satisfy WCAG AA contrast (>=4.5:1)", () => {
+  it("uses the muted token for the character counter to satisfy WCAG AA contrast (>=4.5:1)", () => {
     const html = renderToStaticMarkup(
       createElement(MarkdownEditor, {
         value: "Test text",
@@ -46,7 +46,7 @@ describe("MarkdownEditor accessibility (#146)", () => {
         maxLength: 2000,
       }),
     );
-    expect(html).toContain("tabular-nums text-slate-500");
+    expect(html).toContain("tabular-nums text-muted");
     expect(html).not.toContain("tabular-nums text-slate-400");
     expect(html).toContain("9/2000");
   });
@@ -59,8 +59,9 @@ describe("MarkdownEditor accessibility (#146)", () => {
         users: [{ id: "u1", name: "Ada" }],
       }),
     );
-    expect(html).not.toContain("overflow-hidden rounded-lg border border-slate-300");
-    expect(html).toContain("rounded-lg border border-slate-300");
+    expect(html).not.toContain("overflow-hidden rounded-xl border");
+    expect(html).toContain("rounded-xl border");
+    expect(html).toContain("border-line");
   });
 });
 

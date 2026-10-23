@@ -1,0 +1,116 @@
+/*
+ * Ziki redesign tokens (ziki-redesign-handoff/HANDOFF.md, "Design tokens").
+ *
+ * Plain CSS variables named as in the handoff, so a screen can be checked
+ * against the mockups token by token. globals.css maps them onto Tailwind
+ * colors (bg-surface, text-ink, border-line, bg-ok-bg, ...).
+ *
+ * The dark values repeat the two selectors theme-dark.css and
+ * theme-brand.css use: a pinned data-theme="dark", or System on a device
+ * that prefers dark. A pinned Light always wins, and paper prints light.
+ */
+
+:root {
+  --bg: #f5f7fc;
+  --surface: #ffffff;
+  --text: #15121f;
+  --text2: #3e4a63;
+  --muted: #5f6577;
+  --border: #e3e8f2;
+  --divider: #eef1f7;
+  --tint: #eaf2fe;
+  --rowSel: #f3f8ff;
+  --chip: #f0f2f7;
+  --chip2: #e2e7f0;
+  --seg: #eef1f6;
+  --accentText: #1f5fd9;
+
+  --okBg: #e3f6ec;
+  --okFg: #146c43;
+  --badBg: #fde8e4;
+  --badFg: #a3261a;
+  --badBd: #f4b3a8;
+  --badSoft: #fff4f2;
+  --warnBg: #fdf3d7;
+  --warnFg: #7a4e00;
+  --warnBd: #f0cd72;
+  --infoBg: #e7f0ff;
+  --infoFg: #1d4fb8;
+  --secBg: #fdecef;
+  --secFg: #b4233f;
+
+  /* Menus and popovers lift off the page with one soft shadow. */
+  --popShadow: 0 16px 40px rgba(11, 23, 51, 0.16);
+}
+
+@media screen and (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #070f22;
+    --surface: #0e1a33;
+    --text: #e8eef9;
+    --text2: #b7c3da;
+    --muted: #93a0b8;
+    --border: #22324f;
+    --divider: #1a2844;
+    --tint: #15284a;
+    --rowSel: #13254a;
+    --chip: #1b2a47;
+    --chip2: #26375a;
+    --seg: #0a1530;
+    --accentText: #8fc9ff;
+
+    --okBg: #0f3326;
+    --okFg: #6ee7a8;
+    --badBg: #3a1517;
+    --badFg: #fca5a0;
+    --badBd: #6b2a27;
+    --badSoft: #2a1416;
+    --warnBg: #3a2c0c;
+    --warnFg: #f6cf6b;
+    --warnBd: #6b5216;
+    --infoBg: #14294f;
+    --infoFg: #9cc2ff;
+    --secBg: #3a1424;
+    --secFg: #f9a8c0;
+
+    --popShadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    /* theme-dark.css (generated) sets its own; the token wins here. */
+    --foreground: var(--text);
+  }
+}
+
+@media screen {
+  :root[data-theme="dark"] {
+    --bg: #070f22;
+    --surface: #0e1a33;
+    --text: #e8eef9;
+    --text2: #b7c3da;
+    --muted: #93a0b8;
+    --border: #22324f;
+    --divider: #1a2844;
+    --tint: #15284a;
+    --rowSel: #13254a;
+    --chip: #1b2a47;
+    --chip2: #26375a;
+    --seg: #0a1530;
+    --accentText: #8fc9ff;
+
+    --okBg: #0f3326;
+    --okFg: #6ee7a8;
+    --badBg: #3a1517;
+    --badFg: #fca5a0;
+    --badBd: #6b2a27;
+    --badSoft: #2a1416;
+    --warnBg: #3a2c0c;
+    --warnFg: #f6cf6b;
+    --warnBd: #6b5216;
+    --infoBg: #14294f;
+    --infoFg: #9cc2ff;
+    --secBg: #3a1424;
+    --secFg: #f9a8c0;
+
+    --popShadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    /* theme-dark.css (generated) sets its own; the token wins here. */
+    --foreground: var(--text);
+  }
+}

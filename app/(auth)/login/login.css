@@ -1,0 +1,52 @@
+/* Motion from Login.dc.html: the collage drifts and the card fades up. */
+
+@keyframes login-float-a {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes login-float-b {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(7px);
+  }
+}
+
+@keyframes login-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.login-float-a {
+  animation: login-float-a 6s ease-in-out infinite;
+}
+
+.login-float-b {
+  animation: login-float-b 7s ease-in-out infinite;
+}
+
+.login-card-in {
+  animation: login-card-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-float-a,
+  .login-float-b,
+  .login-card-in {
+    animation: none;
+  }
+}

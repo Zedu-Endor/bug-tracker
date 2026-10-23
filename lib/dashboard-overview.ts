@@ -3,6 +3,8 @@ import { Prisma, type Status } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { bugInTenant } from "@/lib/tenant-context";
 import { pointTotals, tenantRankFor, type PointTotals } from "@/lib/points/leaderboard";
+import { openIssueStages, type IssueStage } from "@/lib/issue-stage";
+import { startOfUtcWeek } from "@/lib/point-periods";
 
 /**
  * The Overview dashboard's data (#dashboard): every number is counted live in
@@ -32,6 +34,8 @@ export function isResolvedStatus(status: string): status is ResolvedStatus {
 
 /** Preview rows: exactly the three the design places under each card. */
 export const PREVIEW_LIMIT = 3;
+/** The Overview table is five rows; "View all issues" opens the full filter. */
+export const ASSIGNED_OVERVIEW_LIMIT = 5;
 
 export type OverviewIssue = {
   id: string;
@@ -43,6 +47,22 @@ export type OverviewIssue = {
   resolvedAt: Date | null;
 };
 
+/** One row of the Overview's "Issues assigned to me" table. */
+export type OverviewAssignedIssue = {
+  id: string;
+  number: number;
+  title: string;
+  status: Status;
+  severity: string | null;
+  voteCount: number;
+  /** 1 when this person upvoted it, 0 otherwise. */
+  userVote: number;
+  typeName: string | null;
+  createdAt: Date;
+  /** Reported / Confirmed / Ready for open issues; null once work starts. */
+  stage: IssueStage | null;
+};
+
 export type WorkspaceOverview = {
   unresolvedCount: number;
   resolvedCount: number;
@@ -51,6 +71,14 @@ export type WorkspaceOverview = {
   /** Sidebar queue counts — same semantics as the Issues page sidebar. */
   assignedToMe: number;
   reportedByMe: number;
+  reportedLast30Days: number;
+  /** Assigned to this person, still unresolved, and high/critical severity. */
+  assignedHighPriority: number;
+  /** Assigned to this person and now resolved or closed. */
+  resolvedAssignedToMe: number;
+  /** Points earned in the current UTC week, for the weekly target chip. */
+  weekPoints: number;
+  assignedIssues: OverviewAssignedIssue[];
   points: PointTotals;
   rank: { rank: number; total: number } | null;
 };
@@ -63,6 +91,11 @@ export const EMPTY_OVERVIEW: WorkspaceOverview = {
   recentResolved: [],
   assignedToMe: 0,
   reportedByMe: 0,
+  reportedLast30Days: 0,
+  assignedHighPriority: 0,
+  resolvedAssignedToMe: 0,
+  weekPoints: 0,
+  assignedIssues: [],
   points: { points: 0, solvedTasks: 0 },
   rank: null,
 };
@@ -90,13 +123,17 @@ export function firstCloseForTenant(tenantId: string): Prisma.Sql {
 export async function loadWorkspaceOverview({
   userId,
   tenantId,
+  now = new Date(),
 }: {
   userId: string;
   tenantId: string | null;
+  now?: Date;
 }): Promise<WorkspaceOverview> {
   if (!tenantId) return EMPTY_OVERVIEW;
 
   const base: Prisma.BugWhereInput = { ...bugInTenant(tenantId), isDeleted: false };
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const weekStart = startOfUtcWeek(now);
 
   const [
     unresolvedCount,
@@ -105,6 +142,11 @@ export async function loadWorkspaceOverview({
     resolvedRows,
     assignedToMe,
     reportedByMe,
+    reportedLast30Days,
+    assignedHighPriority,
+    resolvedAssignedToMe,
+    weekPoints,
+    assignedRows,
     points,
     rank,
   ] = await Promise.all([
@@ -131,9 +173,62 @@ export async function loadWorkspaceOverview({
       `,
       prisma.bug.count({ where: { ...base, assigneeId: userId } }),
       prisma.bug.count({ where: { ...base, reporterId: userId } }),
+      prisma.bug.count({
+        where: { ...base, reporterId: userId, createdAt: { gte: thirtyDaysAgo } },
+      }),
+      prisma.bug.count({
+        where: {
+          ...base,
+          assigneeId: userId,
+          status: { in: [...UNRESOLVED_STATUSES] },
+          severity: { in: ["high", "critical"] },
+        },
+      }),
+      prisma.bug.count({
+        where: {
+          ...base,
+          assigneeId: userId,
+          status: { in: [...RESOLVED_STATUSES] },
+        },
+      }),
+      prisma.pointEntry.aggregate({
+        where: { tenantId, userId, createdAt: { gte: weekStart } },
+        _sum: { points: true },
+      }),
+      prisma.bug.findMany({
+        where: { ...base, assigneeId: userId },
+        orderBy: [{ voteCount: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+        take: ASSIGNED_OVERVIEW_LIMIT,
+        select: {
+          id: true,
+          number: true,
+          title: true,
+          status: true,
+          severity: true,
+          voteCount: true,
+          createdAt: true,
+          type: { select: { name: true } },
+          votes: { where: { userId }, select: { value: true }, take: 1 },
+        },
+      }),
       pointTotals(prisma, tenantId, userId),
       tenantRankFor(prisma, tenantId, userId),
     ]);
+
+  // Stage is only meaningful for open issues, and only for the rows shown.
+  const openIds = assignedRows.filter((row) => row.status === "open").map((row) => row.id);
+  let stages = new Map<string, IssueStage>();
+  if (openIds.length > 0) {
+    try {
+      stages = await openIssueStages(prisma, {
+        ...base,
+        id: { in: openIds },
+        status: "open",
+      });
+    } catch (error) {
+      console.error("[dashboard] issue stages failed", error);
+    }
+  }
 
   return {
     unresolvedCount,
@@ -153,6 +248,22 @@ export async function loadWorkspaceOverview({
     })),
     assignedToMe,
     reportedByMe,
+    reportedLast30Days,
+    assignedHighPriority,
+    resolvedAssignedToMe,
+    weekPoints: weekPoints._sum.points ?? 0,
+    assignedIssues: assignedRows.map((row) => ({
+      id: row.id,
+      number: row.number,
+      title: row.title,
+      status: row.status,
+      severity: row.severity ?? null,
+      voteCount: row.voteCount,
+      userVote: row.votes[0]?.value ?? 0,
+      typeName: row.type?.name ?? null,
+      createdAt: row.createdAt,
+      stage: stages.get(row.id) ?? null,
+    })),
     points,
     rank,
   };

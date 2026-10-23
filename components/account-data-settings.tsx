@@ -33,10 +33,10 @@ export function AccountDataSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] border border-zk-border bg-zk-surface p-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-1 sm:min-w-[320px]">
-          <h2 className="m-0 text-lg font-bold text-zk-text">Download your data</h2>
-          <p className="m-0 text-[13px] leading-relaxed text-zk-muted">
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] border border-line bg-surface p-6">
+        <div className="flex min-w-0 flex-1 basis-[320px] flex-col gap-1">
+          <h2 className="text-lg font-bold text-ink">Download your data</h2>
+          <p className="text-[13px] leading-relaxed text-muted">
             Export a complete JSON file of issues you&apos;ve filed, comments you&apos;ve posted,
             votes you&apos;ve cast and points you&apos;ve earned.
           </p>
@@ -44,25 +44,49 @@ export function AccountDataSettings() {
         <a
           href="/api/user/export"
           download
-          className="inline-flex h-11 items-center gap-2 rounded-full border border-zk-border bg-zk-surface px-[18px] text-sm font-bold text-zk-text transition hover:bg-zk-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue focus-visible:ring-offset-2"
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-bold text-ink transition-colors hover:bg-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"
+            />
           </svg>
           Download my data
         </a>
       </section>
 
-      <section className="flex flex-col gap-3.5 rounded-[20px] border border-zk-bad-bd bg-zk-bad-soft p-6">
+      <section className="flex flex-col gap-3.5 rounded-[20px] border border-bad-bd bg-bad-soft p-6">
         <div className="flex items-start gap-3.5">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-zk-bad-bg text-zk-bad-fg">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-bad-bg text-bad-fg">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="h-5 w-5"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"
+              />
             </svg>
           </span>
           <div className="flex min-w-0 flex-col gap-1.5">
-            <h2 className="m-0 text-lg font-bold text-zk-bad-fg">Delete account</h2>
-            <p className="m-0 text-[13px] leading-relaxed text-zk-text2">
+            <h2 className="text-lg font-bold text-bad-fg">Delete account</h2>
+            <p className="text-[13px] leading-relaxed text-ink-2">
               Permanently delete your account. Your authored content is anonymised, your agents and
               API keys are revoked, and all organization memberships are removed. You can&apos;t
               delete your account while you&apos;re the sole owner of an organization.
@@ -73,7 +97,7 @@ export function AccountDataSettings() {
         {error ? (
           <div
             role="alert"
-            className="rounded-[14px] border border-zk-bad-bd bg-zk-surface p-3 text-sm text-zk-bad-fg"
+            className="rounded-xl border border-bad-bd bg-surface p-3 text-sm text-bad-fg"
           >
             {error}
           </div>
@@ -88,20 +112,20 @@ export function AccountDataSettings() {
               setConfirmText("");
               setError(null);
             }}
-            className="h-11 self-start rounded-full border border-zk-bad-bd bg-zk-surface px-5 text-sm font-bold text-zk-bad-fg transition hover:bg-zk-bad-bg/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zk-bad-fg focus-visible:ring-offset-2 disabled:opacity-50"
+            className="h-11 self-start rounded-full border border-bad-bd bg-surface px-5 text-sm font-bold text-bad-fg transition-colors hover:bg-bad-bg/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bad-fg focus-visible:ring-offset-2 disabled:opacity-50"
           >
             Delete account…
           </button>
         ) : (
-          <div className="flex flex-col gap-2.5 rounded-[14px] border border-zk-bad-bd bg-zk-surface p-4">
-            <label className="flex flex-col gap-1.5 text-[13px] font-bold text-zk-text">
+          <div className="flex flex-col gap-2.5 rounded-[14px] border border-bad-bd bg-surface p-4">
+            <label className="flex flex-col gap-1.5 text-[13px] font-bold text-ink">
               Type DELETE to confirm
               <input
                 type="text"
                 value={confirmText}
                 onChange={(event) => setConfirmText(event.target.value)}
                 autoComplete="off"
-                className="h-11 rounded-xl border border-zk-bad-bd bg-zk-surface px-3.5 text-sm tracking-[0.06em] text-zk-text outline-none focus-visible:ring-2 focus-visible:ring-zk-bad-fg"
+                className="h-11 rounded-xl border border-bad-bd bg-surface px-3.5 text-sm tracking-[0.06em] text-ink outline-none focus-visible:ring-2 focus-visible:ring-bad-fg"
               />
             </label>
             <div className="flex justify-end gap-2">
@@ -111,7 +135,7 @@ export function AccountDataSettings() {
                   setConfirming(false);
                   setConfirmText("");
                 }}
-                className="h-[42px] rounded-full border border-zk-border bg-zk-surface px-[18px] font-bold text-zk-text hover:bg-zk-chip focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue"
+                className="h-[42px] rounded-full border border-line bg-surface px-[18px] font-bold text-ink transition-colors hover:bg-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 Cancel
               </button>
@@ -119,10 +143,10 @@ export function AccountDataSettings() {
                 type="button"
                 disabled={deleteLocked}
                 onClick={handleDelete}
-                className={`h-[42px] rounded-full border-0 px-[18px] text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zk-bad-fg focus-visible:ring-offset-2 ${
+                className={`h-[42px] rounded-full px-[18px] text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bad-fg focus-visible:ring-offset-2 ${
                   deleteLocked
-                    ? "cursor-not-allowed bg-zk-chip text-zk-muted"
-                    : "bg-[#B4233F] text-white hover:brightness-105"
+                    ? "cursor-not-allowed bg-chip text-muted"
+                    : "bg-bad-fg text-white hover:brightness-105"
                 }`}
               >
                 {pending ? "Deleting…" : "Permanently delete"}

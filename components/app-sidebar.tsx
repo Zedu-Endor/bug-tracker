@@ -1,182 +1,231 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import Image from "next/image";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ZikiWordmark } from "@/components/brand-lockup";
 import { WorkspaceSwitcher, type WorkspaceChoice } from "@/components/workspace-switcher";
-import { BASE_PATH } from "@/lib/base-path";
-import { isNavItemActive } from "@/lib/header-nav";
+import { isNavItemActive, type HeaderNavItem } from "@/lib/header-nav";
+import { sidebarCookie } from "@/lib/sidebar";
 
-const COLLAPSE_KEY = "ziki.sidebar.collapsed";
-const COLLAPSE_EVENT = "ziki-sidebar-collapse";
+/**
+ * The persistent app sidebar (redesign handoff, "App shell"). Navy in both
+ * themes. Overview, Issues and Team, then this person's own work, then any
+ * extra destinations their role adds (API Docs, Admins). Every count is a
+ * live workspace-wide number whose destination shows the same set.
+ *
+ * At lg and up it is a full-height column that collapses to an icon rail.
+ * Below lg it stacks above the page: logo and workspace, then the links as
+ * one horizontally scrolling row.
+ */
+export type AppSidebarCounts = {
+  unresolved: number;
+};
 
-function collapsedNow() {
-  try {
-    return window.localStorage.getItem(COLLAPSE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
+const ICONS = {
+  overview: "M3 4.5A1.5 1.5 0 0 1 4.5 3h4A1.5 1.5 0 0 1 10 4.5v6A1.5 1.5 0 0 1 8.5 12h-4A1.5 1.5 0 0 1 3 10.5zM14 4.5A1.5 1.5 0 0 1 15.5 3h4A1.5 1.5 0 0 1 21 4.5v2A1.5 1.5 0 0 1 19.5 8h-4A1.5 1.5 0 0 1 14 6.5zM14 13.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5zM3 17.5A1.5 1.5 0 0 1 4.5 16h4a1.5 1.5 0 0 1 1.5 1.5v2A1.5 1.5 0 0 1 8.5 21h-4A1.5 1.5 0 0 1 3 19.5z",
+  issues: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z",
+  team: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+  docs: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM6.5 17A2.5 2.5 0 0 0 4 19.5 2.5 2.5 0 0 0 6.5 22H20v-5",
+  admin: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+} as const;
 
-function subscribeCollapsed(onStoreChange: () => void) {
-  window.addEventListener(COLLAPSE_EVENT, onStoreChange);
-  return () => window.removeEventListener(COLLAPSE_EVENT, onStoreChange);
-}
+type IconName = keyof typeof ICONS;
 
-function asset(file: string) {
-  return BASE_PATH ? `${BASE_PATH}/brand/${file}` : `/brand/${file}`;
-}
-
-function NavIcon({ children }: { children: React.ReactNode }) {
+function NavIcon({ name }: { name: IconName }) {
   return (
     <svg
-      width="19"
-      height="19"
-      viewBox="0 0 24 24"
+      className="h-[19px] w-[19px] shrink-0"
       fill="none"
+      viewBox="0 0 24 24"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth={2}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-      className="shrink-0"
     >
-      {children}
+      <path d={ICONS[name]} />
     </svg>
   );
 }
 
-export function AppSidebar({
-  issueCount,
-  workspaces,
-  activeTenantId,
-}: {
-  issueCount: number;
-  workspaces: WorkspaceChoice[];
-  activeTenantId: string | null;
-}) {
-  const pathname = usePathname();
-  const collapsed = useSyncExternalStore(subscribeCollapsed, collapsedNow, () => false);
-
-  const toggle = () => {
-    try {
-      window.localStorage.setItem(COLLAPSE_KEY, collapsedNow() ? "0" : "1");
-    } catch {
-      /* private mode */
-    }
-    window.dispatchEvent(new Event(COLLAPSE_EVENT));
-  };
-
-  const overview = isNavItemActive(pathname, "/dashboard");
-  const issues = isNavItemActive(pathname, "/issues");
-  const team = isNavItemActive(pathname, "/settings/team");
-  const label = collapsed ? "lg:sr-only" : "";
-
-  return (
-    <aside
-      className={`flex w-full flex-col gap-4 bg-deep-ocean px-4 py-5 text-[#DCE5F5] lg:sticky lg:top-0 lg:h-dvh lg:shrink-0 lg:overflow-y-auto ${
-        collapsed ? "lg:w-[72px] lg:px-3" : "lg:w-[248px]"
-      }`}
-    >
-      <div className={`flex items-center ${collapsed ? "lg:justify-center" : "justify-between"} px-1`}>
-        <Link href="/dashboard" aria-label="Ziki" className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-tint">
-          <Image
-            src={asset("ziki-logo-dark.png")}
-            alt=""
-            width={110}
-            height={36}
-            className={`h-9 w-[110px] object-contain ${collapsed ? "lg:hidden" : ""}`}
-            unoptimized
-            priority
-          />
-          {collapsed ? (
-            <Image
-              src={asset("ziki-mark.png")}
-              alt=""
-              width={28}
-              height={28}
-              className="hidden h-7 w-7 lg:block"
-              unoptimized
-            />
-          ) : null}
-        </Link>
-        <button
-          type="button"
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-expanded={!collapsed}
-          onClick={toggle}
-          className="hidden h-[30px] w-[30px] items-center justify-center rounded-full border border-[#34507F] text-[#C9D6EF] lg:inline-flex"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d={collapsed ? "m9 18 6-6-6-6" : "m15 18-6-6 6-6"} />
-          </svg>
-        </button>
-      </div>
-
-      <WorkspaceSwitcher workspaces={workspaces} activeTenantId={activeTenantId} tone="sidebar" />
-
-      <nav aria-label="Workspace" className="flex flex-col gap-1.5">
-        <SidebarLink href="/dashboard" active={overview} labelClass={label} label="Overview">
-          <NavIcon>
-            <rect x="3" y="3" width="7" height="9" rx="1.5" />
-            <rect x="14" y="3" width="7" height="5" rx="1.5" />
-            <rect x="14" y="12" width="7" height="9" rx="1.5" />
-            <rect x="3" y="16" width="7" height="5" rx="1.5" />
-          </NavIcon>
-        </SidebarLink>
-        <div className="mx-3 my-1.5 h-px bg-[#1E2E52]" />
-        <SidebarLink href="/issues" active={issues} labelClass={label} label="Issues" count={issueCount}>
-          <NavIcon>
-            <circle cx="12" cy="12" r="9" />
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-          </NavIcon>
-        </SidebarLink>
-        <SidebarLink href="/settings/team" active={team} labelClass={label} label="Team">
-          <NavIcon>
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
-            <path d="M16 3.1a4 4 0 0 1 0 7.8" />
-          </NavIcon>
-        </SidebarLink>
-      </nav>
-    </aside>
-  );
-}
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-tint focus-visible:ring-offset-2 focus-visible:ring-offset-deep-ocean";
 
 function SidebarLink({
   href,
-  active,
   label,
-  labelClass,
+  icon,
   count,
-  children,
+  active = false,
+  collapsed,
 }: {
   href: string;
-  active: boolean;
   label: string;
-  labelClass: string;
+  icon: IconName;
   count?: number;
-  children: React.ReactNode;
+  active?: boolean;
+  collapsed: boolean;
 }) {
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`flex min-h-11 items-center gap-3 rounded-[14px] px-4 text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-tint ${
+      title={collapsed ? label : undefined}
+      className={`flex min-h-11 shrink-0 items-center gap-3 rounded-[14px] px-4 text-[15px] transition-colors motion-reduce:transition-none ${focusRing} ${
+        collapsed ? "lg:justify-center lg:px-0" : ""
+      } ${
         active
-          ? "bg-electric-blue-strong font-semibold text-white shadow-[0_8px_22px_rgba(46,111,239,0.45)]"
-          : "font-medium text-[#DCE5F5] hover:bg-white/5 hover:text-white"
+          ? "bg-primary font-bold text-white shadow-[0_8px_22px_rgba(57,120,246,0.45)]"
+          : "font-medium text-sidebar-ink hover:bg-white/[0.06] hover:text-white"
       }`}
     >
-      {children}
-      <span className={`min-w-0 flex-1 truncate ${labelClass}`}>{label}</span>
+      <NavIcon name={icon} />
+      <span className={`whitespace-nowrap lg:flex-1 ${collapsed ? "lg:sr-only" : ""}`}>{label}</span>
       {typeof count === "number" ? (
-        <span className={`rounded-full bg-white/20 px-2 text-xs font-semibold tabular-nums ${labelClass}`}>
+        <span
+          className={`rounded-full px-2 text-xs font-semibold tabular-nums leading-5 ${collapsed ? "lg:hidden" : ""} ${
+            active ? "bg-white/[0.18] text-deep-ocean" : "bg-white/[0.18] text-sidebar-ink"
+          }`}
+        >
+          <span className="sr-only">, </span>
           {count > 999 ? "999+" : count}
         </span>
       ) : null}
     </Link>
+  );
+}
+
+function GroupLabel({ children, collapsed }: { children: React.ReactNode; collapsed: boolean }) {
+  return (
+    <p
+      className={`mb-1 mt-3 hidden px-4 text-[11px] font-bold uppercase tracking-[0.08em] text-sidebar-muted ${
+        collapsed ? "" : "lg:block"
+      }`}
+    >
+      {children}
+    </p>
+  );
+}
+
+const EXTRA_ICONS: Record<string, IconName> = {
+  "/docs": "docs",
+  "/admin/users": "admin",
+};
+
+export function AppSidebar({
+  counts,
+  workspaces,
+  activeTenantId,
+  extraItems = [],
+  initialCollapsed = false,
+}: {
+  counts: AppSidebarCounts;
+  workspaces: WorkspaceChoice[];
+  activeTenantId: string | null;
+  /** Role-dependent destinations beyond the core three (API Docs, Admins). */
+  extraItems?: HeaderNavItem[];
+  /** From the collapse cookie, so the first paint has the right width. */
+  initialCollapsed?: boolean;
+}) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
+
+  const toggle = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    document.cookie = sidebarCookie(next);
+  };
+
+  return (
+    <aside
+      aria-label="Sidebar"
+      data-collapsed={collapsed ? "true" : undefined}
+      className={`w-full flex shrink-0 flex-col gap-4 bg-deep-ocean px-4 py-4 text-sidebar-ink lg:sticky lg:top-0 lg:h-dvh lg:gap-[18px] lg:overflow-y-auto lg:py-[22px] ${
+        collapsed ? "lg:w-[76px] lg:px-3" : "lg:w-[248px]"
+      }`}
+    >
+      <div className={`flex items-center justify-between gap-3 px-2 ${collapsed ? "lg:flex-col lg:px-0" : ""}`}>
+        <Link href="/dashboard" aria-label="Ziki overview" className={`rounded-md ${focusRing}`}>
+          {/* The rail shows the mark; the wordmark never fits 76px. */}
+          <span className={collapsed ? "block lg:hidden" : "block"}>
+            <ZikiWordmark tone="onDark" />
+          </span>
+          <span className={collapsed ? "hidden lg:block" : "hidden"}>
+            <ZikiWordmark collapsed />
+          </span>
+        </Link>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={`hidden h-[30px] w-[30px] items-center justify-center rounded-full border border-sidebar-line text-[#c9d6ef] transition-colors hover:bg-white/[0.06] hover:text-white lg:flex ${focusRing}`}
+        >
+          <svg
+            className={`h-3.5 w-3.5 ${collapsed ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+      </div>
+
+      <div className={collapsed ? "lg:hidden" : ""}>
+        <WorkspaceSwitcher workspaces={workspaces} activeTenantId={activeTenantId} tone="sidebar" />
+      </div>
+
+      <nav
+        aria-label="Workspace"
+        className="min-w-0 -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0"
+      >
+        <SidebarLink
+          href="/dashboard"
+          label="Overview"
+          icon="overview"
+          active={isNavItemActive(pathname, "/dashboard")}
+          collapsed={collapsed}
+        />
+        <div aria-hidden="true" className="mx-3 my-1.5 hidden h-px bg-[#1e2e52] lg:block" />
+        <SidebarLink
+          href="/issues?project=all"
+          label="Issues"
+          icon="issues"
+          count={counts.unresolved}
+          active={isNavItemActive(pathname, "/issues")}
+          collapsed={collapsed}
+        />
+        <SidebarLink
+          href="/settings/team"
+          label="Team"
+          icon="team"
+          active={isNavItemActive(pathname, "/settings/team")}
+          collapsed={collapsed}
+        />
+
+        {extraItems.length > 0 ? (
+          <>
+            <GroupLabel collapsed={collapsed}>More</GroupLabel>
+            {extraItems.map((item) => (
+              <SidebarLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                icon={EXTRA_ICONS[item.href] ?? "docs"}
+                count={item.badge}
+                active={isNavItemActive(pathname, item.href)}
+                collapsed={collapsed}
+              />
+            ))}
+          </>
+        ) : null}
+      </nav>
+    </aside>
   );
 }

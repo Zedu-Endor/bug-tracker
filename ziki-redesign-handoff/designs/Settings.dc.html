@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ziki — Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F5F7FC}
+a{color:#C9D6EF;text-decoration:none}a:hover{color:#FFFFFF}
+button{font-family:inherit;cursor:pointer}
+input::placeholder,textarea::placeholder{color:#7A7690}
+.zk{--bg:#F5F7FC;--surface:#FFFFFF;--text:#15121F;--text2:#3E4A63;--muted:#5F6577;--border:#E3E8F2;--divider:#EEF1F7;--tint:#EAF2FE;--rowSel:#F3F8FF;--chip:#F0F2F7;--seg:#EEF1F6;--chip2:#E2E7F0;--accentText:#1F5FD9;--okBg:#E3F6EC;--okFg:#146C43;--badBg:#FDE8E4;--badFg:#A3261A;--badBd:#F4B3A8;--warnBg:#FDF3D7;--warnFg:#7A4E00;--warnBd:#F0CD72;--infoBg:#E7F0FF;--infoFg:#1D4FB8;--secBg:#FDECEF;--secFg:#B4233F;--badSoft:#FFF4F2;color-scheme:light}
+.zk.dark{--bg:#070F22;--surface:#0E1A33;--text:#E8EEF9;--text2:#B7C3DA;--muted:#93A0B8;--border:#22324F;--divider:#1A2844;--tint:#15284A;--rowSel:#13254A;--chip:#1B2A47;--seg:#0A1530;--chip2:#26375A;--accentText:#8FC9FF;--okBg:#0F3326;--okFg:#6EE7A8;--badBg:#3A1517;--badFg:#FCA5A0;--badBd:#6B2A27;--warnBg:#3A2C0C;--warnFg:#F6CF6B;--warnBd:#6B5216;--infoBg:#14294F;--infoFg:#9CC2FF;--secBg:#3A1424;--secFg:#F9A8C0;--badSoft:#2A1416;color-scheme:dark}
+.zk.dark .stat-card:hover{box-shadow:0 18px 40px rgba(0,0,0,.45),0 0 0 1px rgba(57,120,246,.25);border-color:#2E6FEF !important}
+.zk.dark .stat-card::after{background:radial-gradient(circle,rgba(57,120,246,.30),rgba(57,120,246,0) 70%)}
+@keyframes statIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.stat-card{position:relative;overflow:hidden;animation:statIn .5s cubic-bezier(.2,.7,.2,1) both;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+.stat-card:nth-child(2){animation-delay:.07s}.stat-card:nth-child(3){animation-delay:.14s}.stat-card:nth-child(4){animation-delay:.21s}
+.stat-card::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#3978F6,#8FC9FF);transform:scaleX(0);transform-origin:left;transition:transform .35s ease}
+.stat-card::after{content:"";position:absolute;width:160px;height:160px;right:-60px;bottom:-80px;border-radius:999px;background:radial-gradient(circle,rgba(143,201,255,.35),rgba(143,201,255,0) 70%);opacity:0;transition:opacity .3s ease}
+.zk .stat-card:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(11,23,51,.10),0 2px 6px rgba(57,120,246,.10);border-color:#BFD6FB !important}
+.stat-card:hover::before{transform:scaleX(1)}
+.stat-card:hover::after{opacity:1}
+.stat-card .stat-go{transition:background .25s ease,color .25s ease,border-color .25s ease,transform .25s ease}
+.stat-card:hover .stat-go{background:#2E6FEF;color:#FFFFFF !important;border-color:#2E6FEF !important;transform:rotate(45deg)}
+.stat-card .stat-value{transition:color .25s ease}
+.stat-card:hover .stat-value{color:var(--accentText)}
+@media (prefers-reduced-motion: reduce){.stat-card,.stat-card *{animation:none !important;transition:none !important}.zk .stat-card:hover{transform:none}}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="font-family: Manrope, system-ui, sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; display: flex; flex-wrap: wrap; font-size: 14px">
+
+<!-- SIDEBAR -->
+<aside style="flex: 1 1 248px; max-width: 100%; min-width: 0; box-sizing: border-box; background: {{sidebar}}; padding: 22px 16px; display: flex; flex-direction: column; gap: 18px; color: #DCE5F5">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 8px">
+<div style="display: flex; align-items: center">
+<img src="/_blob/4fcbd9fbc6962fff324ad274a061b0fc" alt="Ziki" style="width: 110px; height: 36px; object-fit: contain; display: block">
+</div>
+<button type="button" aria-label="Collapse sidebar" style="width: 30px; height: 30px; border-radius: 999px; border: 1px solid #34507F; background: transparent; color: #C9D6EF; display: flex; align-items: center; justify-content: center">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+</button>
+</div>
+
+<button type="button" aria-label="Switch project" style="display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 8px 12px; border-radius: 14px; border: 1px solid #34507F; background: #263B63; color: #FFFFFF; text-align: left">
+<span style="width: 28px; height: 28px; border-radius: 8px; background: var(--surface); color: {{primary}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800">Zi</span>
+<span style="flex: 1 1 auto; display: flex; flex-direction: column"><span style="font-size: 11px; color: #A9BCDF">Project</span><span style="font-weight: 700">Ziki</span></span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A9BCDF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+</button>
+
+<nav aria-label="Workspace" style="display: flex; flex-direction: column; gap: 6px">
+<button type="button" onClick="{{goOverview}}" aria-current="{{overviewCurrent}}" style="{{navOverview}}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg>
+<span style="flex: 1 1 auto">Overview</span>
+</button>
+<div style="height: 1px; background: #1E2E52; margin: 6px 12px"></div>
+<button type="button" onClick="{{goIssues}}" aria-current="{{issuesCurrent}}" style="{{navIssues}}">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="1.5"></circle></svg>
+<span style="flex: 1 1 auto">Issues</span><span style="font-size: 12px; padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,0.18)">4</span>
+</button>
+<a href="#team" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 16px; border-radius: 14px; font-weight: 500; font-size: 15px">
+<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.9"></path><path d="M16 3.1a4 4 0 0 1 0 7.8"></path></svg>Team</a>
+</nav>
+
+</aside>
+
+<!-- MAIN -->
+<main style="flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column">
+
+<!-- top bar -->
+<div style="display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 12px; padding: 12px 24px; border-bottom: 1px solid var(--border); background: var(--surface)">
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); font-size: 14px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{primary}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.7V17c0 .6-.5 1-1 1.2-1.2.5-2 2-2 3.8"></path><path d="M14 14.7V17c0 .6.5 1 1 1.2 1.2.5 2 2 2 3.8"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+<span style="font-weight: 800">0</span><span style="color: #6B6780">pts</span></span>
+
+<button type="button" style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--badBd); background: var(--badSoft); color: var(--badFg); font-weight: 700; font-size: 14px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Escalation</button>
+
+<div style="position: relative">
+<button type="button" aria-haspopup="menu" aria-expanded="{{agentsExpanded}}" onClick="{{toggleAgents}}" style="display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 600; font-size: 14px">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{primary}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="2"></rect><path d="M12 4v4"></path><path d="M9 14h.01"></path><path d="M15 14h.01"></path></svg>
+Agents
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+</button>
+<sc-if value="{{agentsOpen}}" hint-placeholder-val="{{ false }}">
+<div role="menu" style="position: absolute; right: 0; top: 48px; z-index: 10; width: 260px; padding: 8px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 16px 40px rgba(11,23,51,0.16); display: flex; flex-direction: column; gap: 2px">
+<span style="padding: 8px 10px 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted)">Project agents</span>
+<sc-for list="{{agents}}" as="ag" hint-placeholder-count="3">
+<button type="button" role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 10px; border: 0; background: transparent; text-align: left; color: var(--text)">
+<span style="width: 30px; height: 30px; border-radius: 999px; background: var(--tint); color: {{primaryText}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800">{{ag.initial}}</span>
+<span style="flex: 1 1 auto; font-weight: 600">{{ag.name}}</span>
+<span style="padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: {{ag.bg}}; color: {{ag.fg}}">{{ag.role}}</span>
+</button>
+</sc-for>
+<div style="height: 1px; background: var(--divider); margin: 4px 0"></div>
+<button type="button" role="menuitem" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; border-radius: 10px; border: 0; background: transparent; color: {{primaryText}}; font-weight: 700; text-align: left">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Create agent</button>
+<button type="button" role="menuitem" style="display: flex; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 10px; border: 0; background: transparent; color: var(--text2); font-weight: 600; text-align: left">Manage agents</button>
+</div>
+</sc-if>
+</div>
+
+<button type="button" aria-label="{{themeLabel}}" onClick="{{toggleTheme}}" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{themeIcon}}"></path></svg>
+</button>
+<button type="button" aria-label="Notifications, 3 unread" style="position: relative; width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+<span style="position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface)">3</span>
+</button>
+<div style="position: relative">
+<button type="button" aria-label="Account menu" aria-haspopup="menu" aria-expanded="{{acctExpanded}}" onClick="{{toggleAcct}}" style="display: flex; align-items: center; gap: 6px; height: 44px; padding: 2px 8px 2px 2px; border-radius: 999px; border: 1px solid {{acctBorder}}; background: transparent; color: var(--text)">
+<span style="position: relative; width: 38px; height: 38px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800">VE<span style="position: absolute; right: 0; bottom: 0; width: 10px; height: 10px; border-radius: 999px; background: #22C55E; border: 2px solid var(--surface)"></span></span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{acctChevron}}"></path></svg>
+</button>
+<sc-if value="{{acctOpen}}" hint-placeholder-val="{{ false }}">
+<div role="menu" aria-label="Account" style="position: absolute; right: 0; top: 54px; z-index: 30; width: 300px; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 8px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); box-shadow: 0 24px 56px rgba(11,23,51,0.22); display: flex; flex-direction: column; gap: 4px">
+
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; background: var(--tint)">
+<span style="position: relative; flex: 0 0 auto; width: 48px; height: 48px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800">VE<span style="position: absolute; right: 1px; bottom: 1px; width: 12px; height: 12px; border-radius: 999px; background: #22C55E; border: 2px solid var(--tint)"></span></span>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 16px; font-weight: 800; color: var(--text)">venson</span>
+<span style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px"><span style="padding: 2px 8px; border-radius: 999px; background: var(--surface); color: var(--text2); font-size: 11px; font-weight: 700">Member</span><span style="font-size: 12px; font-weight: 600; color: var(--accentText)">516 pts · #1</span></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px 12px">
+<span style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted)">Theme</span>
+<div role="radiogroup" aria-label="Theme" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 4px; border-radius: 12px; background: var(--seg)">
+<sc-for list="{{themeOpts}}" as="th" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{th.on}}" onClick="{{th.pick}}" style="{{th.style}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{th.icon}}"></path></svg>{{th.label}}</button></sc-for>
+</div>
+</div>
+
+<div style="height: 1px; background: var(--divider); margin: 2px 8px"></div>
+
+<a href="#workspace" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--text2)"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"></path></svg>
+<span style="flex: 1 1 auto">Switch workspace</span><span style="padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--text2); font-size: 12px; font-weight: 700">Ziki</span></a>
+<a href="Leaderboard.dc.html" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--text2)"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+<span style="flex: 1 1 auto">Leaderboard</span></a>
+<a href="Settings.dc.html" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--text2)"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+<span style="flex: 1 1 auto">Settings</span></a>
+<a href="#docs" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--text); font-size: 14px; font-weight: 600">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--text2)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15zM6.5 17A2.5 2.5 0 0 0 4 19.5 2.5 2.5 0 0 0 6.5 22H20v-5"></path></svg>
+<span style="flex: 1 1 auto">Docs &amp; <span style="font-family: ui-monospace, monospace; font-size: 13px">/llms.txt</span></span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--muted)"><path d="M7 17 17 7M8 7h9v9"></path></svg></a>
+
+<div style="height: 1px; background: var(--divider); margin: 2px 8px"></div>
+
+<a href="Login.dc.html" role="menuitem" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; color: var(--badFg); font-size: 14px; font-weight: 700">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"></path></svg>Sign out</a>
+</div>
+</sc-if>
+</div></div>
+
+<div style="padding: 28px 24px 40px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<a href="Main.dc.html" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; font-size: 14px; font-weight: 600; color: var(--accentText)">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>Back to issues</a>
+<h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: var(--text)">Settings</h1>
+<p style="margin: 0; font-size: 14px; color: var(--muted)">Manage your profile, preferences, agents and data.</p>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+<!-- section nav -->
+<nav aria-label="Settings sections" style="flex: 1 1 240px; max-width: 100%; min-width: 0; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 10px; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{sections}}" as="sc" hint-placeholder-count="4">
+<button type="button" aria-current="{{sc.current}}" onClick="{{sc.pick}}" style="{{sc.style}}">
+<span style="{{sc.iconStyle}}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{sc.icon}}"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 14px; font-weight: 700">{{sc.label}}</span><span style="font-size: 12px; font-weight: 500; color: var(--muted)">{{sc.hint}}</span></span>
+</button>
+</sc-for>
+</nav>
+
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+<!-- ACCOUNT -->
+<sc-if value="{{isAccount}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<section style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 24px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text)">Profile</h2><span style="font-size: 13px; color: var(--muted)">How you appear to everyone in the workspace.</span></div>
+<a href="#public-profile" style="display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); color: var(--text); font-size: 13px; font-weight: 700"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>See how others see you</a>
+</div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<span style="width: 64px; height: 64px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800">VE</span>
+<label style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text)">Display name
+<span style="display: flex; flex-wrap: wrap; gap: 10px">
+<input type="text" value="{{nameDraft}}" onChange="{{onName}}" style="flex: 1 1 220px; min-width: 0; height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-size: 14px">
+<button type="button" disabled="{{nameUnchanged}}" onClick="{{saveName}}" style="{{saveNameStyle}}">Save name</button>
+</span></label>
+</div>
+<span style="font-size: 12px; line-height: 1.5; color: var(--muted)">Shown beside your issues and comments, including ones you've already posted. Your email stays the same.</span>
+<sc-if value="{{nameSaved}}" hint-placeholder-val="{{ false }}"><span style="align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: var(--okBg); color: var(--okFg); font-size: 12px; font-weight: 700">Name saved</span></sc-if>
+</section>
+
+<section style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px"><h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text)">Wallet</h2><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>Only you and workspace admins can see it</span></div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text)">Wallet address
+<span style="display: flex; flex-wrap: wrap; gap: 10px">
+<input type="text" value="{{wallet}}" onChange="{{onWallet}}" placeholder="0x…" spellcheck="false" style="{{walletInputStyle}}">
+<button type="button" disabled="{{walletInvalid}}" style="{{saveWalletStyle}}">Save address</button>
+</span></label>
+<span style="{{walletHintStyle}}">{{walletHint}}</span>
+</section>
+
+<section style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; gap: 14px; align-items: center">
+<span style="flex: 0 0 auto; width: 44px; height: 44px; border-radius: 14px; background: var(--tint); color: var(--accentText); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text)">Two-factor sign-in</h2><span style="font-size: 13px; color: var(--muted)">Protect your account with a second step at sign-in.</span></div>
+</div>
+<a href="#2fa" style="display: inline-flex; align-items: center; height: 42px; padding: 0 18px; border-radius: 999px; background: {{primary}}; color: #FFFFFF; font-size: 14px; font-weight: 700">Set up</a>
+</section>
+</div>
+</sc-if>
+
+<!-- PREFERENCES -->
+<sc-if value="{{isPrefs}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<section style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text)">Appearance</h2><span style="font-size: 13px; color: var(--muted)">Saved to your account, so it follows you to every device.</span></div>
+<div role="radiogroup" aria-label="Theme" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+<sc-for list="{{themeCards}}" as="tc" hint-placeholder-count="3">
+<button type="button" role="radio" aria-checked="{{tc.on}}" onClick="{{tc.pick}}" style="{{tc.cardStyle}}">
+<span style="{{tc.previewStyle}}"><span style="{{tc.previewBar}}"></span><span style="{{tc.previewLine}}"></span><span style="{{tc.previewLine2}}"></span></span>
+<span style="display: flex; justify-content: space-between; align-items: center; width: 100%"><span style="display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-size: 14px; font-weight: 700; color: var(--text)">{{tc.label}}</span><span style="font-size: 12px; color: var(--muted)">{{tc.hint}}</span></span><span style="{{tc.dotStyle}}"></span></span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text)">Email notifications</h2><span style="font-size: 13px; color: var(--muted)">Sent to <strong style="color: var(--text)">[your email]</strong>. You're never emailed about your own changes.</span></div>
+<sc-for list="{{notifs}}" as="nf" hint-placeholder-count="4">
+<div style="{{nf.rowStyle}}">
+<div style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><span style="font-size: 14px; font-weight: 700; color: var(--text)">{{nf.label}}</span><span style="font-size: 13px; color: var(--muted)">{{nf.hint}}</span></div>
+<button type="button" role="switch" aria-checked="{{nf.on}}" aria-label="{{nf.label}}" disabled="{{nf.disabled}}" onClick="{{nf.toggle}}" style="{{nf.trackStyle}}"><span style="{{nf.knobStyle}}"></span></button>
+</div>
+</sc-for>
+</section>
+
+<section style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text)">Keyboard shortcuts</h2><span style="font-size: 13px; color: var(--muted)">Press <kbd style="padding: 1px 7px; border-radius: 6px; border: 1px solid var(--border); background: var(--chip); color: var(--text); font-family: inherit; font-weight: 700">?</kbd> anywhere to see them. They never fire while you're typing.</span></div>
+<button type="button" role="switch" aria-checked="{{kbOn}}" aria-label="Use keyboard shortcuts" onClick="{{toggleKb}}" style="{{kbTrack}}"><span style="{{kbKnob}}"></span></button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{shortcuts}}" as="sk" hint-placeholder-count="4"><span style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; background: var(--chip); font-size: 12px; color: var(--text2)"><kbd style="min-width: 18px; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-family: inherit; font-weight: 800; text-align: center">{{sk.key}}</kbd>{{sk.label}}</span></sc-for>
+</div>
+<a href="#shortcuts" style="align-self: flex-start; min-height: 32px; display: inline-flex; align-items: center; color: var(--accentText); font-size: 14px; font-weight: 700">View all shortcuts</a>
+</section>
+</div>
+</sc-if>
+
+<!-- AGENTS & API -->
+<sc-if value="{{isAgents}}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px">
+<sc-for list="{{linkCards}}" as="lc" hint-placeholder-count="3">
+<section style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; gap: 12px; align-items: center">
+<span style="flex: 0 0 auto; width: 42px; height: 42px; border-radius: 14px; background: var(--tint); color: var(--accentText); display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{lc.icon}}"></path></svg></span>
+<h2 style="margin: 0; font-size: 17px; font-weight: 700; color: var(--text)">{{lc.title}}</h2>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted)">{{lc.body}}</p>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{lc.links}}" as="ln" hint-placeholder-count="3"><a href="{{ln.href}}" style="display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 10px; background: var(--chip); margin-top: 4px; color: var(--text); font-size: 14px; font-weight: 600">{{ln.label}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color: var(--muted)"><path d="{{ln.arrow}}"></path></svg></a></sc-for>
+</div>
+</section>
+</sc-for>
+</div>
+</sc-if>
+
+<!-- DATA -->
+<sc-if value="{{isData}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<section style="border-radius: 20px; border: 1px solid var(--border); background: var(--surface); padding: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+<div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 4px"><h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text)">Download your data</h2><span style="font-size: 13px; line-height: 1.6; color: var(--muted)">Export a complete JSON file of issues you've filed, comments you've posted, votes you've cast and points you've earned.</span></div>
+<button type="button" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 700"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>Download my data</button>
+</section>
+
+<section style="border-radius: 20px; border: 1px solid var(--badBd); background: var(--badSoft); padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; gap: 14px; align-items: flex-start">
+<span style="flex: 0 0 auto; width: 44px; height: 44px; border-radius: 14px; background: var(--badBg); color: var(--badFg); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 6px"><h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--badFg)">Delete account</h2><span style="font-size: 13px; line-height: 1.6; color: var(--text2)">Permanently delete your account. Your authored content is anonymised, your agents and API keys are revoked, and all organization memberships are removed. You can't delete your account while you're the sole owner of an organization.</span></div>
+</div>
+<sc-if value="{{notConfirming}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{startDelete}}" style="align-self: flex-start; height: 44px; padding: 0 20px; border-radius: 999px; border: 1px solid var(--badBd); background: var(--surface); color: var(--badFg); font-size: 14px; font-weight: 700">Delete account…</button>
+</sc-if>
+<sc-if value="{{confirming}}" hint-placeholder-val="{{ false }}">
+<div style="padding: 16px; border-radius: 14px; border: 1px solid var(--badBd); background: var(--surface); display: flex; flex-direction: column; gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text)">Type DELETE to confirm
+<input type="text" value="{{confirmText}}" onChange="{{onConfirm}}" autocomplete="off" style="height: 44px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--badBd); background: var(--surface); color: var(--text); font-family: inherit; font-size: 14px; letter-spacing: 0.06em"></label>
+<div style="display: flex; gap: 8px; justify-content: flex-end">
+<button type="button" onClick="{{cancelDelete}}" style="height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 700">Cancel</button>
+<button type="button" disabled="{{deleteLocked}}" style="{{deleteBtnStyle}}">Permanently delete</button>
+</div>
+</div>
+</sc-if>
+</section>
+</div>
+</sc-if>
+
+</div>
+</div>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"primary":{"editor":"color","default":"#2E6FEF","options":["#2E6FEF","#0F8A6A","#C2410C"]},"dark":{"editor":"boolean","default":false},"sidebar":{"editor":"color","default":"#0B1733","options":["#0B1733","#263B63","#111827"]},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { agentsOpen: false, dark: null, section: 'account', savedName: 'venson', nameDraft: 'venson', nameSaved: false, wallet: '', kb: true,
+      notif: { all: true, mentions: true, assignments: true, status: true }, confirming: false, confirmText: '' };
+  }
+  renderVals() {
+    const s = this.state;
+    const primary = this.props.primary ?? '#2E6FEF';
+    const sidebar = this.props.sidebar ?? '#0B1733';
+    const dark = s.dark === null ? (this.props.dark ?? false) : s.dark;
+    const primaryText = dark ? '#8FC9FF' : '#1F5FD9';
+    const navOff = 'display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0 16px; border-radius: 14px; border: 0; font-size: 15px; text-align: left; background: transparent; color: #DCE5F5; font-weight: 500';
+    const secDefs = [
+      ['account', 'Account', 'Profile, wallet, security', 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'],
+      ['prefs', 'Preferences', 'Theme, emails, shortcuts', 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6'],
+      ['agents', 'Agents & API', 'Agents, team, integrations', 'M4 8h16v12H4zM12 4v4M9 14h.01M15 14h.01'],
+      ['data', 'Data & privacy', 'Export or delete account', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z']
+    ];
+    const sections = secDefs.map(([id, label, hint, icon]) => {
+      const on = s.section === id;
+      return { label, hint, icon, current: on ? 'page' : 'false', pick: () => this.setState({ section: id, confirming: false, confirmText: '' }),
+        style: 'display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 0; text-align: left; color: var(--text); ' + (on ? 'background: var(--tint)' : 'background: transparent'),
+        iconStyle: 'flex: 0 0 auto; width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; ' + (on ? 'background: ' + primary + '; color: #FFFFFF' : 'background: var(--chip); color: var(--text2)') };
+    });
+    const btn = (enabled, danger) => 'height: 46px; padding: 0 20px; border-radius: 999px; border: 0; font-size: 14px; font-weight: 700; ' + (enabled ? 'background: ' + (danger ? '#B4233F' : primary) + '; color: #FFFFFF; cursor: pointer' : 'background: var(--chip2); color: var(--muted); cursor: not-allowed');
+    const nameChanged = s.nameDraft.trim() !== '' && s.nameDraft !== s.savedName;
+    const w = s.wallet.trim();
+    const walletOk = w === '' || /^0x[0-9a-fA-F]{40}$/.test(w);
+    const walletHint = w === '' ? 'An EVM address (0x followed by 40 hex characters) where your points could be sent one day. Leave it empty and save to clear it.' : (walletOk ? 'Looks like a valid EVM address.' : 'That doesn\'t look right — it should be 0x followed by 40 hex characters (' + Math.max(0, w.length - 2) + '/40).');
+    const themeDefs = [['system', 'System', 'Match this device'], ['light', 'Light', 'Always light'], ['dark', 'Dark', 'Always dark']];
+    const mode = s.dark === null ? 'system' : (s.dark ? 'dark' : 'light');
+    const themeCards = themeDefs.map(([id, label, hint]) => {
+      const on = mode === id;
+      const pv = id === 'dark' ? ['#0E1A33', '#22324F', '#3978F6'] : id === 'light' ? ['#FFFFFF', '#E3E8F2', '#3978F6'] : ['linear-gradient(90deg, #FFFFFF 50%, #0E1A33 50%)', '#8FA3C4', '#3978F6'];
+      return { label, hint, on: on ? 'true' : 'false', pick: () => this.setState({ dark: id === 'system' ? null : id === 'dark' }),
+        cardStyle: 'display: flex; flex-direction: column; gap: 12px; padding: 12px; border-radius: 16px; font-family: inherit; text-align: left; ' + (on ? 'border: 2px solid ' + primary + '; background: var(--rowSel)' : 'border: 1px solid var(--border); background: var(--surface); margin: 1px'),
+        previewStyle: 'display: flex; flex-direction: column; gap: 6px; width: 100%; box-sizing: border-box; height: 72px; padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: ' + pv[0],
+        previewBar: 'width: 40%; height: 8px; border-radius: 999px; background: ' + pv[2],
+        previewLine: 'width: 80%; height: 6px; border-radius: 999px; background: ' + pv[1],
+        previewLine2: 'width: 60%; height: 6px; border-radius: 999px; background: ' + pv[1],
+        dotStyle: 'flex: 0 0 auto; width: 18px; height: 18px; border-radius: 999px; box-sizing: border-box; ' + (on ? 'border: 5px solid ' + primary + '; background: #FFFFFF' : 'border: 2px solid var(--border)') };
+    });
+    const sw = (on, disabled) => ({
+      track: 'flex: 0 0 auto; position: relative; width: 46px; height: 28px; border-radius: 999px; border: 0; padding: 0; transition: background .2s ease; ' + (on ? 'background: ' + primary : 'background: var(--chip2)') + (disabled ? '; opacity: 0.45; cursor: not-allowed' : ''),
+      knob: 'position: absolute; top: 3px; left: ' + (on ? '21px' : '3px') + '; width: 22px; height: 22px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: left .2s ease'
+    });
+    const nDefs = [['all', 'Email me about activity on my issues', 'Turn off to stop all issue emails.', false], ['mentions', 'Mentions', 'When someone @mentions you in an issue or a comment.', true], ['assignments', 'Assignments', 'When an issue is assigned to you, or taken from you.', true], ['status', 'Status changes', 'When the status changes on an issue you reported.', true]];
+    const notifs = nDefs.map(([id, label, hint, child]) => {
+      const disabled = child && !s.notif.all;
+      const on = s.notif[id] && !disabled;
+      const st = sw(on, disabled);
+      return { label, hint, on: on ? 'true' : 'false', disabled,
+        toggle: () => this.setState({ notif: Object.assign({}, s.notif, { [id]: !s.notif[id] }) }),
+        trackStyle: st.track, knobStyle: st.knob,
+        rowStyle: 'display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 14px; ' + (child ? 'margin-left: 20px; background: var(--chip)' : 'background: var(--tint)') };
+    });
+    const kb = sw(s.kb, false);
+    const linkCards = [
+      { title: 'Agents', icon: 'M4 8h16v12H4zM12 4v4M9 14h.01M15 14h.01', body: "Register the AI agents that work issues for you, and see your team's.",
+        links: [['Connect your agent', 'ConnectAgent.dc.html'], ['Approve a pairing code', 'ApproveAgent.dc.html'], ['Manage agents', 'ManageAgents.dc.html'], ['Create agent', 'CreateAgent.dc.html'], ['Pair an agent', '#pair'], ['Webhooks', 'Webhooks.dc.html'], ['Agent audit log', '#audit']] },
+      { title: 'Team', icon: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8', body: 'Workspace members and their active agents.',
+        links: [['View team', '#team']] },
+      { title: 'API & integrations', icon: 'm16 18 6-6-6-6M8 6l-6 6 6 6', body: 'Developer documentation, cURL references and machine-readable specs for AI agents and automated tools.',
+        links: [['API documentation', '#api-docs'], ['AI specs (/llms.txt)', '#llms']] }
+    ].map((c) => Object.assign({}, c, { links: c.links.map(([label, href]) => ({ label, href, arrow: href.charAt(0) === '#' && label.indexOf('llms') >= 0 ? 'M7 17 17 7M8 7h9v9' : 'M5 12h14M12 5l7 7-7 7' })) }));
+    return {
+      primary, sidebar, primaryText, sections, themeCards, notifs, linkCards,
+      isAccount: s.section === 'account', isPrefs: s.section === 'prefs', isAgents: s.section === 'agents', isData: s.section === 'data',
+      nameDraft: s.nameDraft, nameSaved: s.nameSaved && !nameChanged, nameUnchanged: !nameChanged,
+      onName: (e) => this.setState({ nameDraft: e.target.value, nameSaved: false }),
+      saveName: () => this.setState({ savedName: s.nameDraft, nameSaved: true }),
+      saveNameStyle: btn(nameChanged, false),
+      wallet: s.wallet, onWallet: (e) => this.setState({ wallet: e.target.value }), walletInvalid: !walletOk,
+      walletInputStyle: 'flex: 1 1 260px; min-width: 0; height: 46px; padding: 0 14px; border-radius: 12px; border: 1px solid ' + (walletOk ? 'var(--border)' : 'var(--badFg)') + '; background: var(--surface); color: var(--text); font-family: ui-monospace, monospace; font-size: 14px',
+      saveWalletStyle: btn(walletOk, false),
+      walletHint, walletHintStyle: 'font-size: 12px; line-height: 1.5; font-weight: ' + (w && !walletOk ? '700; color: var(--badFg)' : w ? '700; color: var(--okFg)' : '500; color: var(--muted)'),
+      kbOn: s.kb ? 'true' : 'false', toggleKb: () => this.setState({ kb: !s.kb }), kbTrack: kb.track, kbKnob: kb.knob,
+      shortcuts: [['?', 'Show shortcuts'], ['/', 'Search'], ['N', '[Shortcut]'], ['G I', '[Shortcut]']].map(([key, label]) => ({ key, label })),
+      confirming: s.confirming, notConfirming: !s.confirming, confirmText: s.confirmText,
+      startDelete: () => this.setState({ confirming: true, confirmText: '' }),
+      cancelDelete: () => this.setState({ confirming: false, confirmText: '' }),
+      onConfirm: (e) => this.setState({ confirmText: e.target.value }),
+      deleteLocked: s.confirmText !== 'DELETE',
+      deleteBtnStyle: btn(s.confirmText === 'DELETE', true).replace('height: 46px', 'height: 42px'),
+      rootClass: dark ? 'zk dark' : 'zk',
+      toggleTheme: () => this.setState({ dark: !dark }),
+      themeLabel: dark ? 'Switch to light mode' : 'Switch to dark mode',
+      themeIcon: dark ? 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4' : 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
+      navOverview: navOff, navIssues: navOff, overviewCurrent: 'false', issuesCurrent: 'false',
+      goOverview: () => {}, goIssues: () => {},
+      acctOpen: !!this.state.acctOpen,
+      acctExpanded: this.state.acctOpen ? 'true' : 'false',
+      toggleAcct: () => this.setState({ acctOpen: !this.state.acctOpen }),
+      acctChevron: this.state.acctOpen ? 'm18 15-6-6-6 6' : 'm6 9 6 6 6-6',
+      acctBorder: this.state.acctOpen ? '#2E6FEF' : 'transparent',
+      themeOpts: [['system', 'System', 'M3 4h18v12H3zM8 20h8M12 16v4'], ['light', 'Light', 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'], ['dark', 'Dark', 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z']].map(([id, label, icon]) => {
+        const mode = this.state.dark === null ? 'system' : (this.state.dark ? 'dark' : 'light');
+        const on = mode === id;
+        return { label, icon, on: on ? 'true' : 'false',
+          pick: () => this.setState({ dark: id === 'system' ? null : id === 'dark' }),
+          style: 'display: flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border-radius: 9px; border: 0; font-size: 13px; ' + (on ? 'background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 1px 3px rgba(21,18,31,0.14)' : 'background: transparent; color: var(--text2); font-weight: 500') };
+      }),
+      agentsOpen: s.agentsOpen,
+      agentsExpanded: s.agentsOpen ? 'true' : 'false',
+      toggleAgents: () => this.setState({ agentsOpen: !s.agentsOpen }),
+      agents: [
+        { initial: 'P', name: 'Power Ranger Triager', role: 'Triager', bg: 'var(--warnBg)', fg: 'var(--warnFg)' },
+        { initial: 'C', name: 'Charles Xavier', role: 'Contributor', bg: 'var(--okBg)', fg: 'var(--okFg)' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -48,7 +48,7 @@ export function safeAvatarUrl(image?: string | null): string | null {
   }
 }
 
-export type AvatarSize = "xs" | "sm" | "md" | "lg";
+export type AvatarSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 /** Box and text size per size; the box is fixed, so nothing shifts when an image loads or fails. */
 export const AVATAR_SIZES: Record<AvatarSize, string> = {
@@ -56,4 +56,5 @@ export const AVATAR_SIZES: Record<AvatarSize, string> = {
   sm: "h-6 w-6 text-[10px]",
   md: "h-8 w-8 text-xs",
   lg: "h-10 w-10 text-sm",
+  xl: "h-12 w-12 text-base",
 };

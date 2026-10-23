@@ -22,11 +22,14 @@ export function CopyLinkButton({
   url,
   label,
   compact = false,
+  iconOnly = false,
 }: {
   url: string;
   /** What is being linked, for the accessible name: "issue", "comment". */
   label: string;
   compact?: boolean;
+  /** A round icon button, for the issue header. */
+  iconOnly?: boolean;
 }) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
@@ -59,9 +62,24 @@ export function CopyLinkButton({
         onClick={copy}
         aria-label={`Copy link to this ${label}`}
         title={`Copy link to this ${label}`}
-        className="rounded-sm p-0.5 text-slate-400 transition hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 print:hidden"
+        className="rounded-sm p-0.5 text-muted transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary print:hidden"
       >
         <LinkIcon className="h-3.5 w-3.5" />
+      </button>
+    );
+  }
+
+  if (iconOnly) {
+    return (
+      <button
+        type="button"
+        disabled={pending}
+        onClick={copy}
+        aria-label={copied ? "Copied link" : `Copy link to this ${label}`}
+        title={copied ? "Copied" : `Copy link to this ${label}`}
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface text-ink transition-colors hover:bg-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface print:hidden"
+      >
+        <LinkIcon className="h-4 w-4" />
       </button>
     );
   }
@@ -71,7 +89,7 @@ export function CopyLinkButton({
       type="button"
       disabled={pending}
       onClick={copy}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-card px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 print:hidden"
+      className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-bold text-ink-2 transition-colors hover:bg-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary print:hidden"
     >
       <LinkIcon className="h-3.5 w-3.5" />
       <span>{copied ? "Copied" : "Copy link"}</span>

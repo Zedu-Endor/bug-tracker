@@ -460,3 +460,61 @@ describe("IssueFilters without a platform select (#1055)", () => {
     expect(nav.push).toHaveBeenCalledWith("/issues");
   });
 });
+
+describe("IssueFilters select arrow spacing (#634)", () => {
+  const platforms = [{ id: "cat-web", name: "Web" }];
+  const areas = [{ id: "area-api", name: "API" }];
+  const milestones = [{ id: "m1", title: "Release 1", isClosed: false }];
+
+  /** Every dial in the Filters panel, by its visible label. */
+  const labels = ["Show", "Kind", "Status", "Severity", "Category", "Platform", "Area", "Milestone", "Sort By"];
+
+  beforeEach(() => {
+    nav.params = new URLSearchParams();
+    nav.push.mockReset();
+    nav.replace.mockReset();
+  });
+  afterEach(cleanup);
+
+  function openPanel() {
+    render(
+      <IssueFilters tagTypes={tagTypes} platforms={platforms} areas={areas} milestones={milestones} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^filter/i }));
+    return screen.getByRole("dialog", { name: "Filters" });
+  }
+
+  it.each(labels)("balances the %s select: the arrow keeps the text's 14px inset", (label) => {
+    const select = within(openPanel()).getByLabelText(label);
+
+    // Text sits 14px in from the left; the arrow keeps that same 14px on the right.
+    expect(select.tagName).toBe("SELECT");
+    expect(select).toHaveClass("ps-3.5");
+    expect(select).toHaveClass("pe-9");
+    expect(select).toHaveClass("appearance-none");
+    expect(select).toHaveClass("truncate");
+
+    const chevron = select.parentElement?.querySelector("svg");
+    expect(chevron).toBeTruthy();
+    expect(chevron).toHaveAttribute("aria-hidden", "true");
+    expect(chevron).toHaveClass("pointer-events-none");
+    expect(chevron).toHaveClass("end-3.5");
+    expect(chevron).toHaveClass("-translate-y-1/2");
+  });
+
+  it("keeps every dial a native labelled select", () => {
+    const dialog = openPanel();
+    for (const label of labels) {
+      const select = within(dialog).getByLabelText(label);
+      expect(select).toHaveRole("combobox");
+      expect(select.id).not.toBe("");
+    }
+  });
+
+  it("still navigates when a dial changes", () => {
+    const dialog = openPanel();
+    fireEvent.change(within(dialog).getByLabelText("Severity"), { target: { value: "high" } });
+    expect(nav.push).toHaveBeenCalledWith("/issues?severity=high");
+  });
+});
+

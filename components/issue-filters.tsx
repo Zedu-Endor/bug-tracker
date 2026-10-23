@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition, type ChangeEvent, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { severities, statuses } from "@/lib/validations/issue";
 import { severityLabel, statusLabel } from "@/lib/labels";
@@ -86,6 +86,53 @@ function hrefWithChanges(
   next.delete("page");
   const qs = next.toString();
   return qs ? `/issues?${qs}` : "/issues";
+}
+
+/**
+ * #634: every filter dial keeps the label 14px in from the left, so the arrow
+ * keeps the same 14px gap from the right. The native arrow ignores padding and
+ * renders against the border (and looks different in every browser), so it is
+ * hidden and drawn by `FilterSelect` instead. `pe-9` reserves the arrow's own
+ * width plus a gap, so a long option label never runs underneath it.
+ */
+const FILTER_SELECT_CLASS =
+  "w-full appearance-none truncate rounded-xl border border-zk-border bg-zk-surface ps-3.5 pe-9 py-0 h-11 text-sm font-medium text-zk-text focus:border-electric-blue focus:outline-none focus:ring-1 focus:ring-electric-blue";
+
+/**
+ * A filter select plus its decorative chevron. The chevron is `aria-hidden` and
+ * `pointer-events-none`: the select keeps its native semantics, keyboard
+ * behaviour and click target.
+ */
+function FilterSelect({
+  id,
+  value,
+  onChange,
+  children,
+}: {
+  id: string;
+  value: string;
+  onChange: (event: ChangeEvent<HTMLSelectElement>) => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <select id={id} className={FILTER_SELECT_CLASS} value={value} onChange={onChange}>
+        {children}
+      </select>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="pointer-events-none absolute end-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zk-muted"
+      >
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    </div>
+  );
 }
 
 export function IssueFilters({
@@ -397,8 +444,6 @@ export function IssueFilters({
       ? (params.get(MILESTONE_PARAM) ?? "")
       : "";
 
-  const selectClass =
-    "w-full appearance-none rounded-xl border border-zk-border bg-zk-surface px-3.5 py-0 h-11 text-sm font-medium text-zk-text focus:border-electric-blue focus:outline-none focus:ring-1 focus:ring-electric-blue";
   const fieldLabelClass = "mb-1.5 block text-[13px] font-semibold text-zk-text2";
 
   return (
@@ -519,79 +564,79 @@ export function IssueFilters({
                 <div className="max-h-[70vh] space-y-3.5 overflow-y-auto pr-1">
                   <div>
                     <label htmlFor="mine" className={fieldLabelClass}>Show</label>
-                    <select id="mine" className={selectClass} value={currentMine === "reported" ? "created" : currentMine} onChange={(event) => update("mine", event.target.value)}>
+                    <FilterSelect id="mine" value={currentMine === "reported" ? "created" : currentMine} onChange={(event) => update("mine", event.target.value)}>
                       <option value="">All issues</option>
                       {MINE_FILTER_OPTIONS.map((option) => (<option key={option} value={option}>{mineFilterLabels[option]}</option>))}
-                    </select>
+                    </FilterSelect>
                   </div>
                   <div>
                     <label htmlFor="stage" className={fieldLabelClass}>Kind</label>
-                    <select id="stage" className={selectClass} value={currentStage} onChange={(event) => update(STAGE_PARAM, event.target.value)}>
+                    <FilterSelect id="stage" value={currentStage} onChange={(event) => update(STAGE_PARAM, event.target.value)}>
                       <option value="">Ideas and issues</option>
                       {STAGE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>{stageCounts ? `${option.label} (${stageCounts[option.value]})` : option.label}</option>
                       ))}
-                    </select>
+                    </FilterSelect>
                   </div>
                   <div>
                     <label htmlFor="status" className={fieldLabelClass}>Status</label>
-                    <select id="status" className={selectClass} value={params.get("status") ?? ""} onChange={(event) => update("status", event.target.value)}>
+                    <FilterSelect id="status" value={params.get("status") ?? ""} onChange={(event) => update("status", event.target.value)}>
                       <option value="">All</option>
                       {statuses.map((status) => (<option key={status} value={status}>{statusLabel[status]}</option>))}
                       <option value={FINISHED_STATUS_FILTER}>Closed (incl. resolved)</option>
-                    </select>
+                    </FilterSelect>
                   </div>
                   <div>
                     <label htmlFor="severity" className={fieldLabelClass}>Severity</label>
-                    <select id="severity" className={selectClass} value={params.get("severity") ?? ""} onChange={(event) => update("severity", event.target.value)}>
+                    <FilterSelect id="severity" value={params.get("severity") ?? ""} onChange={(event) => update("severity", event.target.value)}>
                       <option value="">All</option>
                       {severities.map((severity) => (<option key={severity} value={severity}>{severityLabel[severity]}</option>))}
-                    </select>
+                    </FilterSelect>
                   </div>
                   <div>
                     <label htmlFor="category" className={fieldLabelClass}>Category</label>
-                    <select id="category" className={selectClass} value={selectedNames[0] ?? ""} onChange={(event) => update(TAGS_PARAM, serializeTags([event.target.value]))}>
+                    <FilterSelect id="category" value={selectedNames[0] ?? ""} onChange={(event) => update(TAGS_PARAM, serializeTags([event.target.value]))}>
                       <option value="">All</option>
                       {Array.from(new Set(["Features", "Fixes", "Design", "Marketing", "Documentation", "Other", ...tagTypes.filter((t) => t.isActive !== false).map((t) => t.name)])).map((name) => (
                         <option key={name} value={name}>{name}</option>
                       ))}
-                    </select>
+                    </FilterSelect>
                   </div>
                   {platformOptions.length > 0 ? (
                     <div>
                       <label htmlFor="platform" className={fieldLabelClass}>Platform</label>
-                      <select id="platform" className={selectClass} value={currentPlatform} onChange={(event) => update(PLATFORM_PARAM, event.target.value)}>
+                      <FilterSelect id="platform" value={currentPlatform} onChange={(event) => update(PLATFORM_PARAM, event.target.value)}>
                         <option value="">All</option>
                         {platformOptions.map((platform) => (<option key={platform.id} value={platform.id}>{platform.name}</option>))}
                         <option value={PLATFORM_NONE}>No platform</option>
-                      </select>
+                      </FilterSelect>
                     </div>
                   ) : null}
                   {areas.length > 0 ? (
                     <div>
                       <label htmlFor="area" className={fieldLabelClass}>Area</label>
-                      <select id="area" className={selectClass} value={currentArea} onChange={(event) => update(AREA_PARAM, event.target.value)}>
+                      <FilterSelect id="area" value={currentArea} onChange={(event) => update(AREA_PARAM, event.target.value)}>
                         <option value="">All</option>
                         {areas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}
                         <option value={AREA_NONE}>No area</option>
-                      </select>
+                      </FilterSelect>
                     </div>
                   ) : null}
                   {milestones.length > 0 ? (
                     <div>
                       <label htmlFor="milestone" className={fieldLabelClass}>Milestone</label>
-                      <select id="milestone" className={selectClass} value={milestoneValue} onChange={(event) => update(MILESTONE_PARAM, event.target.value)}>
+                      <FilterSelect id="milestone" value={milestoneValue} onChange={(event) => update(MILESTONE_PARAM, event.target.value)}>
                         <option value="">All</option>
                         {milestones.map((m) => (<option key={m.id} value={m.id}>{m.title}{m.isClosed ? " (closed)" : ""}</option>))}
                         <option value={MILESTONE_NONE}>No milestone</option>
-                      </select>
+                      </FilterSelect>
                     </div>
                   ) : null}
                   <div>
                     <label htmlFor="sort" className={fieldLabelClass}>Sort By</label>
-                    <select id="sort" className={selectClass} value={currentSort} onChange={(event) => update("sort", event.target.value)}>
+                    <FilterSelect id="sort" value={currentSort} onChange={(event) => update("sort", event.target.value)}>
                       {BUG_SORT_OPTIONS.map((option) => (<option key={option} value={option}>{bugSortLabels[option]}</option>))}
-                    </select>
+                    </FilterSelect>
                   </div>
                 </div>
 

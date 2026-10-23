@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { RequestSpec } from "./client.js";
 
@@ -932,7 +932,15 @@ export function buildRequest(
   let headers: Record<string, string> | undefined;
   for (const [header, key] of Object.entries(tool.headers ?? {})) {
     headers ??= {};
-    headers[header] = (values[key] as string | undefined) ?? randomUUID();
+    const supplied = values[key] as string | undefined;
+    if (supplied) {
+      headers[header] = supplied;
+    } else if (header === "Idempotency-Key") {
+      const payload = JSON.stringify({ method: tool.method, path, query, body });
+      headers[header] = createHash("sha256").update(payload).digest("hex");
+    } else {
+      headers[header] = randomUUID();
+    }
   }
 
   return { method: tool.method, path, query, body, headers, file, streamForSeconds };

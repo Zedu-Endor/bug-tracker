@@ -81,13 +81,17 @@ describe("buildRequest", () => {
     expect(comment.body).toEqual({ body: "hi" });
   });
 
-  it("sends the idempotency key as a header, generating one unless given", () => {
+  it("sends the idempotency key as a header, generating a stable content-based key unless given (#633)", () => {
     const input = { title: "Bug title", description: "Steps to reproduce" };
     const a = buildRequest(tool("ziki_create_issue"), input, { projectId: "p" });
     const b = buildRequest(tool("ziki_create_issue"), input, { projectId: "p" });
     expect(a.headers?.["Idempotency-Key"]).toBeTruthy();
-    expect(a.headers?.["Idempotency-Key"]).not.toBe(b.headers?.["Idempotency-Key"]);
+    expect(a.headers?.["Idempotency-Key"]).toBe(b.headers?.["Idempotency-Key"]);
     expect(a.body).not.toHaveProperty("idempotencyKey");
+
+    const different = buildRequest(tool("ziki_create_issue"), { ...input, title: "Other title" }, { projectId: "p" });
+    expect(different.headers?.["Idempotency-Key"]).not.toBe(a.headers?.["Idempotency-Key"]);
+
     const fixed = buildRequest(tool("ziki_create_issue"), { ...input, idempotencyKey: "k" }, { projectId: "p" });
     expect(fixed.headers).toEqual({ "Idempotency-Key": "k" });
   });

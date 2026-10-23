@@ -322,10 +322,28 @@ export function cursorOrderBy(direction: CursorDirection = "desc"): Prisma.BugOr
   return [{ createdAt: direction }, { id: direction }];
 }
 
-/** A `?limit=` value, clamped to 1–MAX_PAGE_SIZE. */
-export function pageSize(raw: string | null | undefined): number {
-  const n = Number.parseInt(raw ?? "", 10);
-  if (!Number.isFinite(n) || n < 1) return DEFAULT_PAGE_SIZE;
+/** What a caller is told when `?limit=` is not a usable value (#454). */
+export const LIMIT_RANGE_ERROR =
+  `limit must be a whole number between 1 and ${MAX_PAGE_SIZE}; the default is ${DEFAULT_PAGE_SIZE}.`;
+
+/**
+ * A `?limit=` value. Absent means `DEFAULT_PAGE_SIZE`, a value above the
+ * maximum is clamped to it, and anything that is not a whole number in range
+ * is `null` so the caller can reject it with `LIMIT_RANGE_ERROR`.
+ *
+ * #454: this used to fall back to the default for every unusable value, so
+ * `limit=0`, `limit=-5` and `limit=abc` all silently returned a 25-item page
+ * and `limit=1.5` silently returned one item - a client sending the wrong
+ * value never learned it had been ignored.
+ */
+export function pageSize(raw: string | null | undefined): number | null {
+  if (raw === null || raw === undefined) return DEFAULT_PAGE_SIZE;
+  const value = raw.trim();
+  if (value === "") return DEFAULT_PAGE_SIZE;
+  // Only digits: rejects "-5", "1.5", "abc", "1e3" and " 1 2 ".
+  if (!/^\d+$/.test(value)) return null;
+  const n = Number.parseInt(value, 10);
+  if (n < 1) return null;
   return Math.min(n, MAX_PAGE_SIZE);
 }
 

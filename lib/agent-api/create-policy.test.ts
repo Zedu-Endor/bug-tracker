@@ -259,8 +259,19 @@ describe("list cursor (#441)", () => {
 
   it("clamps the page size", () => {
     expect(pageSize(undefined)).toBe(25);
-    expect(pageSize("0")).toBe(25);
+    expect(pageSize(null)).toBe(25);
+    expect(pageSize("")).toBe(25);
     expect(pageSize("10")).toBe(10);
+    // Above the maximum is clamped, not rejected, and llms.txt says so.
     expect(pageSize("5000")).toBe(100);
+    expect(pageSize("100")).toBe(100);
+    expect(pageSize("1")).toBe(1);
+  });
+
+  it("rejects a limit that is not a whole number in range (#454)", () => {
+    // Each of these used to return the 25-item default silently.
+    for (const raw of ["0", "-5", "abc", "1.5", "1e3", " 1 2 ", "+1", "٣"]) {
+      expect(pageSize(raw)).toBeNull();
+    }
   });
 });

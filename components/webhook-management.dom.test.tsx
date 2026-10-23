@@ -130,6 +130,32 @@ describe("WebhookManagement", () => {
     });
   });
 
+  it("shows a rejected create as an error instead of crashing the page (#648)", async () => {
+    const user = userEvent.setup();
+    actions.create.mockResolvedValue({
+      ok: false,
+      error: "That address points at a private network.",
+      field: "url",
+    });
+
+    render(<WebhookManagement />);
+
+    await user.click(await screen.findByRole("radio", { name: /Power Ranger/i }));
+    await user.type(
+      screen.getByLabelText(/HTTPS endpoint URL/i),
+      "https://127.0.0.1.nip.io/hook",
+    );
+    await user.click(screen.getByRole("button", { name: "Add webhook" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "That address points at a private network.",
+    );
+    // The field-level state lands one commit after the form-level alert.
+    const url = screen.getByLabelText(/HTTPS endpoint URL/i);
+    await waitFor(() => expect(url).toBeInvalid(), { timeout: 3000 });
+    expect(screen.getByRole("button", { name: "Add webhook" })).toBeInTheDocument();
+  });
+
   it("lists subscriptions with Active status and delete control", async () => {
     actions.list.mockResolvedValue({
       ok: true,

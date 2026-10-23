@@ -156,9 +156,14 @@ export function WebhookManagement() {
   const createError = createResult && !createResult.ok ? createResult : null;
 
   const createFieldErrors = useFieldErrors("create-webhook-form", createFormRef);
-  if (createError) {
-    createFieldErrors.show(createError);
-  }
+  // show() sets state, so it must run in an effect: calling it during render
+  // re-rendered forever whenever the server rejected a URL (#648).
+  const { show: showCreateFieldErrors, clear: clearCreateFieldErrors } = createFieldErrors;
+  useEffect(() => {
+    if (!createResult) return;
+    if (createResult.ok) clearCreateFieldErrors();
+    else showCreateFieldErrors(createResult);
+  }, [createResult, showCreateFieldErrors, clearCreateFieldErrors]);
 
   async function copyCreatedSecret() {
     const ok = await copyText(createdSecret);

@@ -38,6 +38,7 @@ const pendingOffer = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  delete (db as Record<string, unknown>).approvalRule;
   db.$queryRaw.mockResolvedValue([{ id: "bug-1" }]);
   db.$transaction.mockImplementation((run: (tx: unknown) => unknown) => run(db));
   db.bug.findFirst.mockResolvedValue({
@@ -91,5 +92,13 @@ describe("manual issue offers (#590)", () => {
     expect(error?.status).toBe(409);
     expect(error?.message).toBe("waiting_for_human");
     expect(error?.body).toEqual({ approvalId: "appr-wait" });
+  });
+  it("resolves numeric and prefixed issue references when offering an issue (#603)", async () => {
+    const resultNum = await offerIssue(agent, "project-1", "456");
+    expect(resultNum).toBe(pendingOffer);
+    expect(db.$queryRaw).toHaveBeenCalled();
+
+    const resultPrefixed = await offerIssue(agent, "project-1", "ZE-456");
+    expect(resultPrefixed).toBe(pendingOffer);
   });
 });

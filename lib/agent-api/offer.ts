@@ -15,6 +15,7 @@ import { assertRedesignOpen } from "@/lib/redesigns";
 import { assertApprovalOpen } from "@/lib/approvals";
 import { deliveryDeadline, deliveryWindowMinutes } from "@/lib/claim-deadline";
 import { hasLevel } from "@/lib/agents/levels";
+import { parseIssueRef } from "@/lib/issue-ref";
 
 /** Pure helper/tests default; requests use the project's offerWindowSeconds. */
 export const OFFER_TTL_MS = DEFAULT_PROJECT_WORKFLOW.offerWindowSeconds * 1000;
@@ -153,32 +154,36 @@ export async function offerNext(db: Db, caller: { agentId?: string; tenantId: st
 
 export async function offerIssue(agent: AgentContext, projectId: string, bugId: string) {
   try {
+    const ref = parseIssueRef(bugId);
     const result = await prisma.$transaction(async (tx) => {
-      const locked = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Bug" WHERE "id" = ${bugId} AND "tenantId" = ${agent.tenantId} AND "projectId" = ${projectId} AND "isDeleted" = false FOR UPDATE`;
+      const locked = ref.kind === "number"
+        ? await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Bug" WHERE "number" = ${ref.number} AND "tenantId" = ${agent.tenantId} AND "projectId" = ${projectId} AND "isDeleted" = false FOR UPDATE`
+        : await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "Bug" WHERE "id" = ${ref.id} AND "tenantId" = ${agent.tenantId} AND "projectId" = ${projectId} AND "isDeleted" = false FOR UPDATE`;
       if (!locked.length) throw new IssueApiError(404, "Issue not found in this project.");
-      const bug = await tx.bug.findFirst({ where: { id: bugId, tenantId: agent.tenantId, projectId, isDeleted: false }, select: { id: true, title: true, projectId: true, status: true, assigneeId: true, areaId: true, voteCount: true } });
+      const resolvedBugId = locked[0].id;
+      const bug = await tx.bug.findFirst({ where: { id: resolvedBugId, tenantId: agent.tenantId, projectId, isDeleted: false }, select: { id: true, title: true, projectId: true, status: true, assigneeId: true, areaId: true, voteCount: true } });
       if (!bug) throw new IssueApiError(404, "Issue not found in this project.");
       if (bug.status !== "open") throw new IssueApiError(409, "Only open issues can be offered.");
       if (bug.voteCount < WORK_READINESS_VOTE_THRESHOLD) throw new IssueApiError(409, `The issue must reach at least ${WORK_READINESS_VOTE_THRESHOLD} upvotes before it can be offered.`);
-      if (!await isConfirmed(bugId, tx)) throw new IssueApiError(409, "The issue must be confirmed before it can be offered.");
-      await assertRedesignOpen(bugId, tx);
-      await assertApprovalOpen(bugId, "before_offer", { db: tx, tenantId: agent.tenantId, agent });
-      const current = await tx.issueClaim.findFirst({ where: { bugId, releasedAt: null } });
+      if (!await isConfirmed(resolvedBugId, tx)) throw new IssueApiError(409, "The issue must be confirmed before it can be offered.");
+      await assertRedesignOpen(resolvedBugId, tx);
+      await assertApprovalOpen(resolvedBugId, "before_offer", { db: tx, tenantId: agent.tenantId, agent });
+      const current = await tx.issueClaim.findFirst({ where: { bugId: resolvedBugId, releasedAt: null } });
       if (current) {
         if (current.status === "offered" && !isOfferExpired(current.offeredAt)) {
-          return { claim: current, beneficiaryUserId: current.beneficiaryUserId, bugTitle: bug.title, created: false };
+          return { claim: current, beneficiaryUserId: current.beneficiaryUserId, bugTitle: bug.title, created: false, resolvedBugId };
         }
         if (current.status === "active") throw new IssueApiError(409, "This issue already has an active claim.");
         await tx.issueClaim.update({ where: { id: current.id }, data: { status: "released", releasedAt: new Date(), releaseReason: "expired" } });
-        await publish(tx, { tenantId: agent.tenantId, type: "claim.released", actorAgentId: agent.agentId, bugId,
-          payload: { claimId: current.id, issueId: bugId, reason: "expired" } });
+        await publish(tx, { tenantId: agent.tenantId, type: "claim.released", actorAgentId: agent.agentId, bugId: resolvedBugId,
+          payload: { claimId: current.id, issueId: resolvedBugId, reason: "expired" } });
       }
       const next = await offerNext(tx, agent, bug);
       if (!next) throw new IssueApiError(409, "No eligible person is available for this offer.");
-      return { ...next, created: true };
+      return { ...next, created: true, resolvedBugId };
     });
     if (result.created) {
-      notifyClaimOffered({ id: result.claim.id, bugId, bugTitle: result.bugTitle, beneficiaryUserId: result.beneficiaryUserId });
+      notifyClaimOffered({ id: result.claim.id, bugId: result.resolvedBugId, bugTitle: result.bugTitle, beneficiaryUserId: result.beneficiaryUserId });
       scheduleOfferExpiry(result.claim.id);
     }
     return result.claim;

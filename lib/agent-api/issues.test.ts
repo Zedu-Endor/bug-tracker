@@ -298,6 +298,12 @@ describe("agent issue reads", () => {
     expect((await list(request())).status).toBe(404);
     expect(db.project.findFirst).toHaveBeenCalledWith({ where: { id: "project-a", tenantId: "tenant-a" }, select: { id: true } });
     expect((await list(request("GET", undefined, "?projectId=project-a&cursor=bad"))).status).toBe(400);
+    for (const badLimit of ["0", "-5", "abc", "1.5"]) {
+      const res = await list(request("GET", undefined, `?projectId=project-a&limit=${badLimit}`));
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain("limit");
+    }
     expect(db.bug.findMany).not.toHaveBeenCalled();
   });
 

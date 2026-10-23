@@ -20,6 +20,7 @@ import {
   encodeCursor,
   isAcknowledged,
   pageSize,
+  PageSizeError,
   parseIdempotencyKey,
   toPage,
   type CreatePolicyInput,
@@ -257,10 +258,13 @@ describe("list cursor (#441)", () => {
     expect(toPage(rows, 3).nextCursor).toBeNull();
   });
 
-  it("clamps the page size", () => {
+  it("clamps the page size and rejects invalid values (#454)", () => {
     expect(pageSize(undefined)).toBe(25);
-    expect(pageSize("0")).toBe(25);
+    expect(pageSize(null)).toBe(25);
     expect(pageSize("10")).toBe(10);
     expect(pageSize("5000")).toBe(100);
+    for (const raw of ["", "0", "-5", "abc", "1.5"]) {
+      expect(() => pageSize(raw)).toThrow(PageSizeError);
+    }
   });
 });

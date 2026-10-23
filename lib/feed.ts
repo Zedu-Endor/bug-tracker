@@ -23,12 +23,12 @@ export function parseFeedLimit(params: URLSearchParams): number {
   const raw = params.get("limit");
   if (raw === null) return FEED_PAGE_SIZE;
   const trimmed = raw.trim();
-  if (!/^\d+$/.test(trimmed)) {
+  if (!/^\d+$/.test(trimmed) || Number(trimmed) < 1) {
     throw new FeedInputError(
       `limit must be a whole number between 1 and ${FEED_MAX_PAGE_SIZE}; the default is ${FEED_PAGE_SIZE}.`,
     );
   }
-  return Math.min(Math.max(Number(trimmed), 1), FEED_MAX_PAGE_SIZE);
+  return Math.min(Number(trimmed), FEED_MAX_PAGE_SIZE);
 }
 
 export function parseFeedCursor(params: URLSearchParams): FeedCursor | null {

@@ -15,7 +15,7 @@ import { parseProjectAreaFilter, projectAreaFilterWhere } from "@/lib/project-ar
 import { intakeKind, openIssueStages, type IssueStage } from "@/lib/issue-stage";
 import { WORK_READINESS_VOTE_THRESHOLD } from "@/lib/ticket-assignment";
 import { parseIssueRef } from "@/lib/issue-ref";
-import { createIssueWithPolicy, cursorOrderBy, cursorWhere, decodeCursor, hashCreateRequest, pageSize, toPage, type IssueCursor } from "@/lib/agent-api/create-policy";
+import { createIssueWithPolicy, cursorOrderBy, cursorWhere, decodeCursor, hashCreateRequest, pageSize, PageSizeError, toPage, type IssueCursor } from "@/lib/agent-api/create-policy";
 import { createdSummary, commentedSummary, commentPreview } from "@/lib/activity-log";
 import { extractMentionedUserIds, normalizeMentions } from "@/lib/mentions";
 import { commentDepth, MAX_COMMENT_DEPTH } from "@/lib/comments";
@@ -82,6 +82,7 @@ export async function agentIssueRequest(
     }
   } catch (error) {
     if (error instanceof IssueApiError) response = NextResponse.json(error.body ? { error: error.message, ...error.body } : { error: error.message }, { status: error.status });
+    else if (error instanceof PageSizeError) response = NextResponse.json({ error: error.message }, { status: error.status });
     else if (error instanceof z.ZodError) response = NextResponse.json({ error: "Invalid input.", details: error.issues }, { status: 422 });
     else response = agentErrorResponse(error);
   } finally {

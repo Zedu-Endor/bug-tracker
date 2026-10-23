@@ -99,12 +99,11 @@ describe("feed limit parameter (#469)", () => {
   });
 
   it("clamps out-of-range numbers to the documented bounds", () => {
-    expect(parseFeedLimit(new URLSearchParams("limit=0"))).toBe(1);
     expect(parseFeedLimit(new URLSearchParams("limit=200"))).toBe(FEED_MAX_PAGE_SIZE);
   });
 
   it("rejects values that are not whole numbers instead of guessing", () => {
-    for (const raw of ["", "abc", "-1", "1.5", "1e3", "3px"]) {
+    for (const raw of ["", "0", "abc", "-1", "1.5", "1e3", "3px"]) {
       expect(() => parseFeedLimit(new URLSearchParams({ limit: raw })), raw).toThrow(FeedInputError);
     }
   });

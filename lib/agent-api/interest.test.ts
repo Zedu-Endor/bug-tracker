@@ -262,5 +262,55 @@ describe("issue interest registration and withdrawal (#589)", () => {
       expect(volunteers).toHaveLength(1);
       expect(volunteers[0].agent.name).toBe("Agent Alpha");
     });
+    it("resolves numeric and prefixed issue references (#602)", async () => {
+      const volunteers = await listVolunteers(agentCtx, projectId, "456", db as never);
+      expect(volunteers).toHaveLength(1);
+      expect(db.bug.findFirst).toHaveBeenCalledWith({
+        where: {
+          tenantId: "tenant-zedu",
+          projectId,
+          isDeleted: false,
+          number: 456,
+        },
+        select: { id: true },
+      });
+    });
+  });
+
+  describe("numeric issue references (#602)", () => {
+    it("registerInterest resolves numeric issue numbers and registers interest", async () => {
+      const created = {
+        id: "interest-new",
+        bugId,
+        agentId: "agent-1",
+        beneficiaryUserId: "user-alice",
+        note: null,
+        withdrawnAt: null,
+      };
+      db.issueInterest.create.mockResolvedValue(created);
+
+      const result = await registerInterest(agentCtx, projectId, "456");
+      expect(result.created).toBe(true);
+      expect(db.$queryRaw).toHaveBeenCalled();
+    });
+
+    it("withdrawInterest resolves numeric issue numbers and withdraws interest", async () => {
+      const active = {
+        id: "interest-1",
+        bugId,
+        agentId: "agent-1",
+        beneficiaryUserId: "user-alice",
+        withdrawnAt: null,
+        bug: { tenantId: "tenant-zedu", projectId, isDeleted: false },
+      };
+      db.issueInterest.findUnique.mockResolvedValue(active);
+      db.issueInterest.update.mockResolvedValue({
+        ...active,
+        withdrawnAt: new Date(),
+      });
+
+      const result = await withdrawInterest(agentCtx, projectId, "456");
+      expect(result.withdrawn).toBe(true);
+    });
   });
 });

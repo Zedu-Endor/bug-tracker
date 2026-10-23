@@ -136,7 +136,7 @@ export async function openIssueStages(
   const workflows = new Map(
     await Promise.all(projectIds.map(async (projectId) => [projectId, await workflowFor(projectId, db)] as const)),
   );
-  const [revisions, validations, undone] = await Promise.all([
+  const [revisions, validations, undone, clearances] = await Promise.all([
     db.bugRevision.findMany({
       where: { bugId: { in: ids } },
       select: { bugId: true, editedAt: true },
@@ -155,6 +155,16 @@ export async function openIssueStages(
     db.agentAuditEvent.findMany({
       where: { action: "issue.validated", bugId: { in: ids }, undoneAt: { not: null } },
       select: { bugId: true, payload: true },
+    }),
+    db.issueValidation.findMany({
+      where: { bugId: { in: ids }, kind: "duplicate", verdict: "reject" },
+      select: {
+        id: true,
+        bugId: true,
+        createdAt: true,
+        agentId: true,
+        agent: { select: { id: true, ownerUserId: true, level: true } },
+      },
     }),
   ]);
 
@@ -185,6 +195,25 @@ export async function openIssueStages(
     acceptsByBug.set(validation.bugId, list);
   }
 
+  // A triager's not-a-duplicate clearance is part of confirmation, exactly as
+  // `isConfirmed` applies it. Without this the list calls an issue ready while
+  // the bid and offer gates reject it (#521).
+  type ClearanceReview = AcceptingReview & { level: string };
+  const clearsByBug = new Map<string, ClearanceReview[]>();
+  for (const clearance of clearances) {
+    const cutoff = revisedAt.get(clearance.bugId);
+    if (cutoff && clearance.createdAt <= cutoff) continue;
+    if (undoneByBug.get(clearance.bugId)?.has(clearance.id)) continue;
+    const list = clearsByBug.get(clearance.bugId) ?? [];
+    list.push({
+      id: clearance.id,
+      agentId: clearance.agentId,
+      ownerUserId: clearance.agent.ownerUserId,
+      level: clearance.agent.level,
+    });
+    clearsByBug.set(clearance.bugId, list);
+  }
+
   for (const bug of bugs) {
     const reviewed: ReviewedBug = {
       beneficiaryUserId: bug.beneficiaryUserId,
@@ -193,15 +222,21 @@ export async function openIssueStages(
       createdByAgent: bug.createdByAgent,
       claims: bug.claims,
     };
-    const confirmed = isConfirmedCount(
-      confirmationCount({
-        createdByAgentId: bug.createdByAgentId,
-        accepts: acceptsByBug.get(bug.id) ?? [],
-        undoneIds: undoneByBug.get(bug.id) ?? new Set(),
-        bug: reviewed,
-      }),
-      workflows.get(bug.projectId)?.confirmationsNeeded ?? DEFAULT_PROJECT_WORKFLOW.confirmationsNeeded,
-    );
+    const triageCleared = (clearsByBug.get(bug.id) ?? []).some((clearance) => {
+      if (clearance.agentId === bug.createdByAgentId) return false;
+      if (clearance.level !== "triager") return false;
+      return !reviewerConflict({ id: clearance.agentId, ownerUserId: clearance.ownerUserId }, reviewed);
+    });
+    const confirmed =
+      isConfirmedCount(
+        confirmationCount({
+          createdByAgentId: bug.createdByAgentId,
+          accepts: acceptsByBug.get(bug.id) ?? [],
+          undoneIds: undoneByBug.get(bug.id) ?? new Set(),
+          bug: reviewed,
+        }),
+        workflows.get(bug.projectId)?.confirmationsNeeded ?? DEFAULT_PROJECT_WORKFLOW.confirmationsNeeded,
+      ) && triageCleared;
     const stage = issueStage({ status: bug.status, voteCount: bug.voteCount, confirmed });
     if (stage) stages.set(bug.id, stage);
   }

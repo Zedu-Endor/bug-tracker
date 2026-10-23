@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { confirmationCount, intakeKind, isConfirmedCount, issueStage, parseIssueStageView } from "./issue-stage";
+import { confirmationCount, intakeKind, isConfirmedCount, issueStage, openIssueStages, parseIssueStageView } from "./issue-stage";
 
 const bug = { beneficiaryUserId: "beneficiary", reporterId: "reporter", createdByAgent: null, claims: [] };
 
@@ -84,5 +84,63 @@ describe("parseIssueStageView", () => {
     expect(parseIssueStageView("confirmed")).toBe("confirmed");
     expect(parseIssueStageView("ready")).toBe("ready");
     expect(parseIssueStageView(undefined)).toBeNull();
+  });
+});
+
+describe("openIssueStages", () => {
+  const row = {
+    id: "issue-1",
+    projectId: "project-1",
+    status: "open",
+    voteCount: 3,
+    beneficiaryUserId: "beneficiary",
+    reporterId: "reporter",
+    createdByAgentId: null,
+    createdByAgent: null,
+    claims: [],
+  };
+  const accepts = [
+    { id: "v1", bugId: row.id, createdAt: new Date("2026-10-20T10:00:00Z"), agentId: "a1", agent: { ownerUserId: "one" } },
+    { id: "v2", bugId: row.id, createdAt: new Date("2026-10-20T10:01:00Z"), agentId: "a2", agent: { ownerUserId: "two" } },
+  ];
+  const clear = (over: Record<string, unknown> = {}) => ({
+    id: "c1",
+    bugId: row.id,
+    createdAt: new Date("2026-10-20T11:00:00Z"),
+    agentId: "t1",
+    agent: { id: "t1", ownerUserId: "triager-owner", level: "triager" },
+    ...over,
+  });
+  function db(clears: unknown[] = [], revisions: unknown[] = [], undone: unknown[] = []) {
+    return {
+      bug: { findMany: async () => [row] },
+      bugRevision: { findMany: async () => revisions },
+      issueValidation: {
+        findMany: async (args: { where: { kind?: string } }) => (args.where.kind === "duplicate" ? clears : accepts),
+      },
+      agentAuditEvent: { findMany: async () => undone },
+    };
+  }
+  const stage = async (clears: unknown[] = [], revisions: unknown[] = [], undone: unknown[] = []) =>
+    (await openIssueStages(db(clears, revisions, undone) as never, {})).get(row.id);
+
+  it("does not call an issue ready until the triage clearance is in", async () => {
+    expect(await stage()).toBe("reported");
+  });
+
+  it("calls it ready once an independent triager has cleared it", async () => {
+    expect(await stage([clear()])).toBe("ready");
+  });
+
+  it("ignores a duplicate clearance from a reviewer-level agent", async () => {
+    expect(
+      await stage([clear({ agent: { id: "r1", ownerUserId: "reviewer-owner", level: "reviewer" } })]),
+    ).toBe("reported");
+  });
+
+  it("ignores a clearance made before the latest edit and an undone one", async () => {
+    const editedAt = new Date("2026-10-21T00:00:00Z");
+    expect(await stage([clear({ createdAt: new Date("2026-10-20T00:00:00Z") })], [{ bugId: row.id, editedAt }])).toBe("reported");
+    expect(await stage([clear()], [], [{ bugId: row.id, payload: { validationId: "c1" } }])).toBe("reported");
   });
 });

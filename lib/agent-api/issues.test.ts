@@ -259,10 +259,14 @@ describe("agent issue reads", () => {
       claims: [],
     };
     db.bug.findMany.mockResolvedValueOnce([open]).mockResolvedValueOnce([issue]);
-    db.issueValidation.findMany.mockResolvedValueOnce([
-      { id: "v1", bugId: "issue-a", createdAt: new Date("2026-10-20T00:00:00Z"), agentId: "r1", agent: { ownerUserId: "rev-1" } },
-      { id: "v2", bugId: "issue-a", createdAt: new Date("2026-10-20T00:00:00Z"), agentId: "r2", agent: { ownerUserId: "rev-2" } },
-    ]);
+    db.issueValidation.findMany
+      .mockResolvedValueOnce([
+        { id: "v1", bugId: "issue-a", createdAt: new Date("2026-10-20T00:00:00Z"), agentId: "r1", agent: { ownerUserId: "rev-1" } },
+        { id: "v2", bugId: "issue-a", createdAt: new Date("2026-10-20T00:00:00Z"), agentId: "r2", agent: { ownerUserId: "rev-2" } },
+      ])
+      .mockResolvedValueOnce([
+        { id: "c1", bugId: "issue-a", createdAt: new Date("2026-10-20T00:10:00Z"), agentId: "t1", agent: { id: "t1", ownerUserId: "triager-1", level: "triager" } },
+      ]);
     const response = await list(request("GET", undefined, "?projectId=project-a&stage=ready"));
     expect(response.status).toBe(200);
     expect(db.bug.findMany).toHaveBeenLastCalledWith(expect.objectContaining({

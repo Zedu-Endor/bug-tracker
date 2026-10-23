@@ -14,10 +14,9 @@ vi.mock("@/lib/project-context", () => ({ projectContextFor }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     membership: { findMany: vi.fn() },
-    projectArea: { findMany: vi.fn() },
-    agent: { findMany: vi.fn() },
-    issueClaim: { findMany: vi.fn(), groupBy: vi.fn() },
+    issueClaim: { groupBy: vi.fn() },
     pointEntry: { groupBy: vi.fn() },
+    agent: { findMany: vi.fn() },
   },
 }));
 
@@ -30,30 +29,9 @@ beforeEach(() => {
   currentTenantIdFor.mockResolvedValue("tenant-1");
   projectContextFor.mockResolvedValue({ activeProjectId: "project-1" });
   vi.mocked(prisma.membership.findMany).mockResolvedValue([
-    { role: "member", user: { id: "viewer-1", name: "Ada" } },
-    { role: "member", user: { id: "member-2", name: "Grace" } },
+    { role: "admin", user: { id: "viewer-1", name: "Ada", email: "ada@example.com", image: null } },
+    { role: "member", user: { id: "member-2", name: "Grace", email: "grace@example.com", image: null } },
   ] as never);
-  // Project areas (#609), not platforms: "Web" is the issue's platform.
-  vi.mocked(prisma.projectArea.findMany).mockResolvedValue([
-    { id: "area-1", name: "Checkout" },
-    { id: "area-2", name: "Search" },
-  ] as never);
-  vi.mocked(prisma.agent.findMany).mockResolvedValue([
-    {
-      id: "agent-1",
-      ownerUserId: "viewer-1",
-      name: "Ada's agent",
-      model: "Claude",
-      level: "reviewer",
-      apiKeys: [{ lastUsedAt: null }],
-      claims: [{
-        claimedAt: new Date(),
-        lastHeartbeatAt: new Date(),
-        bug: { id: "issue-1", title: "Fix the app", categoryId: "cat-web", category: { name: "Web" }, areaId: "area-1", area: { name: "Checkout" } },
-      }],
-    },
-  ] as never);
-  vi.mocked(prisma.issueClaim.findMany).mockResolvedValue([] as never);
   vi.mocked(prisma.issueClaim.groupBy).mockResolvedValue([
     { beneficiaryUserId: "viewer-1", _count: { _all: 1 } },
   ] as never);
@@ -63,18 +41,28 @@ beforeEach(() => {
 });
 
 describe("team directory page", () => {
-  it("renders tenant members, work links, labeled filters, and scoped reads", async () => {
+  it("renders workspace members with roles, profile links, points, and capacity", async () => {
     const page = await TeamPage({ searchParams: Promise.resolve({}) });
     const html = renderToStaticMarkup(page);
 
     expect(html).toContain("Ada");
-    expect(html).toContain("Online");
-    expect(html).toContain("Fix the app");
-    expect(html).toContain('href="/issues/issue-1"');
-    expect(html).toContain("Online now");
-    expect(html).toContain("Has capacity");
+    expect(html).toContain("Admin");
+    expect(html).toContain("ada@example.com");
+    expect(html).toContain('href="/users/viewer-1"');
+    expect(html).toContain("12 points in the last 30 days");
     expect(html).toContain("active claims in the selected project");
-    expect(html).toContain('name="area"');
+
+    expect(html).toContain("Grace");
+    expect(html).toContain("Member");
+    expect(html).toContain("grace@example.com");
+    expect(html).toContain('href="/users/member-2"');
+
+    // Asserts agents are NOT rendered on the member card
+    expect(html).not.toContain("No active agents.");
+    expect(html).not.toContain("Online now");
+    expect(html).not.toContain("Ada's agent");
+    expect(prisma.agent.findMany).not.toHaveBeenCalled();
+
     expect(prisma.membership.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { tenantId: "tenant-1" },
     }));
@@ -82,12 +70,6 @@ describe("team directory page", () => {
       where: expect.objectContaining({
         bug: { tenantId: "tenant-1", projectId: "project-1" },
       }),
-    }));
-    expect(html).toContain("Grace");
-    expect(html).toContain("No active agents.");
-    expect(html).not.toContain("Role for");
-    expect(prisma.agent.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { tenantId: "tenant-1", ownerUserId: { in: ["viewer-1", "member-2"] }, revokedAt: null },
     }));
   });
 
@@ -113,15 +95,42 @@ describe("team directory page", () => {
     document.body.innerHTML = "";
   });
 
-  it("filters members by the selected project area and online status", async () => {
+  it("filters members by role", async () => {
     const page = await TeamPage({
-      searchParams: Promise.resolve({ area: "area-1", online: "1", capacity: "1" }),
+      searchParams: Promise.resolve({ role: "admin" }),
     });
     const html = renderToStaticMarkup(page);
 
     expect(html).toContain("Ada");
     expect(html).not.toContain("Grace");
-    expect(html).toContain("Fix the app");
+  });
+
+  it("filters members by capacity", async () => {
+    vi.mocked(prisma.issueClaim.groupBy).mockResolvedValue([
+      { beneficiaryUserId: "viewer-1", _count: { _all: 2 } },
+    ] as never);
+
+    const page = await TeamPage({
+      searchParams: Promise.resolve({ capacity: "1" }),
+    });
+    const html = renderToStaticMarkup(page);
+
+    expect(html).not.toContain("Ada");
+    expect(html).toContain("Grace");
+  });
+
+  it("filters members by capacity when repeated query parameters are provided", async () => {
+    vi.mocked(prisma.issueClaim.groupBy).mockResolvedValue([
+      { beneficiaryUserId: "viewer-1", _count: { _all: 2 } },
+    ] as never);
+
+    const page = await TeamPage({
+      searchParams: Promise.resolve({ capacity: ["1", "1"] }),
+    });
+    const html = renderToStaticMarkup(page);
+
+    expect(html).not.toContain("Ada");
+    expect(html).toContain("Grace");
   });
 
   it("does not query or display tenant data without a workspace", async () => {
@@ -132,79 +141,6 @@ describe("team directory page", () => {
 
     expect(html).toContain("Join or create a workspace");
     expect(prisma.membership.findMany).not.toHaveBeenCalled();
-    expect(prisma.agent.findMany).not.toHaveBeenCalled();
-  });
-
-  it("offers the active project's areas in the Area filter, not its platforms", async () => {
-    const html = renderToStaticMarkup(await TeamPage({ searchParams: Promise.resolve({}) }));
-
-    expect(prisma.projectArea.findMany).toHaveBeenCalledWith(expect.objectContaining({
-      where: { projectId: "project-1" },
-    }));
-    expect(html).toContain('<option value="area-1">Checkout</option>');
-    expect(html).toContain('<option value="area-2">Search</option>');
-    expect(html).not.toContain('<option value="cat-web">');
-    // The work line names the area as well as the platform.
-    expect(html).toContain("Checkout");
-  });
-
-  it("shows only members whose agents work in the selected area", async () => {
-    vi.mocked(prisma.agent.findMany).mockResolvedValue([
-      {
-        id: "agent-1", ownerUserId: "viewer-1", name: "Ada's agent", model: "Claude", level: "reviewer",
-        apiKeys: [{ lastUsedAt: new Date() }],
-        claims: [{ claimedAt: new Date(), lastHeartbeatAt: new Date(),
-          bug: { id: "issue-1", title: "Fix checkout", categoryId: "cat-web", category: { name: "Web" }, areaId: "area-1", area: { name: "Checkout" } } }],
-      },
-      {
-        id: "agent-2", ownerUserId: "member-2", name: "Grace's agent", model: "Claude", level: "reviewer",
-        apiKeys: [{ lastUsedAt: new Date() }],
-        // Same platform, different area: the old platform filter matched both.
-        claims: [{ claimedAt: new Date(), lastHeartbeatAt: new Date(),
-          bug: { id: "issue-2", title: "Fix search", categoryId: "cat-web", category: { name: "Web" }, areaId: "area-2", area: { name: "Search" } } }],
-      },
-    ] as never);
-
-    const html = renderToStaticMarkup(await TeamPage({ searchParams: Promise.resolve({ area: "area-2" }) }));
-
-    expect(html).toContain("Grace");
-    expect(html).toContain("Fix search");
-    expect(html).not.toContain("Fix checkout");
-    expect(html).not.toContain("Ada&#x27;s agent");
-  });
-
-  it("hides the Area filter when there is no active project to take areas from", async () => {
-    projectContextFor.mockResolvedValue({ activeProjectId: null });
-
-    const html = renderToStaticMarkup(await TeamPage({ searchParams: Promise.resolve({ area: "area-1" }) }));
-
-    expect(prisma.projectArea.findMany).not.toHaveBeenCalled();
-    expect(html).not.toContain('name="area"');
-    // An area from an old link is ignored rather than filtering everyone out.
-    expect(html).toContain("Ada");
-    expect(html).toContain("Grace");
-  });
-
-  it("lets a super admin change another person's agent role", async () => {
-    requireUser.mockResolvedValue({ id: "viewer-1", role: "super_admin" });
-    vi.mocked(prisma.agent.findMany).mockResolvedValue([
-      {
-        id: "agent-2",
-        ownerUserId: "member-2",
-        name: "Grace's agent",
-        model: "Claude",
-        level: "triager",
-        apiKeys: [{ lastUsedAt: null }],
-        claims: [],
-      },
-    ] as never);
-
-    const html = renderToStaticMarkup(await TeamPage({ searchParams: Promise.resolve({}) }));
-
-    expect(html).toContain("change anyone&#x27;s agent role");
-    expect(html).toContain('aria-label="Role for Grace&#x27;s agent"');
-    expect(html).toContain(">Merger</option>");
-    expect(html).toContain(">Dispatcher</option>");
-    expect(html).not.toContain("Reputation:");
+    expect(prisma.issueClaim.groupBy).not.toHaveBeenCalled();
   });
 });

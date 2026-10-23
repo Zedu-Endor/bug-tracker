@@ -17,6 +17,7 @@ import { promoteEarnedReviewer } from "@/lib/agents/promotion";
 import { offerNext, scheduleOfferExpiry } from "@/lib/agent-api/offer";
 import { notifyClaimOffered } from "@/lib/agent-notifications";
 import { WORK_READINESS_VOTE_THRESHOLD } from "@/lib/ticket-assignment";
+import { readinessGates, type IssueReadiness } from "@/lib/readiness";
 import { hasBlockingRedesign } from "@/lib/redesigns";
 import { workflowFor } from "@/lib/workflow";
 
@@ -189,10 +190,21 @@ async function staleValidationOf(
  * One per owner: a second agent of the same person does not add a credit.
  */
 async function countedConfirmationReviewers(db: Db, bug: LoadedBug): Promise<string[]> {
+  return (await confirmationTally(db, bug)).credited;
+}
+
+/**
+ * The credited reviewers, plus how many standing accepts were set aside for
+ * independence (#492), so a refusal can say when independence is what is missing.
+ */
+async function confirmationTally(
+  db: Db,
+  bug: LoadedBug,
+): Promise<{ credited: string[]; uncounted: number }> {
   const dbDelegates = db as unknown as OptionalDbDelegates;
   const latestRevision = await latestRevisionAt(db, bug);
 
-  if (!dbDelegates.issueValidation?.findMany) return [];
+  if (!dbDelegates.issueValidation?.findMany) return { credited: [], uncounted: 0 };
 
   const accepts = await db.issueValidation.findMany({
     where: {
@@ -213,19 +225,26 @@ async function countedConfirmationReviewers(db: Db, bug: LoadedBug): Promise<str
   const reviewed = recordedReviewBug(bug);
   const owners = new Set<string>();
   const credited: string[] = [];
+  let uncounted = 0;
   for (const { id, onBehalfOfUserId, agent } of accepts) {
+    // An undone validation no longer counts toward confirming the issue, and
+    // is not an accept at all for the explanation either.
+    if (undone.has(id)) continue;
     // Retain report-side independence without invalidating a review after
     // its owner subsequently becomes the solver.
-    if (agent.id === bug.createdByAgentId) continue;
-    if (reviewerConflict({ id: agent.id, ownerUserId: agent.ownerUserId }, reviewed)) continue;
-    if (reviewerCreditConflict(onBehalfOfUserId, reviewed)) continue;
-    // An undone validation no longer counts toward confirming the issue.
-    if (undone.has(id)) continue;
-    if (owners.has(agent.ownerUserId)) continue;
+    if (
+      agent.id === bug.createdByAgentId ||
+      reviewerConflict({ id: agent.id, ownerUserId: agent.ownerUserId }, reviewed) ||
+      reviewerCreditConflict(onBehalfOfUserId, reviewed) ||
+      owners.has(agent.ownerUserId)
+    ) {
+      uncounted += 1;
+      continue;
+    }
     owners.add(agent.ownerUserId);
     credited.push(onBehalfOfUserId);
   }
-  return credited;
+  return { credited, uncounted };
 }
 
 /** Accepts of kind `real` that count toward confirming `bug`. */
@@ -287,6 +306,37 @@ export async function isConfirmed(bugId: string, db: Db = prisma): Promise<boole
   const { confirmationsNeeded } = await workflowFor(bug.projectId, db);
   if ((await countedConfirmations(db, bug)) < confirmationsNeeded) return false;
   return isTriageCleared(db, bug);
+}
+
+/**
+ * Where an issue stands on each gate, from the same checks `isConfirmed` and
+ * the bid, award, offer and volunteer routes enforce (#492). Read live every
+ * time, so an undone validation, an edit after clearance or a removed upvote
+ * shows straight away.
+ */
+export async function issueReadiness(bugId: string, db: Db = prisma): Promise<IssueReadiness | null> {
+  const dbDelegates = db as unknown as OptionalDbDelegates;
+  if (!dbDelegates.bug?.findUnique) return null;
+  const bug = await db.bug.findUnique({ where: { id: bugId }, select: reviewedBugSelect });
+  if (!bug) return null;
+  const { confirmationsNeeded } = await workflowFor(bug.projectId, db);
+  const tally = await confirmationTally(db, bug);
+  const triageCleared = await isTriageCleared(db, bug);
+  const counts = {
+    independentAccepts: tally.credited.length,
+    acceptsNeeded: confirmationsNeeded,
+    triageCleared,
+    upvotes: bug.voteCount,
+    upvotesNeeded: WORK_READINESS_VOTE_THRESHOLD,
+  };
+  const confirmed = counts.independentAccepts >= confirmationsNeeded && triageCleared;
+  return {
+    ...counts,
+    uncountedAccepts: tally.uncounted,
+    confirmed,
+    ready: confirmed && counts.upvotes >= counts.upvotesNeeded,
+    missing: readinessGates(counts),
+  };
 }
 
 /** Duplicates earn the reporter nothing (#422). */

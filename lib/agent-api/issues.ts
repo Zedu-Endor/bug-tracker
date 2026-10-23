@@ -23,7 +23,7 @@ import { attachmentIdsInMarkdown, linkAttachments } from "@/lib/attachment-link"
 import { MAX_ATTACHMENTS_PER_ITEM } from "@/lib/attachments";
 import { publish } from "@/lib/agent-api/events";
 import { pullRequestAttachment } from "@/lib/github/pr-mention";
-import { isConfirmed } from "@/lib/agent-api/validation";
+import { isConfirmed, issueReadiness } from "@/lib/agent-api/validation";
 import { notifyLater } from "@/lib/notify";
 import type { NotificationEvent } from "@/lib/notifications";
 import { logger } from "@/lib/logger";
@@ -255,6 +255,8 @@ export async function readAgentIssue(scope: Scope, id: string) {
     voteThreshold: WORK_READINESS_VOTE_THRESHOLD,
     confirmed,
     intake: intakeKind({ status: issue.status, voteCount: issue.voteCount, confirmed }),
+    // #492: which gates are still open, as counts only.
+    readiness: await issueReadiness(issue.id),
   };
 }
 

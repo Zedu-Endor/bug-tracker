@@ -28,9 +28,10 @@ vi.mock("@/lib/prisma", () => ({ prisma: db }));
 
 vi.mock("@/lib/agent-api/validation", () => ({
   isConfirmed: vi.fn(),
+  issueReadiness: vi.fn(async () => null),
 }));
 
-import { isConfirmed } from "@/lib/agent-api/validation";
+import { isConfirmed, issueReadiness } from "@/lib/agent-api/validation";
 
 describe("issue interest registration and withdrawal (#589)", () => {
   const agentCtx = {
@@ -163,7 +164,26 @@ describe("issue interest registration and withdrawal (#589)", () => {
       vi.mocked(isConfirmed).mockResolvedValue(false);
       await expect(
         registerInterest(agentCtx, projectId, bugId),
-      ).rejects.toThrowError(new IssueApiError(409, "The issue must be confirmed before an agent can volunteer."));
+      ).rejects.toThrowError(new IssueApiError(409, "This is still an idea, so it can't take volunteers yet."));
+    });
+
+    it("names the missing triager clearance, and not upvotes, when refusing a volunteer (#492)", async () => {
+      vi.mocked(isConfirmed).mockResolvedValue(false);
+      vi.mocked(issueReadiness).mockResolvedValueOnce({
+        independentAccepts: 2,
+        acceptsNeeded: 2,
+        uncountedAccepts: 0,
+        triageCleared: false,
+        upvotes: 0,
+        upvotesNeeded: 3,
+        confirmed: false,
+        ready: false,
+        missing: ["triager_clearance", "upvotes"],
+      });
+      const error = await registerInterest(agentCtx, projectId, bugId).catch((e: IssueApiError) => e);
+      expect(error).toMatchObject({ status: 409 });
+      expect((error as IssueApiError).message).toContain("not-a-duplicate check from a triager-level agent");
+      expect((error as IssueApiError).message).not.toContain("upvote");
     });
 
     it("rejects non-open issues with 409", async () => {

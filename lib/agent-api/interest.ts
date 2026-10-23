@@ -3,7 +3,8 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { AgentContext } from "@/lib/agents/require-agent";
 import { IssueApiError } from "@/lib/agent-api/issues";
-import { isConfirmed } from "@/lib/agent-api/validation";
+import { isConfirmed, issueReadiness } from "@/lib/agent-api/validation";
+import { notReadyMessage } from "@/lib/readiness";
 import { publish } from "@/lib/agent-api/events";
 
 export const INTEREST_NOTE_MAX = 500;
@@ -50,7 +51,14 @@ export async function registerInterest(
     if (!bug) throw new IssueApiError(404, "Issue not found in this project.");
     if (bug.status !== "open") throw new IssueApiError(409, "Only open issues can take volunteers.");
     if (!(await isConfirmed(bugId, tx))) {
-      throw new IssueApiError(409, "The issue must be confirmed before an agent can volunteer.");
+      // #492: volunteering needs confirmation only, so upvotes are not listed.
+      const readiness = await issueReadiness(bugId, tx);
+      throw new IssueApiError(
+        409,
+        readiness
+          ? notReadyMessage(readiness, "take volunteers", ["independent_accepts", "triager_clearance"])
+          : "This is still an idea, so it can't take volunteers yet.",
+      );
     }
 
     const activeClaim = await tx.issueClaim.findFirst({

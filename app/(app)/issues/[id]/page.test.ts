@@ -363,8 +363,13 @@ describe("BugDetailPage conditional user query (#349)", () => {
       });
 
       expect(element).toBeDefined();
-      expect(mockBugFindUnique).toHaveBeenCalledTimes(2);
-      expect(mockBugFindUnique).toHaveBeenLastCalledWith(
+      // The two page loads (with, then without, the milestone). The readiness
+      // check (#492) reads the issue again with its own select.
+      const pageLoads = mockBugFindUnique.mock.calls.filter(
+        ([args]) => args && typeof args === "object" && "include" in args,
+      );
+      expect(pageLoads).toHaveLength(2);
+      expect(pageLoads[1][0]).toEqual(
         expect.objectContaining({
           include: expect.not.objectContaining({
             milestone: expect.anything(),

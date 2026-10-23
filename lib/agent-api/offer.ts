@@ -3,7 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { AgentContext } from "@/lib/agents/require-agent";
 import { IssueApiError } from "@/lib/agent-api/issues";
-import { isConfirmed } from "@/lib/agent-api/validation";
+import { isConfirmed, issueReadiness } from "@/lib/agent-api/validation";
+import { notReadyMessage } from "@/lib/readiness";
 import { publish } from "@/lib/agent-api/events";
 import { notifyClaimOffered } from "@/lib/agent-notifications";
 import { workflowFor } from "@/lib/workflow";
@@ -160,8 +161,11 @@ export async function offerIssue(agent: AgentContext, projectId: string, bugId: 
       const bug = await tx.bug.findFirst({ where: { id: bugId, tenantId: agent.tenantId, projectId, isDeleted: false }, select: { id: true, title: true, projectId: true, status: true, assigneeId: true, areaId: true, voteCount: true } });
       if (!bug) throw new IssueApiError(404, "Issue not found in this project.");
       if (bug.status !== "open") throw new IssueApiError(409, "Only open issues can be offered.");
-      if (bug.voteCount < WORK_READINESS_VOTE_THRESHOLD) throw new IssueApiError(409, `The issue must reach at least ${WORK_READINESS_VOTE_THRESHOLD} upvotes before it can be offered.`);
-      if (!await isConfirmed(bugId, tx)) throw new IssueApiError(409, "The issue must be confirmed before it can be offered.");
+      if (bug.voteCount < WORK_READINESS_VOTE_THRESHOLD || !await isConfirmed(bugId, tx)) {
+        // #492: name the gates still open, from the same checks.
+        const readiness = await issueReadiness(bugId, tx);
+        throw new IssueApiError(409, readiness ? notReadyMessage(readiness, "be offered") : "This is still an idea, so it can't be offered yet.");
+      }
       await assertRedesignOpen(bugId, tx);
       await assertApprovalOpen(bugId, "before_offer", { db: tx, tenantId: agent.tenantId, agent });
       const current = await tx.issueClaim.findFirst({ where: { bugId, releasedAt: null } });

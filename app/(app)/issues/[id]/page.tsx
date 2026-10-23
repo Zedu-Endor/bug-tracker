@@ -16,6 +16,8 @@ import { currentResolution, isFinishedStatus, type StatusChangeActivity } from "
 import { statusLabel as resolutionStatusLabel } from "@/lib/labels";
 import { formatIssueNumber } from "@/lib/issue-number";
 import { intakeDetail, openIssueStages, type IssueStage } from "@/lib/issue-stage";
+import { issueReadiness } from "@/lib/agent-api/validation";
+import { readinessBanner, type IssueReadiness } from "@/lib/readiness";
 import { buildCommentTree } from "@/lib/comments";
 import {
   COMMENT_PARAM,
@@ -595,11 +597,20 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
 
   const milestoneOptions = await milestoneOptionsPromise;
   let intakeStage: IssueStage | null = null;
+  let readiness: IssueReadiness | null = null;
   if (!bug.isDeleted && bug.status === "open") {
     try {
       intakeStage = (await openIssueStages(prisma, { id: bug.id })).get(bug.id) ?? null;
     } catch (error) {
       console.error("[bugs] issue stage lookup failed", error);
+    }
+    // #492: the banner, stage and award button follow the same gates the bid,
+    // award and offer routes enforce, including the triager clearance.
+    readiness = await loadOptional<IssueReadiness | null>("readiness", null, () =>
+      issueReadiness(bug.id, prisma),
+    );
+    if (readiness) {
+      intakeStage = readiness.ready ? "ready" : readiness.confirmed ? "confirmed" : "reported";
     }
   }
   const isAssignee = !!userId && bug.assigneeId === userId;
@@ -854,7 +865,7 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
                     : "border-zk-warn-bd bg-zk-warn-bg text-zk-warn-fg"
                 }`}
               >
-                {intakeDetail(intakeStage, bug.voteCount)}
+                {readiness ? readinessBanner(readiness) : intakeDetail(intakeStage, bug.voteCount)}
               </p>
             ) : null}
             {agentResolution ? (

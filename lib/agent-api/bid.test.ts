@@ -14,7 +14,7 @@ const db = vi.hoisted(() => {
   return mock;
 });
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
-vi.mock("@/lib/agent-api/validation", () => ({ isConfirmed: vi.fn(async () => true) }));
+vi.mock("@/lib/agent-api/validation", () => ({ isConfirmed: vi.fn(async () => true), issueReadiness: vi.fn(async () => null) }));
 vi.mock("@/lib/redesigns", () => ({ assertRedesignOpen: vi.fn(async () => undefined) }));
 vi.mock("@/lib/agent-api/events", () => ({ publish: vi.fn(async () => ({ id: "evt" })) }));
 vi.mock("@/lib/watch", () => ({ ensureWatching: vi.fn(async () => undefined) }));

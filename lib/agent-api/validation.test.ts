@@ -44,7 +44,7 @@ vi.mock("@/lib/redesigns", () => ({
   hasBlockingRedesign: vi.fn(async () => false),
 }));
 
-import { isConfirmed, submitValidation } from "./validation";
+import { isConfirmed, issueReadiness, submitValidation } from "./validation";
 import { resetWorkflowCache } from "@/lib/workflow";
 
 /** An issue Ada filed herself, with no agent and no claim. */
@@ -712,6 +712,113 @@ describe("confirmation: the triage clearance (triager)", () => {
       }),
     );
     expect(await isConfirmed("bug1")).toBe(true);
+  });
+});
+
+describe("issueReadiness (#492)", () => {
+  const t0 = new Date("2026-10-20T10:00:00Z");
+  const row = (id: string, agentId: string, kind: string, verdict: string, owner: string, createdAt = t0): Row => ({
+    id, bugId: "bug1", agentId, kind, verdict, severity: null, duplicateOfId: null, onBehalfOfUserId: owner, createdAt,
+  });
+  const agentsFor = () => {
+    state.agents = {
+      r1: { id: "r1", ownerUserId: "rob" },
+      r1b: { id: "r1b", ownerUserId: "rob" },
+      r2: { id: "r2", ownerUserId: "sam" },
+      t1: { id: "t1", ownerUserId: "tia", level: "triager" },
+    };
+  };
+
+  /** Readiness and isConfirmed must always agree: they are the same rule. */
+  async function check() {
+    const readiness = await issueReadiness("bug1");
+    expect(readiness?.confirmed).toBe(await isConfirmed("bug1"));
+    return readiness!;
+  }
+
+  it("names the triager clearance when accepts and upvotes are in place", async () => {
+    agentsFor();
+    state.validations = [row("v1", "r1", "real", "accept", "rob"), row("v2", "r2", "real", "accept", "sam")];
+    const readiness = await check();
+    expect(readiness).toMatchObject({ independentAccepts: 2, triageCleared: false, upvotes: 3, ready: false });
+    expect(readiness.missing).toEqual(["triager_clearance"]);
+  });
+
+  it("is ready once all three gates are in place", async () => {
+    agentsFor();
+    state.validations = [
+      row("v1", "r1", "real", "accept", "rob"),
+      row("v2", "r2", "real", "accept", "sam"),
+      row("vt", "t1", "duplicate", "reject", "tia"),
+    ];
+    const readiness = await check();
+    expect(readiness).toMatchObject({ confirmed: true, ready: true, missing: [] });
+  });
+
+  it("counts independent owners, not raw accepts, and reports the rest as uncounted", async () => {
+    agentsFor();
+    state.validations = [
+      row("v1", "r1", "real", "accept", "rob"),
+      row("v1b", "r1b", "real", "accept", "rob"),
+      row("vt", "t1", "duplicate", "reject", "tia"),
+    ];
+    const readiness = await check();
+    expect(readiness).toMatchObject({ independentAccepts: 1, uncountedAccepts: 1, missing: ["independent_accepts"] });
+  });
+
+  it("drops a gate again when its validation is undone", async () => {
+    agentsFor();
+    state.validations = [
+      row("v1", "r1", "real", "accept", "rob"),
+      row("v2", "r2", "real", "accept", "sam"),
+      row("vt", "t1", "duplicate", "reject", "tia"),
+    ];
+    expect((await check()).ready).toBe(true);
+    db.agentAuditEvent.findMany.mockResolvedValue([{ payload: { validationId: "vt" }, undoneAt: new Date() }]);
+    const readiness = await check();
+    expect(readiness).toMatchObject({ triageCleared: false, ready: false, missing: ["triager_clearance"] });
+  });
+
+  it("does not show a stale clearance after the issue is edited", async () => {
+    agentsFor();
+    state.validations = [
+      row("v1", "r1", "real", "accept", "rob"),
+      row("v2", "r2", "real", "accept", "sam"),
+      row("vt", "t1", "duplicate", "reject", "tia"),
+    ];
+    expect((await check()).ready).toBe(true);
+    db.bugRevision.findFirst.mockResolvedValue({ editedAt: new Date("2026-10-20T11:00:00Z") });
+    const readiness = await check();
+    expect(readiness).toMatchObject({ independentAccepts: 0, triageCleared: false, ready: false });
+    expect(readiness.missing).toEqual(["independent_accepts", "triager_clearance"]);
+  });
+
+  it("follows upvotes being removed and added", async () => {
+    agentsFor();
+    state.validations = [
+      row("v1", "r1", "real", "accept", "rob"),
+      row("v2", "r2", "real", "accept", "sam"),
+      row("vt", "t1", "duplicate", "reject", "tia"),
+    ];
+    db.bug.findUnique.mockResolvedValue(bugRow({ voteCount: 2 }));
+    expect((await check())).toMatchObject({ confirmed: true, ready: false, missing: ["upvotes"] });
+    db.bug.findUnique.mockResolvedValue(bugRow({ voteCount: 3 }));
+    expect((await check()).ready).toBe(true);
+  });
+
+  it("carries counts only, no reviewer identities", async () => {
+    agentsFor();
+    state.validations = [row("v1", "r1", "real", "accept", "rob")];
+    const readiness = await check();
+    expect(Object.keys(readiness).sort()).toEqual([
+      "acceptsNeeded", "confirmed", "independentAccepts", "missing", "ready", "triageCleared", "uncountedAccepts", "upvotes", "upvotesNeeded",
+    ]);
+    expect(JSON.stringify(readiness)).not.toMatch(/rob|r1/);
+  });
+
+  it("is null for an unknown issue", async () => {
+    db.bug.findUnique.mockResolvedValue(null);
+    expect(await issueReadiness("nope")).toBeNull();
   });
 });
 

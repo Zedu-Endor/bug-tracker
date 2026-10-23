@@ -5,7 +5,8 @@ import { assertKeyProject, type AgentContext } from "@/lib/agents/require-agent"
 import { requireLevel } from "@/lib/agents/levels";
 import { isTenantAdmin } from "@/lib/agents/membership";
 import { IssueApiError } from "@/lib/agent-api/issues";
-import { isConfirmed } from "@/lib/agent-api/validation";
+import { isConfirmed, issueReadiness } from "@/lib/agent-api/validation";
+import { notReadyMessage } from "@/lib/readiness";
 import { publish } from "@/lib/agent-api/events";
 import { workflowFor } from "@/lib/workflow";
 import { isOfferExpired } from "@/lib/agent-api/offer";
@@ -16,6 +17,12 @@ import { WORK_READINESS_VOTE_THRESHOLD } from "@/lib/ticket-assignment";
 import { ensureWatching } from "@/lib/watch";
 import type { AppRole } from "@/lib/roles";
 import { parseIssueRef } from "@/lib/issue-ref";
+
+/** The 409 for an issue that is not ready, naming the gates still open (#492). */
+async function notReadyError(bugId: string, db: Prisma.TransactionClient, action: string): Promise<IssueApiError> {
+  const readiness = await issueReadiness(bugId, db);
+  return new IssueApiError(409, readiness ? notReadyMessage(readiness, action) : `This is still an idea, so it can't ${action} yet.`);
+}
 
 export const BID_NOTE_MAX = 280;
 const id = z.string().trim().min(1).max(191);
@@ -72,7 +79,7 @@ export async function placeBid(caller: AgentContext, projectId: string, issueRef
     if (!bug) throw new IssueApiError(404, "Issue not found in this project.");
     if (bug.status !== "open") throw new IssueApiError(409, "Only open issues can take bids.");
     if (!await isConfirmed(bugId, tx) || bug.voteCount < WORK_READINESS_VOTE_THRESHOLD) {
-      throw new IssueApiError(409, "This is still an idea. Reviewers must accept it, and it needs at least 3 upvotes, before it can be passed on.");
+      throw await notReadyError(bugId, tx, "take bids");
     }
     await assertRedesignOpen(bugId, tx);
     await competingClaim(tx, bugId);
@@ -199,7 +206,7 @@ export async function awardBid(actor: Actor, bidId: string, dispatcher?: AgentCo
       if (!fresh || fresh.withdrawnAt || fresh.awardedAt) throw new IssueApiError(409, "This bid is no longer open.");
       if (fresh.bug.status !== "open") throw new IssueApiError(409, "Only open issues can be awarded.");
       if (!await isConfirmed(fresh.bugId, tx) || fresh.bug.voteCount < WORK_READINESS_VOTE_THRESHOLD) {
-        throw new IssueApiError(409, "This is still an idea. Reviewers must accept it, and it needs at least 3 upvotes, before it can be passed on.");
+        throw await notReadyError(fresh.bugId, tx, "be awarded");
       }
       if (fresh.bug.assigneeId && fresh.bug.assigneeId !== fresh.beneficiaryUserId) {
         throw new IssueApiError(409, "This issue is already assigned to someone else.");

@@ -18,4 +18,10 @@ describe("ChangePasswordForm (#570)", () => {
     expect(html).toMatch(/autocomplete="new-password"/i);
     expect(html).toContain("Change password");
   });
+
+  it("renders two-factor code input when twoFactorEnabled is true (#568)", () => {
+    const html = renderToStaticMarkup(<ChangePasswordForm twoFactorEnabled={true} />);
+    expect(html).toContain('id="code"');
+    expect(html).toContain("Two-factor code");
+  });
 });

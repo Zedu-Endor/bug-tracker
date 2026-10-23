@@ -8,6 +8,7 @@ import { WalletAddressForm } from "@/components/wallet-address-form";
 import { KeyboardShortcutSettings } from "@/components/keyboard-shortcut-settings";
 import { isAgentPlatformEnabled } from "@/lib/feature-flags";
 import { ChangePasswordForm } from "@/components/change-password-form";
+import { isTwoFactorEnabled } from "@/lib/two-factor";
 import { AccountDataSettings } from "@/components/account-data-settings";
 import { DisplayNameForm } from "@/components/display-name-form";
 
@@ -220,7 +221,7 @@ export default async function SettingsPage(props: {
                       Changing your password signs out all active sessions.
                     </span>
                   </div>
-                  <ChangePasswordForm />
+                  <ChangePasswordForm twoFactorEnabled={await isTwoFactorEnabled(user.id)} />
                 </section>
               ) : null}
 

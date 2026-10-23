@@ -3,12 +3,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const requireUser = vi.hoisted(() => vi.fn());
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/auth-helpers", () => ({ requireUser }));
-vi.mock("@/lib/prisma", () => ({ prisma: { user: { update: vi.fn(), findUnique: vi.fn() } } }));
+vi.mock("@/lib/prisma", () => {
+  const db = {
+    user: { update: vi.fn(), findUnique: vi.fn() },
+    agentApiKey: { updateMany: vi.fn() },
+    totpCredential: { findUnique: vi.fn() },
+    totpBackupCode: { updateMany: vi.fn() },
+    $transaction: vi.fn(async (fn: any) => fn(db)),
+  };
+  return { prisma: db };
+});
 vi.mock("bcryptjs", () => ({ compare: vi.fn(), hash: vi.fn() }));
 vi.mock("@/lib/mail", () => ({ smtpConfigured: vi.fn(), sendMail: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({
   RATE_LIMIT_MESSAGE: "You're doing that too fast. Please wait a moment.",
   consumeAuthRateLimit: vi.fn(),
+  consumeRateLimit: vi.fn().mockResolvedValue({ allowed: true }),
 }));
 
 import { revalidatePath } from "next/cache";
@@ -145,7 +155,7 @@ describe("changePasswordAction (#570)", () => {
     return f;
   };
 
-  it("updates only the signed-in user's password and invalidates every session", async () => {
+  it("updates only the signed-in user's password, invalidates every session, and revokes agent keys (#568)", async () => {
     findUnique.mockResolvedValue({ email: "ada@example.com", passwordHash: "old-hash" });
     compareMock.mockResolvedValue(true);
     hashMock.mockResolvedValue("new-hash");
@@ -157,6 +167,25 @@ describe("changePasswordAction (#570)", () => {
       where: { id: "u1" },
       data: { passwordHash: "new-hash", sessionVersion: { increment: 1 } },
     });
+    expect(prisma.agentApiKey.updateMany).toHaveBeenCalledWith({
+      where: { revokedAt: null, agent: { ownerUserId: "u1" } },
+      data: { revokedAt: expect.any(Date) },
+    });
+  });
+
+  it("requires 2FA code when two-factor is enabled (#568)", async () => {
+    findUnique.mockResolvedValue({ email: "ada@example.com", passwordHash: "old-hash" });
+    compareMock.mockResolvedValue(true);
+    vi.mocked(prisma.totpCredential.findUnique).mockResolvedValueOnce({
+      enabledAt: new Date(),
+    } as any);
+
+    const result = await changePasswordAction(undefined, passwordForm());
+    expect(result.ok).toBeUndefined();
+    expect(result.field).toBe("code");
+    expect(result.error).toContain("code");
+    expect(update).not.toHaveBeenCalled();
+    expect(prisma.agentApiKey.updateMany).not.toHaveBeenCalled();
   });
 
   it("rejects an incorrect current password without changing it", async () => {
@@ -165,7 +194,7 @@ describe("changePasswordAction (#570)", () => {
 
     await expect(changePasswordAction(undefined, passwordForm("wrong password"))).resolves.toMatchObject({
       field: "currentPassword",
-      error: expect.stringMatching(/incorrect/),
+      error: expect.stringMatching(/incorrect|right/),
     });
     expect(update).not.toHaveBeenCalled();
   });

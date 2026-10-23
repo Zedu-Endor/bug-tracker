@@ -16,6 +16,7 @@ import { sendMail, smtpConfigured } from "@/lib/mail";
 import { logger } from "@/lib/logger";
 import { consumeAuthRateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 import { changePasswordSchema } from "@/lib/validations/issue";
+import { confirmIdentity } from "@/lib/two-factor";
 
 export type SettingsResult = { error?: string; ok?: boolean; emailNotifications?: boolean };
 
@@ -54,18 +55,34 @@ export async function changePasswordAction(
     return { error: "Password changes are only available for password-based accounts." };
   }
 
-  if (!(await compare(parsed.data.currentPassword, account.passwordHash))) {
+  const code = typeof formData.get("code") === "string" ? (formData.get("code") as string).trim() : undefined;
+  const identity = await confirmIdentity(user.id, {
+    password: parsed.data.currentPassword,
+    code,
+  });
+  if (!identity.ok) {
+    const isCodeError = identity.error.toLowerCase().includes("code");
     return {
-      error: "Your current password is incorrect.",
-      field: "currentPassword",
-      fieldErrors: { currentPassword: "Your current password is incorrect." },
+      error: identity.error,
+      field: isCodeError ? "code" : "currentPassword",
+      fieldErrors: isCodeError
+        ? { code: identity.error }
+        : { currentPassword: identity.error },
     };
   }
 
   const passwordHash = await hash(parsed.data.password, 10);
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { passwordHash, sessionVersion: { increment: 1 } },
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: user.id },
+      data: { passwordHash, sessionVersion: { increment: 1 } },
+    });
+    // Changing the password revokes all of the owner's agent keys (#568).
+    await tx.agentApiKey.updateMany({
+      where: { revokedAt: null, agent: { ownerUserId: user.id } },
+      data: { revokedAt: now },
+    });
   });
 
   // Unlike reset links, this is an informational notice: only deliver it

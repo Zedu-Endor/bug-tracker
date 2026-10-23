@@ -41,6 +41,7 @@ export function headerNavItems(
     // Post-login landing: the workspace overview.
     { href: "/dashboard", label: "Overview" },
     { href: "/issues", label: "Issues" },
+    { href: "/bids", label: "My bids" },
   ];
 
   if (options?.agentPlatform ?? isAgentPlatformEnabled()) {

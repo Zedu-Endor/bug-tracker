@@ -55,6 +55,13 @@ describe("isPublicPath (#348)", () => {
     expect(isPublicPath("/llms.txt")).toBe(true);
   });
 
+  it("treats the public API docs page as public (#631)", () => {
+    expect(isPublicPath("/docs")).toBe(true);
+    expect(isPublicPath("/docs/")).toBe(true);
+    // Only the docs route itself — not every path that happens to start with it.
+    expect(isPublicPath("/docsomething")).toBe(false);
+  });
+
   it("treats auth and password reset pages as public", () => {
     expect(isPublicPath("/login")).toBe(true);
     expect(isPublicPath("/signup")).toBe(true);
@@ -135,6 +142,22 @@ describe("middleware routing (#348)", () => {
 
   it("lets a guest open a shareable invite link", () => {
     const req = createMockReq({ pathname: "/join/abc", isLoggedIn: false });
+    const res = runMiddleware(req);
+
+    expect(res.status).not.toBe(307);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("serves /docs to guests instead of redirecting to /login (#631)", () => {
+    const req = createMockReq({ pathname: "/docs", isLoggedIn: false });
+    const res = runMiddleware(req);
+
+    expect(res.status).not.toBe(307);
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("still serves /docs to signed-in people (#631)", () => {
+    const req = createMockReq({ pathname: "/docs", isLoggedIn: true });
     const res = runMiddleware(req);
 
     expect(res.status).not.toBe(307);

@@ -12,8 +12,8 @@ export default function DocsPage() {
       {/* Header & llms.txt banner */}
       <div className="space-y-4">
         <div className="space-y-1">
-          <Link href="/issues" className="text-sm font-semibold text-zk-accent hover:underline">
-            ← Back to issues
+          <Link href="/" className="text-sm font-semibold text-zk-accent hover:underline">
+            ← Back to home
           </Link>
           <h1 className="text-3xl font-extrabold tracking-tight text-zk-text">
             API Documentation &amp; AI Integration

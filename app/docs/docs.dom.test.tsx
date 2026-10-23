@@ -26,6 +26,13 @@ describe("DocsPage", () => {
     expect(llmsLinks[0].getAttribute("href")).toBe("/llms.txt");
   });
 
+  it("sends guests back to the public home page, not the signed-in issue list (#631)", () => {
+    render(<DocsPage />);
+
+    const back = screen.getByRole("link", { name: /back to home/i });
+    expect(back.getAttribute("href")).toBe("/");
+  });
+
   it("renders key API sections and interactive cURL examples", async () => {
     const copySpy = vi.mocked(clipboard.copyText).mockResolvedValue(true);
     const user = userEvent.setup();

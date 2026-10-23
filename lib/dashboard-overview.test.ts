@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { vi } from "vitest";
+import { prisma } from "./prisma";
 import {
   AGENT_IDLE_WINDOW_MS,
   PREVIEW_LIMIT,
@@ -8,6 +10,7 @@ import {
   firstCloseForTenant,
   isResolvedStatus,
   isUnresolvedStatus,
+  loadSidebarCounts,
 } from "./dashboard-overview";
 import { isDone } from "./issue-state";
 
@@ -133,5 +136,38 @@ describe("classifyAgentStatus (#dashboard)", () => {
         now,
       }),
     ).toBe("offline");
+  });
+});
+
+describe("loadSidebarCounts (#591)", () => {
+  it("filters assigned and reported counts by unresolved statuses to match list defaults", async () => {
+    const countSpy = vi.spyOn(prisma.bug, "count").mockResolvedValue(4);
+    const counts = await loadSidebarCounts({ userId: "user-1", tenantId: "tenant-1" });
+    expect(counts).toEqual({ unresolved: 4, assigned: 4, reported: 4 });
+    expect(countSpy).toHaveBeenCalledTimes(3);
+    const calls = countSpy.mock.calls;
+    expect(calls[0][0]?.where).toMatchObject({
+      tenantId: "tenant-1",
+      isDeleted: false,
+      status: { in: [...UNRESOLVED_STATUSES] },
+    });
+    expect(calls[1][0]?.where).toMatchObject({
+      tenantId: "tenant-1",
+      assigneeId: "user-1",
+      isDeleted: false,
+      status: { in: [...UNRESOLVED_STATUSES] },
+    });
+    expect(calls[2][0]?.where).toMatchObject({
+      tenantId: "tenant-1",
+      reporterId: "user-1",
+      isDeleted: false,
+      status: { in: [...UNRESOLVED_STATUSES] },
+    });
+    countSpy.mockRestore();
+  });
+
+  it("returns zeros when tenantId is null", async () => {
+    const counts = await loadSidebarCounts({ userId: "user-1", tenantId: null });
+    expect(counts).toEqual({ unresolved: 0, assigned: 0, reported: 0 });
   });
 });

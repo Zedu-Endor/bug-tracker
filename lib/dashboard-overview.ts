@@ -181,8 +181,8 @@ export async function loadSidebarCounts({
   const base: Prisma.BugWhereInput = { ...bugInTenant(tenantId), isDeleted: false };
   const [unresolved, assigned, reported] = await Promise.all([
     prisma.bug.count({ where: { ...base, status: { in: [...UNRESOLVED_STATUSES] } } }),
-    prisma.bug.count({ where: { ...base, assigneeId: userId } }),
-    prisma.bug.count({ where: { ...base, reporterId: userId } }),
+    prisma.bug.count({ where: { ...base, assigneeId: userId, status: { in: [...UNRESOLVED_STATUSES] } } }),
+    prisma.bug.count({ where: { ...base, reporterId: userId, status: { in: [...UNRESOLVED_STATUSES] } } }),
   ]);
   return { unresolved, assigned, reported };
 }

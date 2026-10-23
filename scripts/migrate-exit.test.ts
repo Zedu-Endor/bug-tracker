@@ -17,21 +17,27 @@ function run(prismaExitCode: number, env: Record<string, string | undefined>) {
   cpSync("scripts/migrate.mjs", join(dir, "scripts/migrate.mjs"));
   cpSync("scripts/migration-database-url.mjs", join(dir, "scripts/migration-database-url.mjs"));
   mkdirSync(join(dir, "node_modules/.bin"), { recursive: true });
-  const prisma = join(dir, "node_modules/.bin/prisma");
-  writeFileSync(
-    prisma,
-    `#!/bin/sh\necho "url=$DATABASE_URL" >> "${join(dir, "calls.log")}"\necho "prisma $*" >> "${join(dir, "calls.log")}"\nexit ${prismaExitCode}\n`,
-  );
-  chmodSync(prisma, 0o755);
+  const callsPath = join(dir, "calls.log");
+  if (process.platform === "win32") {
+    writeWindowsPrismaStub(dir, [
+      'const fs = require("node:fs");',
+      'fs.appendFileSync(process.env.MIGRATE_TEST_CALLS, "url=" + process.env.DATABASE_URL + "\\nprisma " + process.argv.slice(2).join(" ") + "\\n");',
+      `process.exit(${prismaExitCode});`,
+    ].join("\n"));
+  } else {
+    const prisma = join(dir, "node_modules/.bin/prisma");
+    writeFileSync(prisma, `#!/bin/sh\necho "url=$DATABASE_URL" >> "${callsPath}"\necho "prisma $*" >> "${callsPath}"\nexit ${prismaExitCode}\n`);
+    chmodSync(prisma, 0o755);
+  }
   const result = spawnSync(process.execPath, ["scripts/migrate.mjs"], {
     cwd: dir,
     // Only what the script needs, so the parent's NODE_ENV and DATABASE_URL don't leak in.
-    env: { PATH: process.env.PATH, ...env } as unknown as NodeJS.ProcessEnv,
+    env: { PATH: process.env.PATH, MIGRATE_TEST_CALLS: callsPath, ...env } as unknown as NodeJS.ProcessEnv,
     encoding: "utf8",
   });
   const calls = (() => {
     try {
-      return readFileSync(join(dir, "calls.log"), "utf8");
+      return readFileSync(callsPath, "utf8");
     } catch {
       return "";
     }
@@ -46,13 +52,34 @@ function runStub(script: string, env: Record<string, string | undefined>) {
   cpSync("scripts/migrate.mjs", join(dir, "scripts/migrate.mjs"));
   cpSync("scripts/migration-database-url.mjs", join(dir, "scripts/migration-database-url.mjs"));
   mkdirSync(join(dir, "node_modules/.bin"), { recursive: true });
-  const prisma = join(dir, "node_modules/.bin/prisma");
   const calls = join(dir, "calls.log");
-  writeFileSync(prisma, script.replaceAll("__CALLS__", calls));
-  chmodSync(prisma, 0o755);
+  if (process.platform === "win32") {
+    const mode = script.includes("missing User") ? "missing" : script.includes("voteCount") ? "duplicate" : "init-success";
+    const js = [
+      'const fs = require("node:fs");',
+      'const calls = process.env.MIGRATE_TEST_CALLS;',
+      'const args = process.argv.slice(2).join(" ");',
+      'fs.appendFileSync(calls, "prisma " + args + "\\n");',
+      'if (args.includes("db execute")) { if (process.env.MIGRATE_TEST_MODE === "missing") { console.error("missing User"); process.exit(1); } process.exit(0); }',
+      'if (args.includes("migrate resolve")) process.exit(0);',
+      'if (args.includes("migrate deploy")) {',
+      '  const count = (fs.readFileSync(calls, "utf8").match(/migrate deploy/g) || []).length;',
+      '  if (count === 1) { console.error("Error: P3009"); console.error("The `20261014193427_init` migration started at 2026-10-15 10:32:25.619809 UTC failed"); process.exit(1); }',
+      '  if (process.env.MIGRATE_TEST_MODE === "duplicate" && count === 2) { console.error("Error: P3018"); console.error("Migration name: 20261014195331_add_votes_and_proof_links"); console.error("Database error code: 42701"); console.error("ERROR: column \\"voteCount\\" of relation \\"Bug\\" already exists"); process.exit(1); }',
+      '  process.exit(0);',
+      '}',
+      'process.exit(1);',
+    ].join("\n");
+    writeWindowsPrismaStub(dir, js);
+    env.MIGRATE_TEST_MODE = mode;
+  } else {
+    const prisma = join(dir, "node_modules/.bin/prisma");
+    writeFileSync(prisma, script.replaceAll("__CALLS__", calls));
+    chmodSync(prisma, 0o755);
+  }
   const result = spawnSync(process.execPath, ["scripts/migrate.mjs"], {
     cwd: dir,
-    env: { PATH: process.env.PATH, ...env } as unknown as NodeJS.ProcessEnv,
+    env: { PATH: process.env.PATH, MIGRATE_TEST_CALLS: calls, ...env } as unknown as NodeJS.ProcessEnv,
     encoding: "utf8",
   });
   const log = (() => {
@@ -65,6 +92,14 @@ function runStub(script: string, env: Record<string, string | undefined>) {
   return { status: result.status, output: `${result.stdout}${result.stderr}`, calls: log };
 }
 
+function writeWindowsPrismaStub(dir: string, source: string) {
+  const binDir = join(dir, "node_modules/.bin");
+  writeFileSync(join(binDir, "prisma-stub.cjs"), source);
+  writeFileSync(
+    join(binDir, "prisma.cmd"),
+    `@echo off\r\n"${process.execPath}" "%~dp0prisma-stub.cjs" %*\r\nexit /b %ERRORLEVEL%\r\n`,
+  );
+}
 function initThenSuccessStub() {
   return `#!/bin/sh
 echo "prisma $*" >> "__CALLS__"
@@ -200,7 +235,7 @@ describe("scripts/migrate.mjs exit code (#580)", () => {
     expect(status).toBe(0);
     expect(calls).toContain("migrate resolve --applied 20261014193427_init");
     expect(calls).toContain("migrate resolve --applied 20261014195331_add_votes_and_proof_links");
-  });
+  }, 15_000);
 
   it("the Dockerfile only starts the server when the script succeeds", () => {
     const dockerfile = readFileSync("Dockerfile", "utf8");

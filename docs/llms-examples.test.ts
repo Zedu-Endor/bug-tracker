@@ -14,7 +14,7 @@ import { validationBodySchema } from "@/lib/agent-api/validation";
  * The request bodies in llms.txt must be ones the routes accept (#555).
  * Each documented example is parsed with the same zod schema the route uses.
  */
-const doc = readFileSync("docs/ziki-for-agents.md", "utf8");
+const doc = readFileSync("docs/ziki-for-agents.md", "utf8").replace(/\r\n/g, "\n");
 
 /** The text of one `### METHOD /path` section of the reference. */
 function section(heading: string): string {

@@ -1,11 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  AGENT_MENU_LINKS,
   SWITCH_TENANT_LINK,
   headerNavItems,
   initialsOf,
   isNavItemActive,
   realRoleOf,
 } from "./header-nav";
+
+describe("AGENT_MENU_LINKS (#628)", () => {
+  it("sends first-time setup to Connect and keeps pairing available separately", () => {
+    expect(AGENT_MENU_LINKS).toEqual([
+      { href: "/settings/agents/connect", label: "Get started" },
+      { href: "/settings/agents", label: "Manage agents" },
+    ]);
+  });
+});
 
 describe("SWITCH_TENANT_LINK (#444)", () => {
   it("goes to the tenant picker, and is marked current on it and its pages", () => {

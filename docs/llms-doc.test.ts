@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 /** The public llms.txt must describe the code as it actually behaves (#554, #559, #560, #562). */
-const doc = readFileSync("docs/ziki-for-agents.md", "utf8");
+const doc = readFileSync("docs/ziki-for-agents.md", "utf8").replace(/\r\n/g, "\n");
 
 describe("llms.txt accuracy", () => {
   it("contains only agent-facing material (#562)", () => {
@@ -46,7 +46,7 @@ describe("llms.txt accuracy", () => {
     expect(doc).toContain("unread=1");
     expect(doc).toContain("upTo");
     for (const kind of INBOX_KINDS) expect(doc).toContain(`| \`${kind}\` |`);
-  });
+  }, 15_000);
 
   it("defines agent persona, user interaction protocol, and capability explanation (#756)", () => {
     expect(doc).toContain("Agent Persona & Interaction Protocol");

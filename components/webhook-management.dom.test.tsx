@@ -32,7 +32,7 @@ afterEach(() => cleanup());
 
 describe("WebhookManagement", () => {
   it("shows a retryable error when the initial list action rejects", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     actions.list
       .mockRejectedValueOnce(new Error("database unavailable"))
       .mockResolvedValueOnce({ ok: true, subscriptions: [], agents: [] });
@@ -46,7 +46,7 @@ describe("WebhookManagement", () => {
   });
 
   it("keeps Add webhook disabled until an agent is picked and the URL is valid https://", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<WebhookManagement />);
 
     const add = await screen.findByRole("button", { name: "Add webhook" });
@@ -71,7 +71,7 @@ describe("WebhookManagement", () => {
   });
 
   it("reveals the signing secret once after a successful create", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     actions.create.mockResolvedValue({
       ok: true,
       secret: "whsec_test_secret_once",
@@ -158,5 +158,73 @@ describe("WebhookManagement", () => {
     expect(
       screen.getByRole("button", { name: /Delete webhook for Power Ranger/i }),
     ).toBeInTheDocument();
+  });
+
+  it("handles server action rejection without crashing or re-render loops (#648)", async () => {
+    const user = userEvent.setup({ delay: null });
+    actions.create.mockResolvedValueOnce({
+      ok: false,
+      error: "SSRF blocked: local IP addresses are not permitted.",
+      field: "url",
+    });
+
+    render(<WebhookManagement />);
+
+    await user.click(await screen.findByRole("radio", { name: /Power Ranger/i }));
+    const urlInput = screen.getByLabelText(/HTTPS endpoint URL/i);
+    await user.type(urlInput, "https://127.0.0.1.nip.io/hook");
+    await user.click(screen.getByRole("button", { name: "Add webhook" }));
+
+    // Form stays mounted and displays inline error without crashing with "Too many re-renders"
+    const errors = await screen.findAllByText(/SSRF blocked: local IP addresses are not permitted/i);
+    expect(errors.length).toBeGreaterThan(0);
+    await waitFor(() => expect(urlInput).toHaveAttribute("aria-invalid", "true"));
+  });
+
+  it("clears inline errors on successful resubmission (#648)", async () => {
+    const user = userEvent.setup({ delay: null });
+    actions.create
+      .mockResolvedValueOnce({
+        ok: false,
+        error: "SSRF verification failed.",
+        field: "url",
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        secret: "whsec_recovered",
+        subscription: {
+          id: "sub-recovered",
+          url: "https://valid.example/hook",
+          enabled: true,
+          failureCount: 0,
+          disabledAt: null,
+          createdAt: new Date(),
+          lastError: null,
+          lastErrorAt: null,
+          lastDeliveredAt: null,
+          agent,
+        },
+      });
+
+    render(<WebhookManagement />);
+
+    await user.click(await screen.findByRole("radio", { name: /Power Ranger/i }));
+    const urlInput = screen.getByLabelText(/HTTPS endpoint URL/i);
+    await user.type(urlInput, "https://invalid.example/hook");
+    await user.click(screen.getByRole("button", { name: "Add webhook" }));
+
+    const errors = await screen.findAllByText("SSRF verification failed.");
+    expect(errors.length).toBeGreaterThan(0);
+
+    // Resubmit with valid URL
+    await user.clear(urlInput);
+    await user.type(urlInput, "https://valid.example/hook");
+    await user.click(screen.getByRole("button", { name: "Add webhook" }));
+
+    const reveal = await screen.findByRole("status");
+    expect(reveal).toHaveTextContent("whsec_recovered");
+    await waitFor(() => {
+      expect(screen.queryByText("SSRF verification failed.")).not.toBeInTheDocument();
+    });
   });
 });

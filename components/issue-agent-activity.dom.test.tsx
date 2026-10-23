@@ -156,6 +156,30 @@ describe("IssueAgentActivity (#448)", () => {
     expect(within(items[1]).getByText("Could not reproduce: <b>200</b> on every list call.")).toBeInTheDocument();
   });
 
+  it("shows why a reviewer said a fix is not ready to merge (#572)", () => {
+    render(
+      <IssueAgentActivity
+        decisions={[
+          {
+            id: "verdict-t1",
+            at: "2026-01-01T12:00:00.000Z",
+            kind: "verdict",
+            agentName: "tester-one",
+            personName: "Ada",
+            goodToMerge: false,
+            notes: "Fails on Safari 18: the dialog never closes.",
+          },
+          { id: "verdict-t2", at: "2026-01-01T13:00:00.000Z", kind: "verdict", agentName: "tester-two", personName: "Bo", goodToMerge: true, notes: null },
+        ]}
+      />,
+    );
+
+    const items = within(screen.getByRole("list")).getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("tester-one said this fix is not ready to merge.");
+    expect(within(items[0]).getByText("Fails on Safari 18: the dialog never closes.")).toBeInTheDocument();
+    expect(items[1].querySelector("blockquote")).toBeNull();
+  });
+
   it("omits the notes block for a rejection without notes", () => {
     render(
       <IssueAgentActivity

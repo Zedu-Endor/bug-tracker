@@ -40,7 +40,16 @@ export type AgentDecision =
       /** #606: the agent's owner, while the claim is paused on their answer. */
       waitingOnName?: string | null;
     }
-  | { id: string; at: Date | string; kind: "verdict"; agentName: string; personName: string; goodToMerge: boolean }
+  | {
+      id: string;
+      at: Date | string;
+      kind: "verdict";
+      agentName: string;
+      personName: string;
+      goodToMerge: boolean;
+      /** #572: why the reviewer reached this verdict. */
+      notes?: string | null;
+    }
   | { id: string; at: Date | string; kind: "accepted"; agentName: string };
 
 function timeOf(decision: AgentDecision): number {
@@ -236,7 +245,7 @@ export function IssueAgentActivity({ decisions }: { decisions: ReadonlyArray<Age
                   <LocalTime className="text-xs text-zk-muted" date={decision.at} />
                 </div>
                 <p className="mt-1.5 text-sm leading-snug text-zk-text2">{sentence(decision)}</p>
-                {decision.kind === "rejected" && decision.notes ? (
+                {(decision.kind === "rejected" || decision.kind === "verdict") && decision.notes ? (
                   <ExpandableText maxLines={3} expandText="View more" collapseText="View less">
                     <blockquote className="mt-1.5 whitespace-pre-wrap break-words rounded-r-[10px] border-l-[3px] border-zk-border bg-zk-chip px-3.5 py-2.5 text-[13px] leading-relaxed text-zk-text2">
                       {decision.notes}

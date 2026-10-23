@@ -494,6 +494,7 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
               id: true,
               createdAt: true,
               goodToMerge: true,
+              notes: true,
               agent: { select: { name: true } },
               onBehalfOf: { select: { name: true } },
             },
@@ -541,6 +542,7 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
             agentName: v.agent.name,
             personName: v.onBehalfOf.name,
             goodToMerge: v.goodToMerge,
+            notes: v.notes,
           })),
           ...accepted.map<AgentDecision>((e) => ({
             id: `accepted-${e.id}`,

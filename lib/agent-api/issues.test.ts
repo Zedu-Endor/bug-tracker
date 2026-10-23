@@ -777,6 +777,30 @@ describe("issue read confirmation", () => {
     });
   });
 
+  it("returns test verdicts newest first with the reviewer's notes (#572)", async () => {
+    const verdict = {
+      id: "tv-1", goodToMerge: false, notes: "Fails on Safari 18: the dialog never closes.",
+      headSha: "a1b2c3d", pullRequestUrl: "https://github.com/org/repo/pull/42",
+      agentId: "r1", onBehalfOfUserId: "rob", createdAt: new Date("2026-10-19T12:00:00Z"), changedAt: null,
+    };
+    db.bug.findFirst.mockResolvedValue({ ...issue, validations: [], testVerdicts: [verdict] });
+    db.issueValidation.findMany.mockResolvedValue([]);
+
+    const body = (await readIssue()) as unknown as { testVerdicts: Array<{ id: string; goodToMerge: boolean; notes: string | null }> };
+    expect(body.testVerdicts).toEqual([
+      expect.objectContaining({ id: "tv-1", goodToMerge: false, notes: "Fails on Safari 18: the dialog never closes." }),
+    ]);
+
+    const select = db.bug.findFirst.mock.calls.at(-1)?.[0]?.select;
+    expect(select.testVerdicts).toEqual({
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      select: {
+        id: true, goodToMerge: true, notes: true, headSha: true, pullRequestUrl: true,
+        agentId: true, onBehalfOfUserId: true, createdAt: true, changedAt: true,
+      },
+    });
+  });
+
   it("stays unconfirmed with a single accept", async () => {
     db.issueValidation.findMany.mockResolvedValue([accept("v1", "r1", "rob")]);
     expect((await readIssue()).confirmed).toBe(false);

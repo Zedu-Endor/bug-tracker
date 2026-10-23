@@ -25,8 +25,8 @@ function exampleAfter(heading: string, marker = ""): Record<string, unknown> {
   return JSON.parse(block[1]);
 }
 
-/** Added by `readAgentIssue` on top of `issueSelect`, including the upvote threshold (#463). */
-const READ_EXTRAS = ["comments", "attachments", "validations", "_count", "voteThreshold", "confirmed", "intake"];
+/** Added by `readAgentIssue` on top of `issueSelect`, including the upvote threshold (#463) and test verdicts (#572). */
+const READ_EXTRAS = ["comments", "attachments", "validations", "testVerdicts", "_count", "voteThreshold", "confirmed", "intake"];
 
 describe("llms.txt issue examples match the API (#407)", () => {
   it("wraps the read in an issue object with exactly the fields the route returns", () => {

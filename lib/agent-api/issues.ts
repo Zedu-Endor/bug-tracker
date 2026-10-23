@@ -220,6 +220,19 @@ const validationSelect = {
   createdAt: true,
 } satisfies Prisma.IssueValidationSelect;
 
+/** #572: test verdicts with the reviewer's reasons, so a solver can see why. */
+const testVerdictSelect = {
+  id: true,
+  goodToMerge: true,
+  notes: true,
+  headSha: true,
+  pullRequestUrl: true,
+  agentId: true,
+  onBehalfOfUserId: true,
+  createdAt: true,
+  changedAt: true,
+} satisfies Prisma.TestVerdictSelect;
+
 export async function readAgentIssue(scope: Scope, id: string) {
   // #457: the path may be the readable number (`123`, `ZE-123`) or the id.
   const ref = parseIssueRef(id);
@@ -235,6 +248,9 @@ export async function readAgentIssue(scope: Scope, id: string) {
     }, validations: {
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       select: validationSelect,
+    }, testVerdicts: {
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      select: testVerdictSelect,
     }, _count: { select: { comments: { where: { deletedAt: null } } } } },
   });
   if (!issue) throw new IssueApiError(404, "Issue not found.");

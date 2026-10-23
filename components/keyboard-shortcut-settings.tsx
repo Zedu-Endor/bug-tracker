@@ -15,6 +15,7 @@ const PREVIEW_SHORTCUTS = [
 export function KeyboardShortcutSettings({ initialEnabled }: { initialEnabled: boolean }) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   return (
@@ -42,11 +43,12 @@ export function KeyboardShortcutSettings({ initialEnabled }: { initialEnabled: b
             const next = !enabled;
             setEnabled(next);
             setMessage(null);
+            setError(null);
             startTransition(async () => {
               const result = await setKeyboardShortcutsAction(next);
               if (result.error) {
                 setEnabled(!next);
-                setMessage(result.error);
+                setError(result.error);
               } else {
                 setMessage(next ? "Keyboard shortcuts turned on." : "Keyboard shortcuts turned off.");
               }
@@ -89,6 +91,12 @@ export function KeyboardShortcutSettings({ initialEnabled }: { initialEnabled: b
       <p role="status" aria-live="polite" className="text-sm text-zk-ok-fg empty:hidden">
         {message ?? ""}
       </p>
+      {/* A failed save must not look like a successful one (#552). */}
+      {error ? (
+        <p role="alert" className="text-sm text-rose-700">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

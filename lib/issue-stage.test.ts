@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { confirmationCount, intakeKind, isConfirmedCount, issueStage, parseIssueStageView } from "./issue-stage";
+import { vi } from "vitest";
+import { confirmationCount, intakeKind, isConfirmedCount, issueStage, openIssueStages, parseIssueStageView } from "./issue-stage";
 
 const bug = { beneficiaryUserId: "beneficiary", reporterId: "reporter", createdByAgent: null, claims: [] };
 
@@ -84,5 +85,26 @@ describe("parseIssueStageView", () => {
     expect(parseIssueStageView("confirmed")).toBe("confirmed");
     expect(parseIssueStageView("ready")).toBe("ready");
     expect(parseIssueStageView(undefined)).toBeNull();
+  });
+});
+
+describe("openIssueStages bounded loading (#585)", () => {
+  it("bounds batch loading when limit option is passed", async () => {
+    const mockDb = {
+      bug: { findMany: vi.fn() },
+      bugRevision: { findMany: vi.fn().mockResolvedValue([]) },
+      issueValidation: { findMany: vi.fn().mockResolvedValue([]) },
+      agentAuditEvent: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    mockDb.bug.findMany.mockResolvedValue([
+      { id: "bug-1", projectId: "p1", status: "open", voteCount: 0, beneficiaryUserId: "u1", assigneeId: null, reporterId: "u2", createdByAgentId: null, createdByAgent: null, claims: [], createdAt: new Date() },
+    ]);
+
+    const stages = await openIssueStages(mockDb as never, { projectId: "p1" }, { limit: 5, stage: "reported" });
+    expect(stages.get("bug-1")).toBe("reported");
+    expect(mockDb.bug.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      take: expect.any(Number),
+    }));
+    expect(mockDb.bug.findMany.mock.calls[0][0].take).toBeLessThanOrEqual(25);
   });
 });

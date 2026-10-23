@@ -270,6 +270,35 @@ describe("agent issue reads", () => {
     }));
   });
 
+  it("bounds stage-filtered issue loading to O(limit) instead of loading the whole project (#585)", async () => {
+    const candidateBatch = Array.from({ length: 20 }, (_, i) => ({
+      id: `issue-${i}`,
+      status: "open",
+      voteCount: 0,
+      beneficiaryUserId: "other",
+      reporterId: "other",
+      createdByAgentId: null,
+      createdByAgent: null,
+      createdAt: new Date(Date.now() - i * 1000),
+      claims: [],
+    }));
+    db.bug.findMany.mockImplementation(({ take }) => {
+      if (take && take <= 25) {
+        return Promise.resolve(candidateBatch);
+      }
+      return Promise.resolve(candidateBatch.slice(0, 6).map((b) => ({ ...issue, id: b.id })));
+    });
+
+    const response = await list(request("GET", undefined, "?projectId=project-a&stage=reported&limit=5"));
+    expect(response.status).toBe(200);
+
+    // Assert that bug.findMany was called with take bounded, never unbounded with no take
+    for (const [call] of db.bug.findMany.mock.calls) {
+      expect(call).toHaveProperty("take");
+      expect(call.take).toBeLessThanOrEqual(25);
+    }
+  });
+
   it("returns an empty page when stage is combined with a status that is not open", async () => {
     const response = await list(request("GET", undefined, "?projectId=project-a&status=closed&stage=reported"));
     expect(response.status).toBe(200);

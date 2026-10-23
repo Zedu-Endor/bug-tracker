@@ -199,7 +199,7 @@ export async function listAgentIssues(scope: Scope, params: URLSearchParams) {
     // A stage only exists on an open issue. Any other status is an empty page.
     if (filtered.status && filtered.status !== "open") return { items: [], nextCursor: null };
     filtered.status = "open";
-    const stages = await openIssueStages(prisma, filtered);
+    const stages = await openIssueStages(prisma, filtered, { limit: limit + 1, stage, cursor });
     const ids = [...stages.entries()].filter(([, value]) => value === stage).map(([id]) => id);
     if (ids.length === 0) return { items: [], nextCursor: null };
     filtered.id = { in: ids };

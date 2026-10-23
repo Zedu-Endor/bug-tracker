@@ -102,32 +102,48 @@ export function isConfirmedCount(
   return count >= needed;
 }
 
-/**
- * Stage of every open issue matching `where`. A missing validation table
- * leaves the map empty so the list still renders.
- */
-export async function openIssueStages(
+export type StageCandidateBug = {
+  id: string;
+  projectId: string;
+  status: string;
+  voteCount: number;
+  beneficiaryUserId: string;
+  assigneeId: string | null;
+  reporterId: string;
+  createdByAgentId: string | null;
+  createdAt?: Date;
+  createdByAgent: { ownerUserId: string } | null;
+  claims: {
+    status: string;
+    releasedAt: Date | null;
+    beneficiaryUserId: string;
+    dispatcherUserId: string | null;
+    agent: { ownerUserId: string };
+  }[];
+};
+
+export const bugStageSelect = {
+  id: true,
+  projectId: true,
+  status: true,
+  voteCount: true,
+  beneficiaryUserId: true,
+  assigneeId: true,
+  reporterId: true,
+  createdByAgentId: true,
+  createdAt: true,
+  createdByAgent: { select: { ownerUserId: true } },
+  claims: {
+    where: { status: "active", releasedAt: null },
+    select: { status: true, releasedAt: true, beneficiaryUserId: true, dispatcherUserId: true, agent: { select: { ownerUserId: true } } },
+  },
+} satisfies Prisma.BugSelect;
+
+/** Computes the stage for a known set of open candidate bugs. */
+export async function computeStagesForBugs(
   db: PrismaClient,
-  where: Prisma.BugWhereInput,
+  bugs: StageCandidateBug[],
 ): Promise<Map<string, IssueStage>> {
-  const bugs = await db.bug.findMany({
-    where: { ...where, status: "open", isDeleted: false },
-    select: {
-      id: true,
-      projectId: true,
-      status: true,
-      voteCount: true,
-      beneficiaryUserId: true,
-      assigneeId: true,
-      reporterId: true,
-      createdByAgentId: true,
-      createdByAgent: { select: { ownerUserId: true } },
-      claims: {
-        where: { status: "active", releasedAt: null },
-        select: { status: true, releasedAt: true, beneficiaryUserId: true, dispatcherUserId: true, agent: { select: { ownerUserId: true } } },
-      },
-    },
-  });
   const stages = new Map<string, IssueStage>();
   if (bugs.length === 0) return stages;
 
@@ -205,5 +221,83 @@ export async function openIssueStages(
     const stage = issueStage({ status: bug.status, voteCount: bug.voteCount, confirmed });
     if (stage) stages.set(bug.id, stage);
   }
+  return stages;
+}
+
+export type OpenIssueStagesOptions = {
+  cursor?: { id: string; createdAt: Date } | null;
+  limit?: number;
+  stage?: IssueStageView;
+};
+
+/**
+ * Stage of open issues matching `where`. When options.limit is provided, reads
+ * candidate bugs in bounded batches (#585) so page requests do not load the whole project.
+ */
+export async function openIssueStages(
+  db: PrismaClient,
+  where: Prisma.BugWhereInput,
+  options?: OpenIssueStagesOptions,
+): Promise<Map<string, IssueStage>> {
+  if (!options?.limit) {
+    const bugs = await db.bug.findMany({
+      where: { ...where, status: "open", isDeleted: false },
+      select: bugStageSelect,
+    });
+    return computeStagesForBugs(db, bugs);
+  }
+
+  // Push vote count predicate into SQL where applicable (#585)
+  const stageWhere: Prisma.BugWhereInput =
+    options.stage === "ready"
+      ? { voteCount: { gte: WORK_READINESS_VOTE_THRESHOLD } }
+      : options.stage === "confirmed"
+      ? { voteCount: { lt: WORK_READINESS_VOTE_THRESHOLD } }
+      : {};
+
+  const stages = new Map<string, IssueStage>();
+  let currentCursor = options.cursor ?? null;
+  const batchSize = Math.min(Math.max(options.limit * 2, 20), 100);
+
+  while (true) {
+    const cursorFilter: Prisma.BugWhereInput =
+      currentCursor && "createdAt" in currentCursor && currentCursor.createdAt instanceof Date
+        ? {
+            OR: [
+              { createdAt: { lt: currentCursor.createdAt } },
+              { createdAt: currentCursor.createdAt, id: { lt: currentCursor.id } },
+            ],
+          }
+        : {};
+
+    const batch = await db.bug.findMany({
+      where: {
+        ...where,
+        ...stageWhere,
+        ...cursorFilter,
+        status: "open",
+        isDeleted: false,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: batchSize,
+      select: bugStageSelect,
+    });
+
+    if (batch.length === 0) break;
+
+    const batchStages = await computeStagesForBugs(db, batch);
+    for (const [id, s] of batchStages) {
+      if (!options.stage || s === options.stage) {
+        stages.set(id, s);
+      }
+    }
+
+    if (stages.size >= options.limit) break;
+    if (batch.length < batchSize) break;
+
+    const last = batch[batch.length - 1];
+    currentCursor = { id: last.id, createdAt: (last as { createdAt?: Date }).createdAt ?? new Date(0) };
+  }
+
   return stages;
 }

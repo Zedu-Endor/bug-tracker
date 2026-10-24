@@ -302,3 +302,19 @@ describe("submitTestVerdict: the head commit it tested (#489)", () => {
     expect(db.testVerdict.create).not.toHaveBeenCalled();
   });
 });
+
+describe("test verdicts accept the readable issue number (#612)", () => {
+  it.each(["42", "ZE-42"])("looks %s up by number inside the agent's tenant and records the verdict", async (ref) => {
+    const result = await submitTestVerdict(reviewer("r1", "rob"), ref, good);
+
+    expect(db.bug.findFirst.mock.calls[0][0].where).toEqual({ number: 42, tenantId: "tenant_zedu", isDeleted: false });
+    expect(result).toMatchObject({ status: 201 });
+    expect(db.testVerdict.create.mock.calls[0][0].data).toMatchObject({ bugId: "bug1" });
+  });
+
+  it("is 404 when no issue in the tenant has that number", async () => {
+    db.bug.findFirst.mockResolvedValue(null);
+    expect(await submitTestVerdict(reviewer("r1", "rob"), "999", good)).toMatchObject({ status: 404 });
+    expect(db.testVerdict.create).not.toHaveBeenCalled();
+  });
+});

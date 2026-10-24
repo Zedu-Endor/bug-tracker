@@ -9,6 +9,7 @@ import {
   type ReviewedBug,
 } from "@/lib/agents/independence";
 import { hasLevel } from "@/lib/agents/levels";
+import { parseIssueRef } from "@/lib/issue-ref";
 import type { AgentContext } from "@/lib/agents/require-agent";
 import { publish } from "@/lib/agent-api/events";
 import { handleTestVerdictSubmitted } from "@/lib/agent-api/review-offer";
@@ -107,7 +108,7 @@ export type SubmitTestVerdictResult =
 
 export async function submitTestVerdict(
   agent: AgentContext,
-  bugId: string,
+  issueRef: string,
   rawBody: unknown,
 ): Promise<SubmitTestVerdictResult> {
   if (!hasLevel(agent.level, "reviewer")) {
@@ -130,8 +131,10 @@ export async function submitTestVerdict(
   }
   const body = parsed.data;
 
+  // #612: the path may be the readable number (`123`, `ZE-123`) or the id, as on reads.
+  const ref = parseIssueRef(issueRef);
   const bug = await prisma.bug.findFirst({
-    where: { id: bugId, tenantId: agent.tenantId, isDeleted: false },
+    where: { ...(ref.kind === "number" ? { number: ref.number } : { id: ref.id }), tenantId: agent.tenantId, isDeleted: false },
     select: reviewedBugSelect,
   });
   if (!bug) return { status: 404, error: "not_found", message: "No such issue in this agent's tenant." };

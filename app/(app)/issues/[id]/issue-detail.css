@@ -1,19 +1,372 @@
 /* Issue-lane only: security / merge-request rose tokens (not in shell globals). */
 .issue-detail-scope {
-  --issue-sec-bg: #fdecef;
-  --issue-sec-fg: #b4233f;
+  /* design.MD semantic mappings — light. Scoped so the rest of the app keeps
+     its existing palette and only the issue detail page adopts the handoff. */
+  --issue-sec-bg: #fff0f0;
+  --issue-sec-fg: #c5222a;
+
+  --zk-bg: #f5f5f6;
+  --zk-surface: #fefefe;
+  --zk-text: #17191d;
+  --zk-text2: #697181;
+  --zk-muted: #858a97;
+  --zk-border: #e8e8ea;
+  --zk-divider: #e8e8ea;
+  --zk-tint: #eef2ff;
+  --zk-chip: #f2f2f3;
+  --zk-seg: #f2f2f3;
+  --zk-accent: #2447cf;
+  --zk-ok-bg: #ecfdf3;
+  --zk-ok-fg: #067647;
+  --zk-bad-bg: #fff0f0;
+  --zk-bad-fg: #c5222a;
+  --zk-bad-bd: #ffdada;
+  --zk-bad-soft: #fff0f0;
+  --zk-warn-bg: #fff7ed;
+  --zk-warn-fg: #b94a10;
+  --zk-warn-bd: #ffe7cf;
+  --zk-info-bg: #eef2ff;
+  --zk-info-fg: #2447cf;
+
+  /* The shared Button/VoteButton use this literal token. Re-point it to the
+     handoff's primary blue inside the detail lane only. */
+  --color-electric-blue: #2f5bec;
+  --color-electric-blue-strong: #2f5bec;
+  --card: #fefefe;
+
+  font-family: var(--font-inter), var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  color: var(--zk-text);
 }
 
 @media screen and (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .issue-detail-scope {
-    --issue-sec-bg: #3a1424;
-    --issue-sec-fg: #f9a8c0;
+    --issue-sec-bg: #c5222a;
+    --issue-sec-fg: #ffdada;
+
+    --zk-bg: #111216;
+    --zk-surface: #17191d;
+    --zk-text: #f5f5f6;
+    --zk-text2: #d7d8dc;
+    --zk-muted: #a3a6b0;
+    --zk-border: #444a55;
+    --zk-divider: #282c33;
+    --zk-tint: #172b7a;
+    --zk-chip: #282c33;
+    --zk-seg: #282c33;
+    --zk-accent: #91acff;
+    --zk-ok-bg: #067647;
+    --zk-ok-fg: #d1fadf;
+    --zk-bad-bg: #c5222a;
+    --zk-bad-fg: #ffdada;
+    --zk-bad-bd: #7f2a2e;
+    --zk-bad-soft: #2a1416;
+    --zk-warn-bg: #b94a10;
+    --zk-warn-fg: #ffe7cf;
+    --zk-warn-bd: #7a3a10;
+    --zk-info-bg: #172b7a;
+    --zk-info-fg: #bdccff;
+
+    --card: #17191d;
   }
 }
 
 @media screen {
   :root[data-theme="dark"] .issue-detail-scope {
-    --issue-sec-bg: #3a1424;
-    --issue-sec-fg: #f9a8c0;
+    --issue-sec-bg: #c5222a;
+    --issue-sec-fg: #ffdada;
+
+    --zk-bg: #111216;
+    --zk-surface: #17191d;
+    --zk-text: #f5f5f6;
+    --zk-text2: #d7d8dc;
+    --zk-muted: #a3a6b0;
+    --zk-border: #444a55;
+    --zk-divider: #282c33;
+    --zk-tint: #172b7a;
+    --zk-chip: #282c33;
+    --zk-seg: #282c33;
+    --zk-accent: #91acff;
+    --zk-ok-bg: #067647;
+    --zk-ok-fg: #d1fadf;
+    --zk-bad-bg: #c5222a;
+    --zk-bad-fg: #ffdada;
+    --zk-bad-bd: #7f2a2e;
+    --zk-bad-soft: #2a1416;
+    --zk-warn-bg: #b94a10;
+    --zk-warn-fg: #ffe7cf;
+    --zk-warn-bd: #7a3a10;
+    --zk-info-bg: #172b7a;
+    --zk-info-fg: #bdccff;
+
+    --card: #17191d;
   }
 }
+
+/* Handoff radii: cards are xl (16px), nested rows are lg (12px). The detail
+   lane previously mixed 20px and 14px; normalise only inside this scope. */
+.issue-detail-scope [class*="rounded-[20px]"] {
+  border-radius: 1rem;
+}
+
+.issue-detail-scope [class*="rounded-[14px]"] {
+  border-radius: 0.75rem;
+}
+
+/*
+ * One broad reading surface (design.MD §5). The main column is the 24px
+ * panel; its direct children become flat sections separated by hairlines
+ * instead of a stack of floating cards.
+ */
+.issue-detail-scope .issue-detail-body > * {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 1.25rem 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .issue-detail-scope .issue-detail-body > * {
+    padding: 1.5rem;
+  }
+}
+
+.issue-detail-scope .issue-detail-body > * + * {
+  border-top: 1px solid var(--zk-border);
+}
+
+.issue-detail-scope .issue-detail-body > .issue-danger-zone {
+  background: var(--zk-bad-soft);
+}
+
+/* The conversation is already inside a flat section; drop its nested card. */
+.issue-detail-scope .issue-detail-body .issue-flat-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+/* Comment rows read as a list on the panel, not as cards inside a card. */
+.issue-detail-scope .issue-detail-body #conversation li > article {
+  border-width: 0 0 1px;
+  border-color: var(--zk-border);
+  border-radius: 0;
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.issue-detail-scope .issue-detail-body #conversation li:last-child > article {
+  border-bottom-width: 0;
+}
+
+/* Markdown body: the shared renderer uses the shell's slate/teal ramp. Re-map
+   it to the handoff palette so code, links and rules read correctly in both
+   themes. */
+.issue-detail-scope .rich-text {
+  color: var(--zk-text);
+}
+
+.issue-detail-scope .rich-text a {
+  color: var(--zk-accent);
+}
+
+.issue-detail-scope .rich-text :not(pre) > code {
+  background: var(--zk-chip);
+  color: var(--zk-text);
+}
+
+.issue-detail-scope .rich-text pre {
+  border: 1px solid var(--zk-border);
+  background: var(--zk-chip);
+  color: var(--zk-text);
+}
+
+.issue-detail-scope .rich-text pre code {
+  color: inherit;
+}
+
+.issue-detail-scope .rich-text del {
+  color: var(--zk-muted);
+}
+
+/* A few shared components still use literal slate/status utilities. Re-point
+   only the text tones used inside the detail lane; filled danger controls keep
+   their white labels. */
+.issue-detail-scope .text-slate-800,
+.issue-detail-scope .text-slate-700 {
+  color: var(--zk-text);
+}
+
+.issue-detail-scope .text-slate-600,
+.issue-detail-scope .text-slate-500 {
+  color: var(--zk-text2);
+}
+
+.issue-detail-scope .text-slate-400 {
+  color: var(--zk-muted);
+}
+
+.issue-detail-scope .text-red-700,
+.issue-detail-scope .text-red-600 {
+  color: var(--zk-bad-fg);
+}
+
+.issue-detail-scope .text-emerald-600 {
+  color: var(--zk-ok-fg);
+}
+
+.issue-detail-scope .text-amber-700 {
+  color: var(--zk-warn-fg);
+}
+
+.issue-detail-scope .text-teal-700 {
+  color: var(--zk-accent);
+}
+
+.issue-detail-scope .border-slate-300,
+.issue-detail-scope .border-slate-200 {
+  border-color: var(--zk-border);
+}
+
+.issue-detail-scope .bg-slate-50,
+.issue-detail-scope .bg-slate-100 {
+  background-color: var(--zk-chip);
+}
+
+/* Filled danger controls keep white labels. The shared `red-600` token is
+   remapped lighter in dark mode (it is designed for text on dark surfaces),
+   which drops white below AA on a filled button; use the handoff's deep red
+   for the solid fill in both themes instead. */
+.issue-detail-scope .bg-red-600 {
+  background-color: #c5222a;
+}
+
+.issue-detail-scope .hover\:bg-red-700:hover {
+  background-color: #a61b24;
+}
+
+/* The handoff requires a visible focus ring on every interactive control.
+   Components that already draw a ring keep it; this is the fallback for the
+   plain links, summaries and toolbar buttons inside the detail lane. */
+.issue-detail-scope :where(a, button, input, textarea, select, summary, [role="tab"]):focus-visible {
+  outline: 2px solid var(--zk-accent);
+  outline-offset: 2px;
+}
+
+/* Approved detail prototype: one reading surface and an unboxed metadata rail. */
+.issue-detail-page{background:var(--zk-surface);border-radius:28px;padding:32px;gap:24px}
+.issue-detail-grid{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:32px;align-items:start}
+.issue-detail-main{min-width:0}
+.issue-heading{padding:0 0 30px}
+.issue-heading-line{display:block;min-width:0}
+.issue-back-link{display:inline-flex;gap:7px;align-items:center;color:var(--zk-text2);font-size:14px;white-space:nowrap;min-height:36px;margin-bottom:18px}
+.issue-back-link:hover{color:var(--zk-accent)}
+.issue-heading-number{font-size:inherit;line-height:inherit;color:var(--zk-muted);font-weight:inherit;font-variant-numeric:tabular-nums}
+.issue-heading-title{font-size:26px;line-height:1.4;letter-spacing:-.025em;font-weight:600;color:var(--zk-text);margin:0;overflow-wrap:anywhere;min-width:0}
+.issue-heading-meta{margin-top:14px;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.issue-heading-chips{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.issue-heading-chips>span{font-size:12px;font-weight:500;padding:4px 9px;border-radius:6px;border:0}
+.issue-taxonomy{background:var(--zk-chip);color:var(--zk-text2)}
+.issue-opened{font-size:13px;line-height:1.7;color:var(--zk-text2);margin:0}
+.issue-extra-details{position:relative;font-size:12px;color:var(--zk-text2)}
+.issue-extra-details summary{cursor:pointer;padding:4px 8px;list-style:none;border-radius:6px;background:var(--zk-chip)}
+.issue-extra-details>div{position:absolute;z-index:5;min-width:180px;display:grid;gap:8px;padding:14px;background:var(--zk-surface);border:1px solid var(--zk-border);border-radius:10px;box-shadow:0 8px 24px #17191d12}
+.issue-tablist{display:flex;gap:26px;border-bottom:1px solid var(--zk-border);overflow-x:auto;scrollbar-width:thin}
+.issue-content-tab{position:relative;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-size:14px;font-weight:500;color:var(--zk-text2);padding:13px 0 15px;min-height:46px;border-bottom:2px solid transparent}
+.issue-content-tab[aria-selected=true]{color:var(--zk-text);border-bottom-color:#2f5bec}
+.issue-content-tab:hover{color:var(--zk-accent)}
+.issue-tab-count{font-size:12px;font-variant-numeric:tabular-nums;color:var(--zk-text2)}
+.issue-tab-panel{padding-top:28px;min-width:0;scroll-margin-top:100px}
+.issue-tab-panel[hidden]{display:none}
+.issue-tab-panel>section,.issue-sidebar-proof>section,.issue-detail-aside>section{border:0;background:transparent;border-radius:0;padding:0}
+.issue-tab-panel>section+section{margin-top:28px;padding-top:24px;border-top:1px solid var(--zk-border)}
+.issue-tab-panel>section[aria-label=Description]>div:first-child{border:0;padding-bottom:0;align-items:baseline}
+.issue-tab-panel>section[aria-label=Description]>div:first-child h2{font-size:17px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--zk-text)}
+.issue-tab-panel>section[aria-label=Description] .rich-text{font-size:15px;line-height:1.85;color:var(--zk-text2)}
+.issue-tab-panel>section[aria-label=Description] .rich-text h2,.issue-tab-panel>section[aria-label=Description] .rich-text h3{font-size:15px;font-weight:600;color:var(--zk-text);margin-top:26px;margin-bottom:10px}
+.issue-tab-panel>section[aria-label=Description] .rich-text> :first-child{margin-top:0}
+.issue-tab-panel #conversation{border:0;padding:0;background:transparent;border-radius:0}
+.issue-tab-panel #conversation li>article{border-width:0 0 1px;border-color:var(--zk-border);border-radius:0;background:transparent;padding:22px 0}
+.issue-tab-panel #conversation li:last-child>article{border-bottom:0}
+.issue-tab-panel #conversation form{border-top:1px solid var(--zk-border);padding-top:22px}
+.issue-detail-aside{min-width:0;border-left:1px solid var(--zk-border);padding-left:26px;display:flex;flex-direction:column;gap:26px}
+.issue-sidebar-vote>div{width:100%}.issue-sidebar-vote button{width:100%;justify-content:center;border-radius:12px;box-shadow:none;min-height:44px;font-size:14px}
+.issue-sidebar-section h2,.issue-detail-aside>section>span:first-child{font-size:12px;font-weight:550;color:var(--zk-text2);text-transform:none;letter-spacing:0}
+.issue-detail-aside>section>span:first-child{display:none}
+.issue-detail-aside>section{gap:24px}
+.issue-detail-aside>section .h-px{display:none}
+.issue-detail-aside>section .text-xs{font-size:12px;color:var(--zk-text2)}
+.issue-detail-aside>section .text-sm{font-size:13px}
+.issue-detail-aside .issue-sidebar-section{border-top:1px solid var(--zk-border);padding-top:24px}
+.issue-sidebar-section h2{margin:0 0 10px}
+.issue-sidebar-section p{font-size:13px;line-height:1.8;color:var(--zk-text2);margin:8px 0}
+.issue-sidebar-proof>section{padding:0}.issue-sidebar-proof h2{font-size:12px}.issue-sidebar-proof a{font-size:12px;line-height:1.8}.issue-sidebar-proof button{font-size:11px}
+.issue-evidence-link{display:inline-flex;font-size:12px;line-height:1.7;color:var(--zk-accent);text-decoration:none;min-height:30px;align-items:center}
+.issue-evidence-link:hover{text-decoration:underline;text-underline-offset:3px}
+.issue-manage{border-top:1px solid var(--zk-border);padding-top:20px;font-size:13px}
+.issue-manage>summary{display:flex;align-items:center;justify-content:space-between;list-style:none;cursor:pointer;color:var(--zk-text2);min-height:36px}
+.issue-manage[open]>summary{margin-bottom:14px}.issue-manage[open]>summary svg{transform:rotate(180deg)}
+.issue-manage>form,.issue-manage>section{border:0;padding:16px 0 0;background:transparent;box-shadow:none}.issue-secondary-actions{display:flex;gap:10px;flex-wrap:wrap}.issue-secondary-actions button,.issue-secondary-actions a{font-size:12px}
+.issue-manage .issue-danger-zone{border-top:1px solid var(--zk-border);margin-top:20px;padding:20px 0 0}.issue-manage .issue-danger-zone>div{flex-direction:column;align-items:start}
+.issue-detail-page ::selection{background:#dce5ff;color:#17191d}.issue-detail-page input,.issue-detail-page textarea{caret-color:var(--zk-accent)}
+@media(max-width:1100px){.issue-detail-grid{grid-template-columns:minmax(0,1fr) 210px;gap:24px}.issue-detail-page{padding:26px}.issue-heading-line{gap:10px}.issue-heading-title{font-size:23px}.issue-back-link{font-size:11px}.issue-detail-aside{padding-left:22px}.issue-tablist{gap:20px}.issue-content-tab{font-size:13px}}
+@media(max-width:850px){.issue-detail-grid{grid-template-columns:minmax(0,1fr)}.issue-detail-aside{display:grid;grid-template-columns:1fr 1fr;border-left:0;border-top:1px solid var(--zk-border);padding:24px 0 0;gap:24px}.issue-detail-aside>section,.issue-detail-aside .issue-sidebar-section{border:0;padding:0}.issue-sidebar-vote,.issue-manage{grid-column:1/-1}.issue-heading-title{font-size:24px}}
+@media(max-width:540px){.issue-detail-page{padding:20px 18px;border-radius:22px}.issue-heading-line{display:block}.issue-back-link{min-height:32px}.issue-back-link>span{display:inline}.issue-heading-title{font-size:20px;line-height:1.5}.issue-heading-number{font-size:13px}.issue-heading-meta{margin-top:18px}.issue-opened{font-size:12px}.issue-tablist{gap:21px}.issue-content-tab{font-size:13px}.issue-tab-panel{padding-top:22px}.issue-heading{padding-bottom:16px}.issue-detail-aside{gap:22px}.issue-detail-aside>section{min-width:0}.issue-detail-aside a{overflow-wrap:anywhere}}
+@media(prefers-reduced-motion:reduce){.issue-detail-page *{scroll-behavior:auto;transition:none!important;animation:none!important}}
+
+/* Focused review refinements: compact title, clear boundary, overlay management. */
+.issue-detail-page{border:1px solid var(--zk-border);box-shadow:0 8px 28px #17191d0d}
+.issue-heading-row{display:flex;align-items:baseline;gap:18px;min-width:0}
+.issue-heading-row>.issue-back-link{flex:none;margin:0}
+.issue-heading-line{flex:1;min-width:0}
+.issue-heading-line>summary{cursor:pointer;list-style:none;min-width:0}
+.issue-heading-line>summary::-webkit-details-marker{display:none}
+.issue-heading-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.issue-full-title{margin:10px 0 0;font-size:16px;line-height:1.65;color:var(--zk-text2);overflow-wrap:anywhere}
+.issue-actions-trigger{display:flex;justify-content:space-between;align-items:center;min-height:40px;width:100%;color:var(--zk-text2);cursor:pointer}
+.issue-actions-dialog{position:fixed;margin:auto;width:min(680px,calc(100vw - 32px));max-height:85dvh;overflow:auto;border:1px solid var(--zk-border);border-radius:20px;padding:26px;background:var(--zk-surface);color:var(--zk-text);box-shadow:0 20px 70px #0003}
+.issue-actions-dialog::backdrop{background:#10182866}
+.issue-actions-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:12px}
+.issue-actions-heading h2{font-size:20px;font-weight:600}.issue-actions-heading button{min-height:36px;color:var(--zk-accent)}
+.issue-actions-help{font-size:13px;line-height:1.7;color:var(--zk-text2);margin-bottom:24px}
+.issue-actions-dialog>form,.issue-actions-dialog>section{margin-top:24px;padding:20px 0 0;border-top:1px solid var(--zk-border);background:transparent;box-shadow:none}
+.issue-actions-dialog form .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.issue-sidebar-proof a{display:flex;gap:10px;padding:12px;border:1px solid var(--zk-border);border-radius:10px;background:var(--zk-canvas);color:var(--zk-text);font-size:13px}
+@media(max-width:540px){.issue-heading-row{gap:10px}.issue-heading-row>.issue-back-link span{display:none}.issue-heading-row>.issue-back-link{font-size:13px}.issue-actions-dialog{padding:20px}.issue-actions-dialog form .grid{grid-template-columns:minmax(0,1fr)}}
+
+.issue-heading-line>summary{display:flex;align-items:center;gap:8px}.issue-heading-title{flex:1;min-width:0}.issue-title-expand{flex:none;color:var(--zk-text2)}.issue-heading-line[open] .issue-title-expand{transform:rotate(180deg)}.issue-evidence-link{gap:7px}
+
+/* Final spacing pass: preserve the incumbent people and conversation boundaries. */
+.issue-detail-aside>section .h-px{display:block;width:100%;margin:0;background:var(--zk-border)}
+.issue-detail-aside>section>div{min-width:0}
+.issue-detail-aside>section button{border:1px solid var(--zk-border);border-radius:8px;padding:6px 10px;min-height:32px;background:var(--zk-surface);white-space:normal;text-align:left}
+.issue-tab-panel #conversation li>article,.issue-tab-panel #conversation li:last-child>article{border:1px solid var(--zk-border);border-radius:14px;background:var(--zk-surface);padding:20px;margin-bottom:16px}
+.issue-tab-panel #conversation li>article .rich-text{overflow-wrap:anywhere}
+.issue-sidebar-proof a{align-items:center;min-width:0;padding:14px;gap:12px}
+.issue-sidebar-proof a>svg{width:20px;height:20px;color:var(--zk-accent);flex-shrink:0}
+.issue-pr-card-copy{display:flex;flex-direction:column;min-width:0;gap:4px}
+.issue-pr-card-copy strong{font-size:14px;font-weight:600;overflow-wrap:anywhere;line-height:1.5}
+.issue-pr-card-copy>span{font-size:12px;font-weight:400;color:var(--zk-text2);overflow-wrap:anywhere}
+.issue-actions-dialog{font-size:14px;line-height:1.6}
+.issue-actions-dialog form{display:flex;flex-direction:column;gap:18px}
+.issue-actions-dialog form>.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.issue-actions-dialog label{display:block;margin-bottom:7px;line-height:1.4}
+.issue-actions-dialog select,.issue-actions-dialog input{min-width:0;width:100%;min-height:44px;padding:10px 12px;font-size:14px;line-height:1.4}
+.issue-actions-dialog .issue-secondary-actions{gap:12px}.issue-actions-dialog .issue-secondary-actions button{min-height:38px}
+.issue-actions-dialog .issue-danger-zone>div{display:flex;flex-direction:column;align-items:flex-start;gap:14px}
+.issue-actions-dialog .issue-danger-zone p{max-width:60ch;line-height:1.7}
+@media(max-width:540px){.issue-actions-dialog form>.grid{grid-template-columns:minmax(0,1fr)}.issue-tab-panel #conversation li>article{padding:16px}.issue-tablist{gap:18px}.issue-detail-aside{grid-template-columns:minmax(0,1fr)}}
+
+.issue-pr-card-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:var(--zk-tint);color:var(--zk-accent);flex-shrink:0}
+
+/* Match the approved anchored action popover, with no page-wide backdrop. */
+.issue-manage{anchor-name:--issue-actions-anchor}
+.issue-actions-popover{position:fixed;position-anchor:--issue-actions-anchor;inset:auto;bottom:anchor(top);right:anchor(right);margin:0 0 8px;padding:10px;width:230px;max-width:calc(100vw - 24px);border:1px solid var(--zk-border);border-radius:16px;background:var(--zk-surface);color:var(--zk-text);box-shadow:0 12px 32px #17191d12}
+.issue-actions-popover::backdrop{background:transparent}
+.issue-actions-popover h2{font-size:13px;line-height:1.5;font-weight:600;margin:0;padding:8px 10px 12px}
+.issue-actions-popover>button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:40px;padding:10px;border:0;border-radius:10px;background:transparent;font-size:12px;font-weight:400;line-height:1.5;text-align:left;color:var(--zk-text);cursor:pointer}
+.issue-actions-popover>button:hover,.issue-actions-popover>button:focus-visible{background:var(--zk-chip)}
+.issue-actions-popover>button>svg{flex-shrink:0}
+@supports not (bottom:anchor(top)){.issue-actions-popover{right:24px;bottom:70px}}

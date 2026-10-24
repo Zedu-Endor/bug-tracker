@@ -13,6 +13,7 @@ export type EditableProofLinksProps = {
   /** The issue's attached pull request, shown here even when it is not in the link list. */
   linkedPullRequestUrl?: string | null;
   canEdit: boolean;
+  cardPresentation?: boolean;
 };
 
 function ExternalLinkIcon({ className = "h-4 w-4 shrink-0" }: { className?: string }) {
@@ -35,7 +36,7 @@ function ExternalLinkIcon({ className = "h-4 w-4 shrink-0" }: { className?: stri
 }
 
 /** The issue's proof links, which the reporter or an admin can change after filing (#737). */
-export function EditableProofLinks({ bugId, initialLinks, linkedPullRequestUrl, canEdit }: EditableProofLinksProps) {
+export function EditableProofLinks({ bugId, initialLinks, linkedPullRequestUrl, canEdit, cardPresentation = false }: EditableProofLinksProps) {
   const router = useRouter();
   const links = linkedPullRequestUrl && !initialLinks.includes(linkedPullRequestUrl)
     ? [linkedPullRequestUrl, ...initialLinks]
@@ -79,7 +80,7 @@ export function EditableProofLinks({ bugId, initialLinks, linkedPullRequestUrl, 
   return (
     <section className="rounded-xl border border-zk-border bg-zk-surface p-4 sm:p-6">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zk-muted">
+        <h2 className="text-xs font-semibold text-zk-muted">
           GitHub PR
         </h2>
         {canEdit && !isEditing ? (
@@ -144,8 +145,9 @@ export function EditableProofLinks({ bugId, initialLinks, linkedPullRequestUrl, 
                 title={url}
                 className="inline-flex items-center gap-1.5 break-all text-sm font-medium text-zk-accent hover:underline"
               >
-                <ExternalLinkIcon className="h-4 w-4 shrink-0 text-zk-muted" />
-                <span>{formatProofLinkLabel(url)}</span>
+                {cardPresentation ? <span className="issue-pr-card-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M6 9v12M13 6h3a2 2 0 0 1 2 2v7"/></svg></span> : <ExternalLinkIcon className="h-4 w-4 shrink-0 text-zk-muted" />}
+                {cardPresentation ? <span className="issue-pr-card-copy"><strong>{(() => { try { const parts = new URL(url).pathname.split("/").filter(Boolean); return parts[2] === "pull" ? `${parts[1]} #${parts[3]}` : formatProofLinkLabel(url); } catch { return formatProofLinkLabel(url); } })()}</strong><span>{(() => { try { return `${new URL(url).pathname.split("/").filter(Boolean)[0]} · GitHub`; } catch { return "GitHub"; } })()}</span></span> : <span>{formatProofLinkLabel(url)}</span>}
+                {cardPresentation ? <ExternalLinkIcon className="h-3.5 w-3.5 shrink-0 text-zk-muted ml-auto" /> : null}
               </a>
             </li>
           ))}

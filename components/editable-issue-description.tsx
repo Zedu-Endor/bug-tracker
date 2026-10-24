@@ -19,6 +19,7 @@ export type EditableIssueDescriptionProps = {
   canEdit: boolean;
   users: { id: string; name: string }[];
   children?: ReactNode;
+  expandedByDefault?: boolean;
   /** When the title or description was last edited (#303); null if never. */
   lastEditedAt?: Date | null;
   historyHref?: string;
@@ -36,6 +37,7 @@ export function EditableIssueDescription({
   lastEditedAt = null,
   historyHref,
   createdAt = null,
+  expandedByDefault = false,
 }: EditableIssueDescriptionProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -83,9 +85,9 @@ export function EditableIssueDescription({
 
   return (
     <section className="flex flex-col gap-3.5 rounded-[20px] border border-zk-border bg-zk-surface p-5 sm:p-6" aria-label="Description">
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-zk-divider pb-3">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-zk-muted">
+          <h2 className="text-xs font-semibold text-zk-muted">
             {isEditing ? "Edit issue" : "Description"}
           </h2>
           {!isEditing && lastEditedAt && historyHref ? (
@@ -194,8 +196,8 @@ export function EditableIssueDescription({
           </div>
         </form>
       ) : (
-        <div className="max-w-3xl text-[15px] leading-relaxed text-zk-text2">
-          <ExpandableText maxLines={6} expandText="View more" collapseText="View less">
+        <div className="max-w-3xl text-[15px] leading-[1.7] text-zk-text">
+          <ExpandableText maxLines={6} expandText="View more" collapseText="View less" initiallyExpanded={expandedByDefault}>
             <RichText
               content={initialDescription}
               renderMentions={(text) => <MentionText text={text} users={users} />}

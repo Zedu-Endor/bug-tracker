@@ -447,6 +447,7 @@ export function CommentThread({
             return (
               <button
                 key={tab.id}
+                data-comment-filter={tab.id}
                 type="button"
                 aria-pressed={on}
                 onClick={() => setTypeFilter(tab.id)}

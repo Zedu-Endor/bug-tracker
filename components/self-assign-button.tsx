@@ -11,6 +11,7 @@ type SelfAssignButtonProps = {
   variant?: "primary" | "secondary" | "ghost";
   size?: "xs" | "sm" | "default";
   className?: string;
+  label?: string;
 };
 
 function AlertIcon({ className = "h-3.5 w-3.5 shrink-0" }: { className?: string }) {
@@ -37,6 +38,7 @@ export function SelfAssignButton({
   variant = "secondary",
   size = "sm",
   className = "",
+  label,
 }: SelfAssignButtonProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +108,7 @@ export function SelfAssignButton({
       >
         {pending ? (
           isAssignedToMe ? "Unassigning…" : "Assigning…"
-        ) : isAssignedToMe ? (
+        ) : label ? label : isAssignedToMe ? (
           <>
             <span aria-hidden="true">✓</span> Assigned to you · Unassign
           </>

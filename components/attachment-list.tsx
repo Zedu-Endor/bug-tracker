@@ -21,21 +21,27 @@ export function AttachmentList({ attachments }: { attachments: AttachmentView[] 
         <ul className="flex flex-wrap gap-2">
           {images.map((a) => (
             <li key={a.id}>
-              <a
-                href={href(a.id)}
-                target="_blank"
-                rel="noopener"
-                className="block overflow-hidden rounded-lg border border-zk-border bg-zk-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong"
-                title={`${a.filename} (${formatBytes(a.size)})`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- served by our own auth-checked route */}
-                <img
-                  src={href(a.id)}
-                  alt={a.filename}
-                  loading="lazy"
-                  className="h-28 w-auto max-w-[16rem] object-contain"
-                />
-              </a>
+              <figure className="overflow-hidden rounded-xl border border-zk-border bg-zk-surface">
+                <a
+                  href={href(a.id)}
+                  target="_blank"
+                  rel="noopener"
+                  className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong"
+                  title={`${a.filename} (${formatBytes(a.size)})`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- served by our own auth-checked route */}
+                  <img
+                    src={href(a.id)}
+                    alt={a.filename}
+                    loading="lazy"
+                    className="h-32 w-48 object-cover object-top"
+                  />
+                </a>
+                <figcaption className="flex w-48 items-center justify-between gap-2 border-t border-zk-divider px-3 py-2 text-xs">
+                  <span className="truncate font-medium text-zk-text">{a.filename}</span>
+                  <span className="shrink-0 text-zk-muted">{formatBytes(a.size)}</span>
+                </figcaption>
+              </figure>
             </li>
           ))}
         </ul>

@@ -14,26 +14,27 @@ export const issueSectionLabelClass =
 export const issueAccentLinkClass =
   "font-semibold text-zk-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong focus-visible:ring-offset-2";
 
-/** Status language from the redesign handoff (overrides shared label classes). */
+/** Status language from the redesign handoff. Colour stays in the dot/text,
+    not in a filled pill, so the title keeps the hierarchy. */
 export const issueStatusChipClass: Record<Status, string> = {
-  open: "bg-zk-info-bg text-zk-info-fg",
-  in_progress: "bg-zk-info-bg text-zk-info-fg",
-  resolved: "bg-zk-ok-bg text-zk-ok-fg",
-  closed: "bg-zk-chip text-zk-text2",
+  open: "text-zk-info-fg",
+  in_progress: "text-zk-info-fg",
+  resolved: "text-zk-ok-fg",
+  closed: "text-zk-text2",
 };
 
 export const issueSeverityChipClass: Record<Severity, string> = {
-  low: "bg-zk-chip text-zk-text2",
-  medium: "border border-zk-warn-bd bg-zk-warn-bg text-zk-warn-fg",
-  high: "bg-zk-bad-bg text-zk-bad-fg",
-  critical: "border border-zk-bad-bd bg-zk-bad-bg text-zk-bad-fg",
+  low: "text-zk-text2",
+  medium: "text-zk-warn-fg",
+  high: "text-zk-bad-fg",
+  critical: "text-zk-bad-fg",
 };
 
 export const issueStageChipClass: Record<IssueStage, string> = {
-  reported: "bg-zk-chip text-zk-text2",
-  confirmed: "bg-zk-ok-bg text-zk-ok-fg",
-  ready: "bg-zk-info-bg text-zk-info-fg",
+  reported: "text-zk-text2",
+  confirmed: "text-zk-ok-fg",
+  ready: "text-zk-info-fg",
 };
 
 export const issueChipBaseClass =
-  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold";
+  "inline-flex items-center gap-1.5 rounded-full border border-zk-border bg-zk-surface px-2.5 py-1 text-[11px] font-medium";

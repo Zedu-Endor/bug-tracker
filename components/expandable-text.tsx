@@ -13,6 +13,7 @@ type ExpandableTextProps = {
   collapseText?: string;
   /** Additional CSS classes */
   className?: string;
+  initiallyExpanded?: boolean;
 };
 
 export function ExpandableText({
@@ -21,22 +22,44 @@ export function ExpandableText({
   expandText = "View more",
   collapseText = "View less",
   className,
+  initiallyExpanded = false,
 }: ExpandableTextProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initiallyExpanded);
   const [isTruncated, setIsTruncated] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const detailsId = useId();
 
-  // Check if content overflows the max lines
+  // Check if content overflows the max lines. Re-measure when the content,
+  // width, font or expansion state changes: the first measurement can run
+  // before webfonts settle, which made the same description render expanded
+  // on one load and collapsed on the next.
   useEffect(() => {
     const element = contentRef.current;
     if (!element) return;
 
-    const style = window.getComputedStyle(element);
-    const lineHeight = parseFloat(style.lineHeight);
-    const maxHeight = lineHeight * maxLines;
-    setIsTruncated(element.scrollHeight > maxHeight);
-  }, [maxLines]);
+    const measure = () => {
+      const style = window.getComputedStyle(element);
+      const lineHeight = parseFloat(style.lineHeight);
+      if (!Number.isFinite(lineHeight)) return;
+      const maxHeight = lineHeight * maxLines;
+      setIsTruncated(element.scrollHeight > maxHeight + 1);
+    };
+
+    measure();
+    let cancelled = false;
+    const safeMeasure = () => {
+      if (!cancelled) measure();
+    };
+    const observer = new ResizeObserver(safeMeasure);
+    observer.observe(element);
+    window.addEventListener("resize", safeMeasure);
+    void document.fonts?.ready.then(safeMeasure);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      window.removeEventListener("resize", safeMeasure);
+    };
+  }, [maxLines, children, isTruncated]);
 
   if (!isTruncated) {
     return (

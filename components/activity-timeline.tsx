@@ -34,11 +34,15 @@ const typeLabel: Record<ActivityType, string> = {
 export function ActivityTimeline({
   activities,
   totalCount,
+  expanded = false,
+  showConnector = true,
 }: {
   /** The newest entries, oldest first. May be fewer than `totalCount`. */
   activities: ActivityEntry[];
   /** Every entry on the issue, so the heading does not under-report. */
   totalCount?: number;
+  expanded?: boolean;
+  showConnector?: boolean;
 }) {
   const total = totalCount ?? activities.length;
   const trimmed = total > activities.length;
@@ -50,7 +54,7 @@ export function ActivityTimeline({
   if (activities.length === 0) {
     return (
       <section className="rounded-[20px] border border-zk-border bg-zk-surface p-5">
-        <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-zk-muted">
+        <h2 className="text-xs font-semibold text-zk-muted">
           Activity ({total})
         </h2>
         <p className="mt-1 text-xs text-zk-muted">
@@ -62,10 +66,10 @@ export function ActivityTimeline({
   }
   return (
     <section className="rounded-[20px] border border-zk-border bg-zk-surface p-5">
-      <details className="group">
+      <details className="group" open={expanded}>
         <summary className="cursor-pointer list-none select-none -m-1 rounded-md p-1 hover:bg-zk-chip/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-electric-blue-strong">
           <span className="flex items-center justify-between gap-2">
-            <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-zk-muted">
+            <h2 className="text-xs font-semibold text-zk-muted">
               Activity ({total})
             </h2>
             <span
@@ -82,15 +86,15 @@ export function ActivityTimeline({
               : ""}
           </p>
         </summary>
-        <ol className="relative mt-5 space-y-0 border-l border-zk-divider pl-4 sm:pl-5">
+        <ol className={`relative mt-5 space-y-0 ${showConnector ? "border-l border-zk-divider pl-4 sm:pl-5" : ""}`}>
           {activities.map((entry) => (
             <li key={entry.id} className="relative pb-5 last:pb-0">
-              <span
+              {showConnector ? <span
                 aria-hidden
                 className="absolute -left-[1.2rem] sm:-left-[1.45rem] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-zk-surface bg-electric-blue-strong"
-              />
+              /> : null}
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <span className="text-xs font-medium text-zk-muted">
                   {typeLabel[entry.type]}
                 </span>
                 <LocalTime
@@ -98,14 +102,14 @@ export function ActivityTimeline({
                   date={entry.createdAt}
                 />
               </div>
-              <p className="mt-1 text-sm text-zk-text2">
+              <div className="mt-1 text-sm text-zk-text2">
                 <span className="font-bold text-zk-text">
                   {entry.actor.name}
                 </span>{" "}
                 <ExpandableText maxLines={2} expandText="View more" collapseText="View less">
                   {entry.summary}
                 </ExpandableText>
-              </p>
+              </div>
               {entry.type === "status_changed" && activityNote(entry.metadata) ? (
                 <ExpandableText maxLines={3} expandText="View more" collapseText="View less">
                   <blockquote className="mt-1 whitespace-pre-wrap break-words border-l-[3px] border-zk-ok-fg/40 bg-zk-chip pl-3 text-sm text-zk-text2">

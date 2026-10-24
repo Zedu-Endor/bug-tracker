@@ -20,7 +20,7 @@ export function IssueBids({ bids, canAward }: { bids: OpenBid[]; canAward: boole
   return (
     <section className="rounded-[20px] border border-zk-border bg-zk-surface p-5" aria-labelledby="bids-heading">
       <div className="flex flex-col gap-1">
-        <h2 id="bids-heading" className="text-xs font-bold uppercase tracking-[0.08em] text-zk-muted">
+        <h2 id="bids-heading" className="text-xs font-semibold text-zk-muted">
           Bids · {bids.length}
         </h2>
         <p className="text-xs leading-relaxed text-zk-muted">

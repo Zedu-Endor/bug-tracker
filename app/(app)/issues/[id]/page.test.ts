@@ -150,7 +150,7 @@ describe("BugDetailPage conditional user query (#349)", () => {
     );
     // Find the header action bar container
     const headerActionBlockMatch = pageSourceFresh.match(
-      /<div className="flex shrink-0 flex-wrap items-center gap-2 self-start print:hidden">([\s\S]*?)<\/div>/,
+      /<header className="issue-heading">([\s\S]*?)<\/header>/,
     );
     expect(headerActionBlockMatch).toBeTruthy();
     const headerActionBlock = headerActionBlockMatch![1];
@@ -160,9 +160,9 @@ describe("BugDetailPage conditional user query (#349)", () => {
     expect(headerActionBlock).not.toContain("DeleteIssueButton");
     expect(headerActionBlock).not.toContain("RestoreIssueButton");
 
-    // Danger zone still retains DeleteIssueButton
-    expect(pageSourceFresh).toContain("Danger zone");
-    expect(pageSourceFresh).toMatch(/Danger zone[\s\S]*?<DeleteIssueButton/);
+    // The requested detail surface no longer includes the management form.
+    expect(pageSourceFresh).not.toContain("Danger zone");
+    expect(pageSourceFresh).not.toContain("<DeleteIssueButton");
   });
 
   it("does not render a Watch button or read the viewer's watch row (#417)", () => {

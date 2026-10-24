@@ -75,3 +75,32 @@ describe("workflowSettingsSchema (#595)", () => {
     expect(workflowSettingsSchema.safeParse({ ...valid, autoMerge: "true" }).success).toBe(false);
   });
 });
+
+describe("delivery window boundaries (#632)", () => {
+  const valid = { ...DEFAULT_PROJECT_WORKFLOW };
+
+  it("accepts the endpoints of the documented range", () => {
+    for (const deliveryMinutes of [
+      WORKFLOW_LIMITS.deliveryMinutes.min,
+      60,
+      WORKFLOW_LIMITS.deliveryMinutes.max,
+    ]) {
+      expect(workflowSettingsSchema.safeParse({ ...valid, deliveryMinutes }).success).toBe(true);
+    }
+  });
+
+  it("refuses zero, negative and above-maximum windows", () => {
+    for (const deliveryMinutes of [0, -1, WORKFLOW_LIMITS.deliveryMinutes.max + 1]) {
+      const result = workflowSettingsSchema.safeParse({ ...valid, deliveryMinutes });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it("falls back to the default for a missing or null stored window", () => {
+    expect(workflowValues({ deliveryMinutes: undefined }).deliveryMinutes).toBe(
+      DEFAULT_PROJECT_WORKFLOW.deliveryMinutes,
+    );
+    expect(workflowValues(null).deliveryMinutes).toBe(DEFAULT_PROJECT_WORKFLOW.deliveryMinutes);
+  });
+});
+

@@ -28,7 +28,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { updateProjectWorkflowAction } from "./workflow-actions";
-import { DEFAULT_PROJECT_WORKFLOW } from "@/lib/workflow-config";
+import { DEFAULT_PROJECT_WORKFLOW, WORKFLOW_LIMITS } from "@/lib/workflow-config";
 
 function form(values: Record<string, string | number | boolean> = {}) {
   const data = new FormData();
@@ -103,6 +103,61 @@ describe("updateProjectWorkflowAction (#595)", () => {
     });
     expect(invalidateWorkflow).toHaveBeenCalledWith("project-1");
     expect(revalidatePath).toHaveBeenCalledWith("/projects/web/settings");
+  });
+
+  it("saves an unrelated setting while delivery minutes sits at the cap (#632)", async () => {
+    findFirst.mockResolvedValue({
+      id: "project-1",
+      slug: "web",
+      workflow: { ...DEFAULT_PROJECT_WORKFLOW, deliveryMinutes: WORKFLOW_LIMITS.deliveryMinutes.max },
+    });
+    await expect(
+      updateProjectWorkflowAction(undefined, form({ deliveryMinutes: WORKFLOW_LIMITS.deliveryMinutes.max })),
+    ).resolves.toEqual({ ok: true });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        changes: { confirmationsNeeded: { from: 2, to: 3 } },
+      }),
+    });
+    expect(invalidateWorkflow).toHaveBeenCalledWith("project-1");
+  });
+
+  it("lets an admin lower a legacy value that is above the cap (#632)", async () => {
+    findFirst.mockResolvedValue({
+      id: "project-1",
+      slug: "web",
+      workflow: { ...DEFAULT_PROJECT_WORKFLOW, deliveryMinutes: 43200 },
+    });
+    await expect(
+      updateProjectWorkflowAction(
+        undefined,
+        form({ confirmationsNeeded: 2, deliveryMinutes: WORKFLOW_LIMITS.deliveryMinutes.max }),
+      ),
+    ).resolves.toEqual({ ok: true });
+    expect(upsert).toHaveBeenCalledWith({
+      where: { projectId: "project-1" },
+      update: expect.objectContaining({ deliveryMinutes: WORKFLOW_LIMITS.deliveryMinutes.max }),
+      create: expect.objectContaining({ deliveryMinutes: WORKFLOW_LIMITS.deliveryMinutes.max }),
+    });
+    expect(auditCreate.mock.calls[0][0].data.changes).toEqual({
+      deliveryMinutes: { from: 43200, to: WORKFLOW_LIMITS.deliveryMinutes.max },
+    });
+  });
+
+  it("rejects a delivery window above the cap before writing (#632)", async () => {
+    await expect(
+      updateProjectWorkflowAction(
+        undefined,
+        form({ deliveryMinutes: WORKFLOW_LIMITS.deliveryMinutes.max + 1 }),
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      fieldErrors: {
+        deliveryMinutes: expect.stringContaining(`at most ${WORKFLOW_LIMITS.deliveryMinutes.max}`),
+      },
+    });
+    expect(transaction).not.toHaveBeenCalled();
+    expect(invalidateWorkflow).not.toHaveBeenCalled();
   });
 
   it("does not audit or invalidate an unchanged save", async () => {

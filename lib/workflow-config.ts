@@ -37,8 +37,9 @@ export const DEFAULT_PROJECT_WORKFLOW: Readonly<ProjectWorkflowValues> = Object.
 /**
  * Explicit issue ranges are fixed: confirmations/verdicts 1–5, offer 30–600
  * seconds. The remaining settings had no documented limits, so these are
- * practical guardrails, not product rules. Positive values are enforced in the
- * database too; the upper bounds keep a typo from disabling a workflow.
+ * practical guardrails, not product rules. Every bound here is also a CHECK
+ * constraint on ProjectWorkflow (#632 aligned deliveryMinutes), and the upper
+ * bounds keep a typo from disabling a workflow.
  */
 export const WORKFLOW_LIMITS = {
   confirmationsNeeded: { min: 1, max: 5 },

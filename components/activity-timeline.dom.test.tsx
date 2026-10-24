@@ -3,9 +3,15 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
-import { ActivityTimeline, type ActivityEntry } from "./activity-timeline";
+import { ActivityTimeline, filterRedundantActivities, type ActivityEntry } from "./activity-timeline";
 
 let seq = 0;
+/**
+ * Factory helper for creating test activity entries with unique IDs.
+ *
+ * @param overrides - Partial overrides for activity entry properties.
+ * @returns A complete ActivityEntry test object.
+ */
 function entry(overrides: Partial<ActivityEntry> = {}): ActivityEntry {
   seq += 1;
   return {
@@ -62,5 +68,39 @@ describe("ActivityTimeline collapsed by default (#418)", () => {
 
     expect(container.querySelector("details")).toBeNull();
     expect(screen.getByText("No activity recorded yet.")).toBeVisible();
+  });
+
+  it("filters out repetitive consecutive activity entries within 5 minutes (#448)", () => {
+    const baseDate = new Date("2026-01-01T10:00:00.000Z");
+    const duplicateDate = new Date("2026-01-01T10:02:00.000Z");
+    const distinctDate = new Date("2026-01-01T10:10:00.000Z");
+
+    const entries: ActivityEntry[] = [
+      entry({
+        id: "act-1",
+        type: "edited",
+        summary: "Updated ticket metadata",
+        createdAt: baseDate,
+        actor: { name: "Bot" },
+      }),
+      entry({
+        id: "act-2",
+        type: "edited",
+        summary: "Updated ticket metadata",
+        createdAt: duplicateDate,
+        actor: { name: "Bot" },
+      }),
+      entry({
+        id: "act-3",
+        type: "edited",
+        summary: "Updated ticket metadata",
+        createdAt: distinctDate,
+        actor: { name: "Bot" },
+      }),
+    ];
+
+    const filtered = filterRedundantActivities(entries);
+    expect(filtered).toHaveLength(2);
+    expect(filtered.map((e) => e.id)).toEqual(["act-1", "act-3"]);
   });
 });

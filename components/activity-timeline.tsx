@@ -31,6 +31,42 @@ const typeLabel: Record<ActivityType, string> = {
   duplicate_changed: "Duplicate",
 };
 
+/**
+ * Filters out redundant consecutive activity log entries to declutter the timeline (#448).
+ * Repetitive automated touchpoints with the same type, actor, and summary within 5 minutes
+ * are deduplicated to ensure focus remains on significant state and discussion changes.
+ *
+ * @param entries - The raw list of activity entries.
+ * @returns The decluttered list of activity entries.
+ */
+export function filterRedundantActivities(entries: ActivityEntry[]): ActivityEntry[] {
+  const result: ActivityEntry[] = [];
+  for (const entry of entries) {
+    const prev = result[result.length - 1];
+    if (
+      prev &&
+      prev.type === entry.type &&
+      prev.actor.name === entry.actor.name &&
+      prev.summary === entry.summary &&
+      Math.abs(new Date(prev.createdAt).getTime() - new Date(entry.createdAt).getTime()) < 5 * 60 * 1000
+    ) {
+      continue;
+    }
+    result.push(entry);
+  }
+  return result;
+}
+
+/**
+ * Renders the collapsible read-only activity timeline for an issue (#418, #448).
+ * Redundant consecutive touchpoints are filtered to streamline presentation
+ * while preserving full audit history upon expansion.
+ *
+ * @param props - Properties containing activity entries and total count.
+ * @param props.activities - The newest activity entries, oldest first.
+ * @param props.totalCount - Optional total entry count on the issue.
+ * @returns The rendered activity timeline section element.
+ */
 export function ActivityTimeline({
   activities,
   totalCount,
@@ -40,6 +76,7 @@ export function ActivityTimeline({
   /** Every entry on the issue, so the heading does not under-report. */
   totalCount?: number;
 }) {
+  const filteredActivities = filterRedundantActivities(activities);
   const total = totalCount ?? activities.length;
   const trimmed = total > activities.length;
   // #418: collapse the read-only history by default so long activity lists
@@ -83,7 +120,7 @@ export function ActivityTimeline({
           </p>
         </summary>
         <ol className="relative mt-5 space-y-0 border-l border-zk-divider pl-4 sm:pl-5">
-          {activities.map((entry) => (
+          {filteredActivities.map((entry) => (
             <li key={entry.id} className="relative pb-5 last:pb-0">
               <span
                 aria-hidden
@@ -98,14 +135,14 @@ export function ActivityTimeline({
                   date={entry.createdAt}
                 />
               </div>
-              <p className="mt-1 text-sm text-zk-text2">
+              <div className="mt-1 text-sm text-zk-text2">
                 <span className="font-bold text-zk-text">
                   {entry.actor.name}
                 </span>{" "}
                 <ExpandableText maxLines={2} expandText="View more" collapseText="View less">
                   {entry.summary}
                 </ExpandableText>
-              </p>
+              </div>
               {entry.type === "status_changed" && activityNote(entry.metadata) ? (
                 <ExpandableText maxLines={3} expandText="View more" collapseText="View less">
                   <blockquote className="mt-1 whitespace-pre-wrap break-words border-l-[3px] border-zk-ok-fg/40 bg-zk-chip pl-3 text-sm text-zk-text2">

@@ -145,6 +145,36 @@ describe("auth rate limits (#207)", () => {
       expect(trustedProxyHops()).toBe(10);
     });
 
+    it("warns once when the hop count is implausibly high", async () => {
+      vi.resetModules();
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        vi.stubEnv("TRUSTED_PROXY_HOPS", "99");
+        const { trustedProxyHops } = await import("./rate-limit");
+        expect(trustedProxyHops()).toBe(10);
+        expect(trustedProxyHops()).toBe(10);
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+        expect(String(warnSpy.mock.calls[0][0])).toContain("TRUSTED_PROXY_HOPS=99");
+      } finally {
+        warnSpy.mockRestore();
+        vi.resetModules();
+      }
+    });
+
+    it("does not warn for normal hop counts", async () => {
+      vi.resetModules();
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        vi.stubEnv("TRUSTED_PROXY_HOPS", "2");
+        const { trustedProxyHops } = await import("./rate-limit");
+        expect(trustedProxyHops()).toBe(2);
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+        vi.resetModules();
+      }
+    });
+
     it("evaluates TRUSTED_PROXIES from right to left and stops at first untrusted IP (#675)", async () => {
       vi.stubEnv("TRUSTED_PROXIES", "10.0.0.1, 10.0.0.2, 192.168.1.0/24, loopback");
       const { clientIpFrom } = await import("./rate-limit");

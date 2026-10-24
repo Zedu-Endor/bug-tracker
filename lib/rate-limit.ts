@@ -163,12 +163,27 @@ function validIp(value: string | null | undefined): string | null {
  * How many proxies in front of the app append to `X-Forwarded-For` (#507).
  * Traefik (Coolify) and Vercel each add exactly one hop, so the default is 1.
  * 0 means there is no proxy and forwarding headers are not trusted at all.
+ * Values above 5 are honoured but warn once: an over-counted stack is the
+ * exploitable misconfiguration (#663) — with fewer real proxies appending
+ * than configured, forged left-side chain entries become selectable.
  */
 export function trustedProxyHops(): number {
   const raw = process.env.TRUSTED_PROXY_HOPS?.trim();
   if (!raw) return 1;
   const hops = Number.parseInt(raw, 10);
-  return Number.isFinite(hops) && hops >= 0 ? Math.min(hops, 10) : 1;
+  if (!Number.isFinite(hops) || hops < 0) return 1;
+  if (hops > 5) warnHighProxyHops(hops);
+  return Math.min(hops, 10);
+}
+
+let warnedHighProxyHops = false;
+
+function warnHighProxyHops(configured: number): void {
+  if (warnedHighProxyHops) return;
+  warnedHighProxyHops = true;
+  console.warn(
+    `[rate-limit] TRUSTED_PROXY_HOPS=${configured} is unusually high; set it to the exact number of proxies that append to X-Forwarded-For. If it is larger than the real proxy count, forged left-side chain entries can become selected as rate-limit keys (#663).`,
+  );
 }
 
 /**

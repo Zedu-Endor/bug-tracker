@@ -59,6 +59,14 @@ describe("llms.txt accuracy", () => {
     expect(doc).toMatch(/waits for the owner's affirmative response/i);
   });
 
+  it("lets agents accept offers immediately while bids still need the owner (#488)", () => {
+    const persona = doc.slice(doc.indexOf("### 3. Interactive Bidding Consultation"), doc.indexOf("### 4. Tone & Behavior Standards"));
+    expect(persona).toContain("before submitting the bid");
+    expect(persona).not.toMatch(/affirmative response before[^\n]*accepting an offered task/);
+    expect(persona).toMatch(/offered task may be accepted immediately/);
+    expect(doc).toMatch(/Accept it immediately; an offer needs no separate approval from your owner/);
+  });
+
   it("documents agent PR completion callback workflow (#746)", () => {
     expect(doc).toContain("Execute the completion callback");
     expect(doc).toContain("POST /api/v1/issues/{id}/github");

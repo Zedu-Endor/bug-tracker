@@ -16,8 +16,13 @@ vi.mock("@/lib/lookups", () => ({
   getIssueTypes: vi.fn().mockResolvedValue([]),
   getPlatforms: vi.fn().mockResolvedValue([]),
 }));
+vi.mock("@/lib/issue-stage", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/issue-stage")>()),
+  openIssueStages: vi.fn().mockResolvedValue(new Map()),
+}));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    membership: { findUnique: vi.fn().mockResolvedValue({ role: "member", tenant: { name: "Zedu" } }) },
     milestone: { findMany: vi.fn().mockResolvedValue([]) },
     projectArea: { findMany: vi.fn().mockResolvedValue([{ id: "area-web", name: "Frontend" }]) },
     bug: {
@@ -30,11 +35,13 @@ vi.mock("@/lib/prisma", () => ({
 import { auth } from "@/auth";
 import { requireUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { openIssueStages } from "@/lib/issue-stage";
 import { GET } from "./route";
 
 const authMock = vi.mocked(auth) as unknown as ReturnType<typeof vi.fn>;
 const requireUserMock = vi.mocked(requireUser) as unknown as ReturnType<typeof vi.fn>;
 const findManyBugs = vi.mocked(prisma.bug.findMany) as unknown as ReturnType<typeof vi.fn>;
+const openIssueStagesMock = vi.mocked(openIssueStages) as unknown as ReturnType<typeof vi.fn>;
 
 describe("GET /issues/export", () => {
   beforeEach(() => {
@@ -102,6 +109,49 @@ describe("GET /issues/export", () => {
     const res = await GET(new NextRequest("http://localhost:3000/issues/export"));
     await res.text();
     expect(findManyBugs.mock.calls[0][0].where).toMatchObject({ tenantId: "tenant-zedu" });
+  });
+
+  it("hides resolved issues by default (#625)", async () => {
+    const res = await GET(new NextRequest("http://localhost:3000/issues/export"));
+    await res.text();
+    expect(findManyBugs.mock.calls[0][0].where).toMatchObject({
+      status: { in: ["open", "in_progress"] },
+    });
+  });
+
+  it("does not hide resolved issues when ?resolved=1 is passed (#625)", async () => {
+    const res = await GET(new NextRequest("http://localhost:3000/issues/export?resolved=1"));
+    await res.text();
+    expect(findManyBugs.mock.calls[0][0].where.status).toBeUndefined();
+  });
+
+  it("widens export to all projects when ?project=all is passed (#625)", async () => {
+    const res = await GET(new NextRequest("http://localhost:3000/issues/export?project=all"));
+    await res.text();
+    const where = findManyBugs.mock.calls[0][0].where;
+    expect(where.tenantId).toBe("tenant-zedu");
+    expect(where.projectId).toBeUndefined();
+  });
+
+  it("filters by stage using openIssueStages when ?stage=ready is passed (#625)", async () => {
+    openIssueStagesMock.mockResolvedValueOnce(
+      new Map([
+        ["bug-1", "ready"],
+        ["bug-2", "reported"],
+      ]),
+    );
+    const res = await GET(new NextRequest("http://localhost:3000/issues/export?stage=ready"));
+    await res.text();
+    expect(openIssueStagesMock).toHaveBeenCalled();
+    const where = findManyBugs.mock.calls[0][0].where;
+    expect(where.id).toEqual({ in: ["bug-1"] });
+  });
+
+  it("includes number in search clause when ?q=42 is queried (#625)", async () => {
+    const res = await GET(new NextRequest("http://localhost:3000/issues/export?q=42"));
+    await res.text();
+    const where = findManyBugs.mock.calls[0][0].where;
+    expect(where.OR).toContainEqual({ number: 42 });
   });
 });
 

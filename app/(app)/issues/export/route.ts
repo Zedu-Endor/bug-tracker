@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { bugInTenant, currentTenantIdFor } from "@/lib/tenant-context";
 import { activeProjectIdFor } from "@/lib/project-context";
@@ -8,7 +9,9 @@ import { requireUser } from "@/lib/auth-helpers";
 import { canDeleteTicket } from "@/lib/ticket-deletion";
 import { currentTenantAccess } from "@/lib/tenant-access";
 import { getBugOrderBy } from "@/lib/issues-sort";
-import { parseBugListFilters, type RawParams } from "@/lib/issue-list-filters";
+import { parseBugListFilters, PROJECT_ALL_PARAM, showsAllProjects, type RawParams } from "@/lib/issue-list-filters";
+import { openIssueStages, parseIssueStageView } from "@/lib/issue-stage";
+import { toSingleQueryParam } from "@/lib/search";
 import { CSV_EOL, csvRow } from "@/lib/csv";
 import { severityLabel, statusLabel } from "@/lib/labels";
 
@@ -40,11 +43,24 @@ const COLUMNS = [
 
 type ExportFormat = "csv" | "json";
 
-/** `?format=json` gives JSON (#664); anything else keeps the CSV default. */
+/**
+ * Resolves the export file format from the search parameters.
+ *
+ * @param params - The URL search parameters.
+ * @returns The requested export format, defaulting to CSV.
+ */
 function exportFormat(params: URLSearchParams): ExportFormat {
   return params.get("format") === "json" ? "json" : "csv";
 }
 
+/**
+ * Handles GET requests to stream issue exports in CSV or JSON format (#625).
+ * Enforces filter parity with the issues list page including `?project=all`,
+ * stage filters, search query parameters, and hidden resolved defaults.
+ *
+ * @param request - The incoming HTTP request.
+ * @returns The streaming response containing CSV or JSON data, or an error response.
+ */
 export async function GET(request: NextRequest) {
   const session = await auth();
   if (!session?.user) {
@@ -73,7 +89,7 @@ export async function GET(request: NextRequest) {
       : Promise.resolve([]),
   ]);
 
-  const { where: filters, sort, mine } = parseBugListFilters({
+  const { where: filters, sort, mine, isDeletedView } = parseBugListFilters({
     params,
     userId: user.id,
     // Deleted issues are admin-only on the list, and must stay admin-only
@@ -85,12 +101,25 @@ export async function GET(request: NextRequest) {
     milestones,
   });
 
-  // #425: only the viewer's tenant, exactly as on the list.
-  const where = {
+  // #425, #625: only the viewer's tenant, exactly as on the list.
+  // ?project=all widens to the entire workspace.
+  const allProjects = showsAllProjects(params[PROJECT_ALL_PARAM]);
+  const where: Prisma.BugWhereInput = {
     ...filters,
     ...bugInTenant(tenantId),
-    ...(projectId ? { projectId } : {}),
+    ...(projectId && !allProjects ? { projectId } : {}),
   };
+
+  const stageView = isDeletedView ? null : parseIssueStageView(toSingleQueryParam(params.stage));
+  if (stageView) {
+    try {
+      const stages = await openIssueStages(prisma, where);
+      const ids = [...stages.entries()].filter(([, stage]) => stage === stageView).map(([id]) => id);
+      where.id = { in: ids };
+    } catch (error) {
+      console.error("[export] issue stage lookup failed", error);
+    }
+  }
   const orderBy = getBugOrderBy(sort, { boostFirst: mine !== "watching" });
 
   const encoder = new TextEncoder();

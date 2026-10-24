@@ -16,9 +16,17 @@ const parse = (params: Record<string, string | string[] | undefined>, over = {})
   });
 
 describe("parseBugListFilters", () => {
-  it("shows live issues by default", () => {
-    expect(parse({}).where).toEqual({ isDeleted: false, duplicateOfId: null });
+  it("shows live issues by default and hides resolved issues (#625)", () => {
+    expect(parse({}).where).toEqual({
+      isDeleted: false,
+      duplicateOfId: null,
+      status: { in: ["open", "in_progress"] },
+    });
     expect(parse({}).isDeletedView).toBe(false);
+  });
+
+  it("shows resolved issues when requested via ?resolved=1 (#625)", () => {
+    expect(parse({ resolved: "1" }).where.status).toBeUndefined();
   });
 
   it("hides duplicates unless asked for, like the list (#285)", () => {
@@ -36,12 +44,19 @@ describe("parseBugListFilters", () => {
     const asAdmin = parse({ deleted: "true" }, { canSeeDeleted: true });
     expect(asAdmin.where.isDeleted).toBe(true);
     expect(asAdmin.isDeletedView).toBe(true);
+    // Deleted view does not hide resolved issues (#1058, #625)
+    expect(asAdmin.where.status).toBeUndefined();
   });
 
   it("applies status and severity only when they are real values", () => {
     expect(parse({ status: "open" }).where.status).toBe("open");
     expect(parse({ severity: "critical" }).where.severity).toBe("critical");
-    expect(parse({ status: "sideways" }).where.status).toBeUndefined();
+    // Without resolved=1, an unknown status falls back to hiding resolved work
+    expect(parse({ status: "sideways" }).where.status).toEqual({
+      in: ["open", "in_progress"],
+    });
+    // With resolved=1, an unknown status means no status filter at all
+    expect(parse({ status: "sideways", resolved: "1" }).where.status).toBeUndefined();
     expect(parse({ severity: "spicy" }).where.severity).toBeUndefined();
   });
 
@@ -51,8 +66,11 @@ describe("parseBugListFilters", () => {
     expect(parse({ status: "finished" }).where.status).toEqual({
       in: ["resolved", "closed"],
     });
-    // Same parsing as the list, so an unknown token still means no filter.
-    expect(parse({ status: "done" }).where.status).toBeUndefined();
+    // Same parsing as the list, so an unknown token still falls back to hiding resolved work unless resolved=1
+    expect(parse({ status: "done" }).where.status).toEqual({
+      in: ["open", "in_progress"],
+    });
+    expect(parse({ status: "done", resolved: "1" }).where.status).toBeUndefined();
   });
 
   it("scopes to the signed-in user for the mine filter", () => {
@@ -84,6 +102,22 @@ describe("parseBugListFilters", () => {
     expect(where.OR).toEqual([
       { title: { contains: "100\\% sure", mode: "insensitive" } },
       { description: { contains: "100\\% sure", mode: "insensitive" } },
+    ]);
+  });
+
+  it("includes number in search when query looks like an issue number (#625)", () => {
+    const numOnly = parse({ q: "42" }).where;
+    expect(numOnly.OR).toEqual([
+      { title: { contains: "42", mode: "insensitive" } },
+      { description: { contains: "42", mode: "insensitive" } },
+      { number: 42 },
+    ]);
+
+    const withHash = parse({ q: "#105" }).where;
+    expect(withHash.OR).toEqual([
+      { title: { contains: "#105", mode: "insensitive" } },
+      { description: { contains: "#105", mode: "insensitive" } },
+      { number: 105 },
     ]);
   });
 

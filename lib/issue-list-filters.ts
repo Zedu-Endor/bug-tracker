@@ -1,6 +1,12 @@
 import type { Prisma } from "@prisma/client";
 import { severities } from "@/lib/validations/issue";
-import { statusFilterWhere } from "@/lib/issue-state";
+import {
+  defaultStatusWhere,
+  parseShowResolved,
+  SHOW_RESOLVED_PARAM,
+  statusFilterWhere,
+} from "@/lib/issue-state";
+import { parseIssueNumberQuery } from "@/lib/issue-number";
 import { boundSearchTerm, escapeSearchQuery, toSingleQueryParam } from "@/lib/search";
 import { MILESTONE_PARAM, milestoneWhere, parseMilestoneFilter } from "@/lib/milestones";
 import {
@@ -32,6 +38,12 @@ export const PLATFORM_NONE = "none";
 export const PROJECT_ALL_PARAM = "project";
 export const PROJECT_ALL = "all";
 
+/**
+ * Determines whether the `?project=all` override is active, widening the view workspace-wide.
+ *
+ * @param raw - The raw query parameter value.
+ * @returns True if the value matches the workspace-wide project override.
+ */
 export function showsAllProjects(
   raw: string | string[] | undefined,
 ): boolean {
@@ -43,7 +55,7 @@ export function showsAllProjects(
  *
  * The CSV export has to return exactly what the list is showing, so both
  * read the query string through this rather than each assembling their own
- * conditions and drifting apart.
+ * conditions and drifting apart (#625).
  */
 export type ParsedBugFilters = {
   where: Prisma.BugWhereInput;
@@ -54,6 +66,12 @@ export type ParsedBugFilters = {
   isDeletedView: boolean;
 };
 
+/**
+ * Parses query parameters into Prisma where conditions and sort order for the issue list and CSV export.
+ *
+ * @param options - Options containing raw query parameters, permissions, and available taxonomies.
+ * @returns Parsed Prisma where conditions, sort option, mine filter, and deleted view indicator.
+ */
 export function parseBugListFilters({
   params,
   userId,
@@ -97,10 +115,15 @@ export function parseBugListFilters({
 
   // The same status parsing the list uses, so the export understands the
   // `finished` aggregate the stat grid links to (#685) and cannot drift from
-  // what is on screen.
+  // what is on screen. With no status filter, only live work shows unless
+  // resolved issues were asked for (#1058, #625).
   const statusWhere = statusFilterWhere(status);
+  const showResolved = parseShowResolved(params[SHOW_RESOLVED_PARAM]);
+  const hidesResolved = statusWhere === undefined && !isDeletedView && !showResolved;
   if (statusWhere !== undefined) {
     where.status = statusWhere;
+  } else if (hidesResolved) {
+    where.status = defaultStatusWhere(false);
   }
   if (severity && (severities as readonly string[]).includes(severity)) {
     where.severity = severity as Prisma.BugWhereInput["severity"];
@@ -126,6 +149,11 @@ export function parseBugListFilters({
       { title: { contains: escaped, mode: "insensitive" } },
       { description: { contains: escaped, mode: "insensitive" } },
     ];
+    // "42" or "#42" should also find issue #42, mirroring what the list does (#625).
+    const asNumber = parseIssueNumberQuery(q);
+    if (asNumber !== null) {
+      where.OR.push({ number: asNumber });
+    }
   }
 
   return { where, sort: parseBugSort(toSingleQueryParam(params.sort), defaultSortFor(mine)), mine, isDeletedView };

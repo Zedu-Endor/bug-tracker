@@ -52,6 +52,30 @@ describe("GET /api/v1/inbox", () => {
     expect(db.agentAuditEvent.create).toHaveBeenCalled();
   });
 
+  it("flags expired offers and excludes them when excludeExpired=1 (#580)", async () => {
+    const expiredItem = {
+      ...item,
+      id: "item-exp",
+      kind: "offer",
+      eventType: "claim.offered",
+      payload: { claimId: "c1", expiresAt: new Date(Date.now() - 10000).toISOString() },
+    };
+    db.agentInboxItem.findMany.mockResolvedValue([expiredItem]);
+
+    // Normal query returns it with expired: true
+    const res1 = await GET(request("/inbox"));
+    expect(res1.status).toBe(200);
+    const body1 = await res1.json();
+    expect(body1.items[0].expired).toBe(true);
+
+    // Query with excludeExpired=1 filters it out
+    db.agentInboxItem.findMany.mockResolvedValue([expiredItem]);
+    const res2 = await GET(request("/inbox?excludeExpired=1"));
+    expect(res2.status).toBe(200);
+    const body2 = await res2.json();
+    expect(body2.items).toHaveLength(0);
+  });
+
   it("validates input and reports an unavailable inbox", async () => {
     for (const query of ["wait=26", "wait=bad", "after=bad", "unread=yes"]) {
       expect((await GET(request(`/inbox?${query}`))).status).toBe(400);

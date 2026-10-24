@@ -23,7 +23,7 @@ const id = z.string().trim().min(1).max(191);
 export const offerSchema = z.object({ projectId: id.optional() }).strict();
 
 type Db = typeof prisma | Prisma.TransactionClient;
-export type OfferCandidate = { beneficiaryUserId: string; agentId: string; activeClaims: number; lastOfferedAt: Date | null; pendingOffer?: boolean; volunteered?: boolean; areaMatch?: boolean };
+export type OfferCandidate = { beneficiaryUserId: string; agentId: string; agentName?: string; activeClaims: number; lastOfferedAt: Date | null; pendingOffer?: boolean; volunteered?: boolean; areaMatch?: boolean };
 
 export function isOfferExpired(
   offeredAt: Date | null,
@@ -87,6 +87,7 @@ export async function offerNext(db: Db, caller: { agentId?: string; tenantId: st
       where: { tenantId: caller.tenantId, revokedAt: null, level: { in: ["contributor", "dispatcher", "merger"] } },
       orderBy: { createdAt: "asc" }, select: {
         id: true,
+        name: true,
         areaPreferences: { where: { projectAreaId: bug.areaId ?? "" }, select: { projectAreaId: true } },
       },
     } } } },
@@ -95,7 +96,7 @@ export async function offerNext(db: Db, caller: { agentId?: string; tenantId: st
     if (!m.user.agents.length || excludeUserIds.includes(m.userId) || (bug.assigneeId && bug.assigneeId !== m.userId)) return [];
     const preferred = bug.areaId ? m.user.agents.find((agent) => agent.areaPreferences.length > 0) : undefined;
     const selected = preferred ?? m.user.agents[0];
-    return [{ beneficiaryUserId: m.userId, agentId: selected.id, areaMatch: Boolean(preferred) }];
+    return [{ beneficiaryUserId: m.userId, agentId: selected.id, agentName: selected.name, areaMatch: Boolean(preferred) }];
   });
   if (!people.length) return null;
 
@@ -142,8 +143,8 @@ export async function offerNext(db: Db, caller: { agentId?: string; tenantId: st
       ...(caller.level && hasLevel(caller.level, "dispatcher") && caller.ownerId ? { dispatcherUserId: caller.ownerId } : {}),
     } });
     const event = await publish(db, { tenantId: caller.tenantId, type: "claim.offered", actorAgentId: caller.agentId, bugId: bug.id,
-      payload: { claimId: claim.id, issueId: bug.id, projectId: bug.projectId, beneficiaryUserId: next.beneficiaryUserId, expiresAt: new Date(claim.offeredAt!.getTime() + offerWindowMs).toISOString() } });
-    return { claim, beneficiaryUserId: next.beneficiaryUserId, bugTitle: bug.title, eventId: event.id };
+      payload: { claimId: claim.id, issueId: bug.id, projectId: bug.projectId, beneficiaryUserId: next.beneficiaryUserId, agentId: next.agentId, ...(next.agentName ? { agentName: next.agentName } : {}), expiresAt: new Date(claim.offeredAt!.getTime() + offerWindowMs).toISOString() } });
+    return { claim, beneficiaryUserId: next.beneficiaryUserId, agentId: next.agentId, bugTitle: bug.title, eventId: event.id } as { claim: typeof claim; beneficiaryUserId: string; agentId?: string; bugTitle: string; eventId: string };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return null;

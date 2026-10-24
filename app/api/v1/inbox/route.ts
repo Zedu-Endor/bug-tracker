@@ -42,7 +42,13 @@ export async function GET(request: NextRequest) {
     }
     const unread = unreadRaw === "1" || unreadRaw === "true";
 
-    const rows = await pollInbox(agent, cursorResult, waitSeconds, { unread }).catch(() => null);
+    const excludeExpiredRaw = params.get("excludeExpired");
+    if (excludeExpiredRaw !== null && !["0", "1", "true", "false"].includes(excludeExpiredRaw)) {
+      return NextResponse.json({ error: "excludeExpired must be 1 or 0." }, { status: 400 });
+    }
+    const excludeExpired = excludeExpiredRaw === "1" || excludeExpiredRaw === "true";
+
+    const rows = await pollInbox(agent, cursorResult, waitSeconds, { unread, excludeExpired }).catch(() => null);
     if (!rows) return NextResponse.json({ error: "Inbox unavailable." }, { status: 503 });
     const items = rows.slice(0, 100);
 

@@ -82,7 +82,7 @@ export async function inboxRecipients(db: Db, event: InboxEvent): Promise<InboxD
   const payload = event.payload as Record<string, unknown>;
   switch (event.type) {
     case "claim.offered": {
-      const agentId = await claimAgentId(db, payload.claimId);
+      const agentId = text(payload.agentId) ?? await claimAgentId(db, payload.claimId);
       return agentId ? [{ agentId, kind: "offer" }] : [];
     }
     case "review.requested": {
@@ -175,6 +175,7 @@ export async function writeInbox(db: Db, event: InboxEvent): Promise<number> {
 
 const itemSelect = {
   id: true,
+  agentId: true,
   kind: true,
   eventId: true,
   eventType: true,
@@ -191,9 +192,9 @@ export type InboxItemRow = Prisma.AgentInboxItemGetPayload<{ select: typeof item
 export async function listInbox(
   agent: Pick<AgentContext, "agentId">,
   cursor: EventCursor | null,
-  options: { unread?: boolean } = {},
+  options: { unread?: boolean; excludeExpired?: boolean } = {},
 ): Promise<InboxItemRow[]> {
-  return prisma.agentInboxItem.findMany({
+  const rows = await prisma.agentInboxItem.findMany({
     where: {
       agentId: agent.agentId,
       ...(options.unread ? { readAt: null } : {}),
@@ -205,6 +206,16 @@ export async function listInbox(
     take: 101,
     select: itemSelect,
   });
+  if (options.excludeExpired) {
+    const now = Date.now();
+    return rows.filter((row) => {
+      if (row.kind !== "offer") return true;
+      const p = (row.payload && typeof row.payload === "object" ? row.payload : {}) as Record<string, unknown>;
+      if (!p.expiresAt || typeof p.expiresAt !== "string") return true;
+      return new Date(p.expiresAt).getTime() > now;
+    });
+  }
+  return rows;
 }
 
 /** Long poll: returns as soon as an item exists, or empty at the deadline. Same backoff as `/events` (#545). */
@@ -212,7 +223,7 @@ export async function pollInbox(
   agent: Pick<AgentContext, "agentId">,
   cursor: EventCursor | null,
   waitSeconds: number,
-  options: { unread?: boolean } = {},
+  options: { unread?: boolean; excludeExpired?: boolean } = {},
 ): Promise<InboxItemRow[]> {
   const wait = Number.isFinite(waitSeconds) ? Math.max(0, Math.min(waitSeconds, EVENT_MAX_WAIT_SECONDS)) : 0;
   const deadline = Date.now() + wait * 1000;
@@ -229,15 +240,28 @@ export function serializeInboxItem(item: InboxItemRow) {
   const url = item.bugId
     ? absoluteUrl(item.commentId ? commentPermalinkPath(item.bugId, item.commentId) : `/issues/${item.bugId}`)
     : null;
+  const rawPayload = (item.payload && typeof item.payload === "object" ? item.payload : {}) as Record<string, unknown>;
+  const expiresAt = typeof rawPayload.expiresAt === "string" ? new Date(rawPayload.expiresAt).getTime() : null;
+  const expired = item.kind === "offer" && expiresAt !== null ? Date.now() > expiresAt : false;
+  const agentId = (item as { agentId?: string }).agentId || (typeof rawPayload.agentId === "string" ? rawPayload.agentId : undefined);
+
+  const payload: Record<string, unknown> = {
+    ...rawPayload,
+    ...(agentId ? { agentId } : {}),
+    ...(item.kind === "offer" ? { expired } : {}),
+  };
+
   return {
     id: item.id,
+    agentId,
     kind: item.kind,
     eventId: item.eventId,
     eventType: item.eventType,
     issueId: item.bugId,
     commentId: item.commentId,
     url,
-    payload: item.payload,
+    payload,
+    expired,
     read: item.readAt !== null,
     readAt: item.readAt?.toISOString() ?? null,
     createdAt: item.createdAt.toISOString(),

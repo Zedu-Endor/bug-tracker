@@ -30,13 +30,57 @@ const run = (t: Tx, event: Omit<InboxEvent, "id" | "tenantId"> & { tenantId?: st
   inboxRecipients(t as never, { id: "event-1", tenantId: "tenant-a", ...event });
 
 const mention = (userId: string) => `hi @[Owner](${userId})`;
-const item = { id: "item-1", kind: "offer", eventId: "event-1", eventType: "claim.offered", bugId: "bug-1", commentId: null,
+const item = { id: "item-1", agentId: "agent-bob", kind: "offer", eventId: "event-1", eventType: "claim.offered", bugId: "bug-1", commentId: null,
   payload: { claimId: "claim-1" }, readAt: null, createdAt: new Date("2026-10-20T10:00:00Z") };
 
 beforeEach(() => vi.resetAllMocks());
 afterEach(() => vi.useRealTimers());
 
 describe("inbox routing", () => {
+  it("covers an owner with two agents and routes an offer only to the targeted agent (#580)", async () => {
+    // Owner Bob has two agents: agent-bob-1 (contributor) and agent-bob-2 (merger)
+    const t = tx({
+      agent: {
+        findMany: vi.fn().mockImplementation(({ where }) => {
+          const ids = where.id?.in ?? [];
+          return ids.map((id: string) => ({ id }));
+        }),
+      },
+    });
+
+    // Offer made to agent-bob-1
+    await publish(t as never, {
+      tenantId: "tenant-a",
+      type: "claim.offered",
+      actorAgentId: "agent-alice",
+      bugId: "bug-1",
+      payload: {
+        claimId: "claim-1",
+        issueId: "bug-1",
+        beneficiaryUserId: "bob",
+        agentId: "agent-bob-1",
+        agentName: "Bob's Contributor",
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+      },
+    });
+
+    // Routed specifically to agent-bob-1, not agent-bob-2
+    expect(t.agentInboxItem.createMany).toHaveBeenCalledWith({
+      skipDuplicates: true,
+      data: [
+        expect.objectContaining({
+          agentId: "agent-bob-1",
+          kind: "offer",
+          eventType: "claim.offered",
+          payload: expect.objectContaining({
+            agentId: "agent-bob-1",
+            agentName: "Bob's Contributor",
+          }),
+        }),
+      ],
+    });
+  });
+
   it("gives an offer only to the agent it was made to", async () => {
     const t = tx();
     await publish(t as never, { tenantId: "tenant-a", type: "claim.offered", actorAgentId: "agent-alice", bugId: "bug-1",
@@ -182,6 +226,58 @@ describe("inbox reads", () => {
     await vi.advanceTimersByTimeAsync(500);
     expect(await pending).toEqual([item]);
     expect(db.agentInboxItem.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it("flags expired offers and excludes them when excludeExpired is set (#580)", async () => {
+    const past = new Date(Date.now() - 5000).toISOString();
+    const future = new Date(Date.now() + 60000).toISOString();
+
+    const expiredItem = {
+      id: "item-expired",
+      agentId: "agent-bob",
+      kind: "offer",
+      eventId: "e1",
+      eventType: "claim.offered",
+      bugId: "bug-1",
+      commentId: null,
+      payload: { claimId: "c1", agentId: "agent-bob", expiresAt: past },
+      readAt: null,
+      createdAt: new Date(),
+    };
+
+    const activeItem = {
+      id: "item-active",
+      agentId: "agent-bob",
+      kind: "offer",
+      eventId: "e2",
+      eventType: "claim.offered",
+      bugId: "bug-2",
+      commentId: null,
+      payload: { claimId: "c2", agentId: "agent-bob", expiresAt: future },
+      readAt: null,
+      createdAt: new Date(),
+    };
+
+    // Serialization flags expired status
+    const serializedExpired = serializeInboxItem(expiredItem as never);
+    expect(serializedExpired.expired).toBe(true);
+    expect((serializedExpired.payload as Record<string, unknown>).expired).toBe(true);
+    expect(serializedExpired.agentId).toBe("agent-bob");
+
+    const serializedActive = serializeInboxItem(activeItem as never);
+    expect(serializedActive.expired).toBe(false);
+    expect((serializedActive.payload as Record<string, unknown>).expired).toBe(false);
+
+    // listInbox without excludeExpired returns all items
+    db.agentInboxItem.findMany.mockResolvedValueOnce([expiredItem, activeItem]);
+    const all = await listInbox({ agentId: "agent-bob" }, null);
+    expect(all).toHaveLength(2);
+
+    // listInbox with excludeExpired filters out expired items
+    db.agentInboxItem.findMany.mockResolvedValueOnce([expiredItem, activeItem]);
+    const filtered = await listInbox({ agentId: "agent-bob" }, null, { excludeExpired: true });
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].id).toBe("item-active");
   });
 
   it("links an item to its comment or issue", () => {

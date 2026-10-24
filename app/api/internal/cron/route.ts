@@ -1,6 +1,8 @@
 import { timingSafeEqual, createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { runPlatformSweeps } from "@/lib/cron/runner";
+import { internalCronRunsPerMinute } from "@/lib/cron/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import { isAgentPlatformEnabled } from "@/lib/feature-flags";
 import { agentPlatformDisabledResponse } from "@/lib/agents/platform-gate";
 
@@ -24,6 +26,27 @@ async function handleCronRequest(request: NextRequest) {
 
   if (!bearerMatches(request.headers.get("authorization"), secret)) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401, headers });
+  }
+
+  // Counted after the secret check (mirror of the dispatch route, #679): a
+  // compromised or runaway scheduler cannot pin the sweep path. Legitimate
+  // callers get their own per-minute bucket — GET is Vercel Cron, POST an
+  // external scheduler — and a run already in progress skips itself in the
+  // runner, so this bounds abuse; it is not a correctness gate.
+  const caller = request.method === "GET" ? "cron" : "scheduler";
+  const limit = await consumeRateLimit(`internal-cron:${caller}`, {
+    max: internalCronRunsPerMinute(),
+    windowMs: 60_000,
+  });
+  if (!limit.allowed) {
+    const retryAfterSeconds = Math.max(1, Math.ceil(limit.retryAfterMs / 1000));
+    return NextResponse.json(
+      {
+        error: "Platform sweeps are running too often; pending work stays queued for the next sweep window.",
+        retryAfterSeconds,
+      },
+      { status: 429, headers: { ...headers, "Retry-After": String(retryAfterSeconds) } },
+    );
   }
 
   try {

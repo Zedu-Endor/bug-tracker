@@ -6,6 +6,10 @@ vi.mock("@/lib/cron/runner", () => ({
   runPlatformSweeps: mockRunPlatformSweeps,
 }));
 
+const rateLimit = vi.hoisted(() => ({ consumeRateLimit: vi.fn() }));
+vi.mock("@/lib/rate-limit", () => ({ consumeRateLimit: rateLimit.consumeRateLimit }));
+vi.mock("@/lib/cron/rate-limit", () => ({ internalCronRunsPerMinute: () => 6 }));
+
 import { GET, POST } from "./route";
 
 const makeRequest = (method: "GET" | "POST", secret?: string) =>
@@ -18,6 +22,7 @@ describe("app/api/internal/cron/route (#647)", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.unstubAllEnvs();
+    rateLimit.consumeRateLimit.mockResolvedValue({ allowed: true, retryAfterMs: 0 });
   });
 
   afterEach(() => {
@@ -31,6 +36,8 @@ describe("app/api/internal/cron/route (#647)", () => {
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ error: "Cron runner is not configured." });
     expect(mockRunPlatformSweeps).not.toHaveBeenCalled();
+    // Unauthorised noise consumes no rate-limit budget.
+    expect(rateLimit.consumeRateLimit).not.toHaveBeenCalled();
   });
 
   it("fails with 401 if authorization is missing or invalid", async () => {
@@ -45,6 +52,8 @@ describe("app/api/internal/cron/route (#647)", () => {
     expect(res2.status).toBe(401);
 
     expect(mockRunPlatformSweeps).not.toHaveBeenCalled();
+    // Pre-authorization, the caller consumes no rate-limit budget either.
+    expect(rateLimit.consumeRateLimit).not.toHaveBeenCalled();
   });
 
   it("executes sweeps on authorized GET (Vercel Cron)", async () => {
@@ -64,6 +73,10 @@ describe("app/api/internal/cron/route (#647)", () => {
     const res = await GET(makeRequest("GET", "super-cron-secret-123"));
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(rateLimit.consumeRateLimit).toHaveBeenCalledWith("internal-cron:cron", {
+      max: 6,
+      windowMs: 60_000,
+    });
 
     const json = await res.json();
     expect(json.sweeps.offers.expired).toBe(1);
@@ -87,11 +100,37 @@ describe("app/api/internal/cron/route (#647)", () => {
 
     const res = await POST(makeRequest("POST", "super-cron-secret-123"));
     expect(res.status).toBe(200);
+    expect(rateLimit.consumeRateLimit).toHaveBeenCalledWith("internal-cron:scheduler", {
+      max: 6,
+      windowMs: 60_000,
+    });
 
     const json = await res.json();
     expect(json.sweeps.claims.released).toBe(1);
     expect(json.sweeps.promotions.promoted).toBe(1);
     expect(mockRunPlatformSweeps).toHaveBeenCalledTimes(1);
+  });
+
+  it("rate-limits sweep runs after the secret check, one bucket per caller (#679 symmetry)", async () => {
+    vi.stubEnv("CRON_SECRET", "super-cron-secret-123");
+    rateLimit.consumeRateLimit.mockResolvedValueOnce({ allowed: false, retryAfterMs: 45_000 });
+    mockRunPlatformSweeps.mockResolvedValueOnce({ timestamp: "2026-10-20T19:00:00.000Z", sweeps: {} });
+
+    const blocked = await POST(makeRequest("POST", "super-cron-secret-123"));
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("retry-after")).toBe("45");
+    const body = await blocked.json();
+    expect(body.retryAfterSeconds).toBe(45);
+    expect(body.error).toContain("too often");
+    expect(mockRunPlatformSweeps).not.toHaveBeenCalled();
+
+    // Separate buckets: a bound scheduler bucket does not starve Vercel's GET.
+    const passes = await GET(makeRequest("GET", "super-cron-secret-123"));
+    expect(passes.status).toBe(200);
+    expect(rateLimit.consumeRateLimit.mock.calls.map((call) => call[0])).toEqual([
+      "internal-cron:scheduler",
+      "internal-cron:cron",
+    ]);
   });
 
   it("handles unexpected sweep failures with a 500 error", async () => {

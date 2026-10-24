@@ -231,11 +231,15 @@ const validationSelect = {
   createdAt: true,
 } satisfies Prisma.IssueValidationSelect;
 
+/** #457: a route's `{id}` may be the readable number (`123`, `ZE-123`) or the id. */
+function issueRefWhere(raw: string): Prisma.BugWhereInput {
+  const ref = parseIssueRef(raw);
+  return ref.kind === "number" ? { number: ref.number } : { id: ref.id };
+}
+
 export async function readAgentIssue(scope: Scope, id: string) {
-  // #457: the path may be the readable number (`123`, `ZE-123`) or the id.
-  const ref = parseIssueRef(id);
   const issue = await prisma.bug.findFirst({
-    where: { ...scope, ...(ref.kind === "number" ? { number: ref.number } : { id: ref.id }), isDeleted: false },
+    where: { ...scope, ...issueRefWhere(id), isDeleted: false },
     select: { ...issueSelect, voteCount: true, comments: {
       where: { deletedAt: null }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 100,
       select: { id: true, body: true, authorId: true, agentId: true, parentId: true, type: true, metadata: true, createdAt: true, editedAt: true },
@@ -281,7 +285,7 @@ function commentsAfter(cursor: IssueCursor): Prisma.CommentWhereInput {
  * The cursor is the same shared (createdAt, id) one; `after` returns only newer
  * comments. The result follows the shared list shape: `{ items, nextCursor }`.
  */
-export async function listAgentIssueComments(scope: Scope, id: string, params: URLSearchParams) {
+export async function listAgentIssueComments(scope: Scope, issueRef: string, params: URLSearchParams) {
   const cursorRaw = params.get("after");
   const cursor = decodeCursor(cursorRaw);
   if (cursorRaw !== null && !cursor) throw new IssueApiError(400, "Invalid cursor.");
@@ -293,11 +297,12 @@ export async function listAgentIssueComments(scope: Scope, id: string, params: U
   }
   const filterType = typeParam ? (typeParam as Prisma.EnumCommentTypeFilter["equals"]) : undefined;
 
-  const issue = await prisma.bug.findFirst({ where: { ...scope, id, isDeleted: false }, select: { id: true } });
+  // #629: the path may be the readable number (`123`, `ZE-123`) or the id, as on reads.
+  const issue = await prisma.bug.findFirst({ where: { ...scope, ...issueRefWhere(issueRef), isDeleted: false }, select: { id: true } });
   if (!issue) throw new IssueApiError(404, "Issue not found.");
   const rows = await prisma.comment.findMany({
     where: {
-      bugId: id,
+      bugId: issue.id,
       deletedAt: null,
       ...(filterType ? { type: filterType } : {}),
       ...(cursor ? commentsAfter(cursor) : {}),
@@ -408,7 +413,7 @@ export async function createAgentIssue(agent: AgentContext, request: NextRequest
   return NextResponse.json({ issue, replayed: result.replayed }, { status: result.status });
 }
 
-export async function commentOnAgentIssue(agent: AgentContext, request: NextRequest, bugId: string) {
+export async function commentOnAgentIssue(agent: AgentContext, request: NextRequest, issueRef: string) {
   const input = agentCommentSchema.parse(await issueJson(request));
   const scope = await issueProject(agent, request.nextUrl.searchParams, input.projectId);
   let bug: ({
@@ -422,7 +427,8 @@ export async function commentOnAgentIssue(agent: AgentContext, request: NextRequ
   let parentAuthorId: string | null = null;
   const comment = await prisma.$transaction(async (tx) => {
     bug = await tx.bug.findFirst({
-      where: { ...scope, id: bugId, isDeleted: false },
+      // #629: a readable number or prefixed form works here too, as on reads.
+      where: { ...scope, ...issueRefWhere(issueRef), isDeleted: false },
       select: {
         id: true, title: true, reporterId: true, assigneeId: true, beneficiaryUserId: true,
         pullRequestUrl: true, proofLinks: true,
@@ -431,6 +437,7 @@ export async function commentOnAgentIssue(agent: AgentContext, request: NextRequ
       },
     });
     if (!bug) throw new IssueApiError(404, "Issue not found.");
+    const bugId = bug.id;
     if (input.type === "review") {
       const conflict = reviewerConflict({ id: agent.agentId, ownerUserId: agent.ownerId }, bug);
       if (conflict) throw new IssueApiError(403, "not_independent", { message: new ReviewerNotIndependentError(conflict).message });

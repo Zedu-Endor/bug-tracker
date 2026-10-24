@@ -500,6 +500,41 @@ describe("agent issue creation via the real shared create policy", () => {
   });
 });
 
+describe("comment routes accept the readable issue number (#629)", () => {
+  const byNumber = (ref: string) => ({ params: Promise.resolve({ id: ref }) });
+
+  it.each(["42", "ZE-42"])("lists comments for %s, looked up by number in the project", async (ref) => {
+    db.comment.findMany.mockResolvedValue([]);
+    const response = await comments(request("GET"), byNumber(ref));
+    expect(response.status).toBe(200);
+    expect(db.bug.findFirst.mock.calls[0][0].where).toMatchObject({ number: 42, tenantId: "tenant-a", projectId: "project-a", isDeleted: false });
+    expect(db.bug.findFirst.mock.calls[0][0].where).not.toHaveProperty("id");
+    expect(db.comment.findMany.mock.calls[0][0].where).toMatchObject({ bugId: issue.id });
+  });
+
+  it.each(["42", "ZE-42"])("posts a comment to %s on the resolved issue", async (ref) => {
+    const response = await comment(request("POST", { body: "A helpful comment" }), byNumber(ref));
+    expect(response.status).toBe(201);
+    expect(db.bug.findFirst.mock.calls[0][0].where).toMatchObject({ number: 42, tenantId: "tenant-a", projectId: "project-a" });
+    expect(db.bug.findFirst.mock.calls[0][0].where).not.toHaveProperty("id");
+    expect(db.comment.create.mock.calls[0][0].data).toMatchObject({ bugId: issue.id });
+    expect(db.bug.update.mock.calls[0][0].where).toEqual({ id: issue.id });
+  });
+
+  it("is 404 for a number with no issue in the project, on both routes", async () => {
+    db.bug.findFirst.mockResolvedValue(null);
+    expect((await comments(request("GET"), byNumber("999"))).status).toBe(404);
+    expect((await comment(request("POST", { body: "A helpful comment" }), byNumber("999"))).status).toBe(404);
+    expect(db.comment.create).not.toHaveBeenCalled();
+  });
+
+  it("keeps the id lookup for an internal id", async () => {
+    db.comment.findMany.mockResolvedValue([]);
+    await comments(request("GET"), context);
+    expect(db.bug.findFirst.mock.calls[0][0].where).toMatchObject({ id: issue.id });
+  });
+});
+
 describe("agent comments", () => {
   it.each([
     { reporterId: "owner-a" },

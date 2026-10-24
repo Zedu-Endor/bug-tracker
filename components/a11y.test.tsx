@@ -4,17 +4,25 @@
 import axe from "axe-core";
 import { cleanup, render } from "@testing-library/react";
 import { labelInNameMismatches } from "@/lib/a11y/label-in-name";
+import { contrastMismatches } from "@/lib/a11y/contrast";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { CommentForm } from "./comment-form";
 import { CreateBugForm } from "./create-issue-form";
 import { UserSearch } from "./user-search";
 import { VoteButton } from "./vote-button";
 import { AnswerForm } from "@/app/(app)/questions/answer-form";
+import { ThemeSettings } from "./theme-settings";
+import { PlatformTabs } from "./platform-tabs";
+import { KeyboardShortcuts } from "./keyboard-shortcuts";
 
 vi.mock("@/app/actions/issues", () => ({
   addCommentAction: vi.fn(),
   createBugAction: vi.fn(),
   toggleVoteAction: vi.fn(),
+}));
+
+vi.mock("@/app/actions/settings", () => ({
+  setThemeAction: vi.fn(),
 }));
 
 vi.mock("@/app/(app)/questions/actions", () => ({
@@ -23,6 +31,7 @@ vi.mock("@/app/(app)/questions/actions", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
+  usePathname: () => "/issues",
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -43,9 +52,13 @@ afterEach(() => cleanup());
  * axe-core needs a layout engine for two checks, and jsdom has none:
  * - `color-contrast` needs real computed colours and canvas.
  * - `region` assumes a full page with landmarks; these are isolated widgets.
- * - `label-content-name-mismatch` needs layout to decide which text is visible,
- *   so expectNoA11yViolations checks that from the text instead.
- * Everything else runs normally.
+ * - `label-content-name-mismatch` needs layout to decide which text is visible.
+ *
+ * In this jsdom component suite (#638):
+ * - `labelInNameMismatches()` checks accessible name content from the text.
+ * - `contrastMismatches()` validates color contrast ratios on class/token pairs.
+ * - Real layout-rendered composited contrast across whole screens is verified in
+ *   the live-browser Playwright suite (`e2e/a11y.spec.ts`).
  */
 const AXE_OPTIONS: axe.RunOptions = {
   rules: {
@@ -65,6 +78,10 @@ async function expectNoA11yViolations(node: HTMLElement) {
     violations.push(
       `label-content-name-mismatch (serious): visible text "${mismatch.visible}" is not in the accessible name "${mismatch.name}"`,
     );
+  }
+  // axe skips color-contrast here: jsdom has no canvas compositing. Check it from tokens/classes.
+  for (const mismatch of contrastMismatches(node)) {
+    violations.push(`color-contrast (serious): ${mismatch.message}`);
   }
   expect(violations).toEqual([]);
 }
@@ -124,5 +141,41 @@ describe("component accessibility (axe)", () => {
     expect(container.querySelectorAll("label")).toHaveLength(0);
     const textarea = container.querySelector("textarea")!;
     expect(textarea.getAttribute("aria-labelledby")).toBe("your-answer-heading");
+  });
+
+  it("ThemeSettings has no violations (#638 coverage)", async () => {
+    const { container } = render(<ThemeSettings initialTheme="system" />);
+    await expectNoA11yViolations(container);
+  });
+
+  it("PlatformTabs has no violations (#638 coverage)", async () => {
+    const { container } = render(
+      <PlatformTabs
+        tabs={[
+          { id: "all", name: "All", count: 12, active: true },
+          { id: "c1", name: "macOS", count: 4 },
+        ]}
+      />,
+    );
+    await expectNoA11yViolations(container);
+  });
+
+  it("KeyboardShortcuts has no violations (#638 coverage)", async () => {
+    const { container } = render(<KeyboardShortcuts enabled={true} />);
+    await expectNoA11yViolations(container);
+  });
+
+  it("catches deliberately low-contrast pair fixture (text-slate-300 on white) (#638 criterion 4)", async () => {
+    const { container } = render(
+      <div className="bg-white">
+        <p className="text-slate-300">Failing low-contrast label</p>
+      </div>,
+    );
+    const mismatches = contrastMismatches(container);
+    expect(mismatches.length).toBeGreaterThan(0);
+    expect(mismatches[0].textColor).toBe("#cbd5e1");
+    expect(mismatches[0].backgroundColor).toBe("#ffffff");
+    expect(mismatches[0].ratio).toBeLessThan(4.5);
+    expect(mismatches[0].message).toContain("below WCAG AA required 4.5:1");
   });
 });

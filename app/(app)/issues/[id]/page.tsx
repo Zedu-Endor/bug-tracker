@@ -51,7 +51,6 @@ import { ChooseRedesignButton } from "@/components/choose-redesign-button";
 import { IssueApprovalBanner } from "@/components/issue-approval-banner";
 import { isTenantAdminRole } from "@/lib/agents/membership";
 import type { OrganizationRole } from "@/lib/organization-role";
-import { UserNameWithBadges } from "@/components/user-name-with-badges";
 import { getActiveIssueTypesCached, getActivePlatforms } from "@/lib/lookups";
 import { fetchVoterSummary } from "@/lib/voter-summaries";
 import { createEmptyVoterSummary } from "@/lib/voters";
@@ -62,16 +61,16 @@ import {
   deleteSummary,
 } from "@/lib/ticket-deletion";
 import { currentTenantAccess } from "@/lib/tenant-access";
-import { MilestoneDue } from "@/components/milestone-due";
 import { LoadError } from "@/components/load-error";
 import { logLoadFailure } from "@/lib/load-error";
-import { dueDateValue, milestoneIssuesHref } from "@/lib/milestones";
 import { canEditTicket } from "@/lib/ticket-editing";
 import { DeleteIssueButton } from "@/components/delete-issue-button";
 import { RestoreIssueButton } from "@/components/restore-issue-button";
 import { canAssignTicket } from "@/lib/ticket-assignment";
 import { SelfAssignButton } from "@/components/self-assign-button";
+import { UserNameWithBadges } from "@/components/user-name-with-badges";
 import { EditableIssueDescription } from "@/components/editable-issue-description";
+import { IssueMetadataCard } from "@/components/issue-metadata-card";
 import { EditableProofLinks } from "@/components/editable-proof-links";
 import { IssuePullRequest } from "@/components/issue-pull-request";
 import { withCurrentOption } from "@/lib/triage-options";
@@ -958,27 +957,20 @@ export default async function BugDetailPage({ params, searchParams }: BugPagePro
             lastEditedAt={lastRevision?.editedAt ?? null}
             historyHref={issuePath(bug.number, "/history")}
           >
-            {(bug.area || bug.milestone) ? (
-              <dl className="mt-4 grid grid-cols-1 gap-3 text-sm text-zk-text2 sm:grid-cols-2">
-                {bug.area ? (
-                  <div>
-                    <dt className="font-medium text-zk-muted">Area</dt>
-                    <dd>{bug.area.name}</dd>
-                  </div>
-                ) : null}
-                {bug.milestone ? (
-                  <div>
-                    <dt className="font-medium text-zk-muted">Milestone</dt>
-                    <dd className="flex flex-wrap items-center gap-2">
-                      <Link href={milestoneIssuesHref(bug.milestone.id)} className="font-bold text-zk-accent hover:underline">
-                        {bug.milestone.title}
-                      </Link>
-                      <MilestoneDue due={dueDateValue(bug.milestone.dueDate) || null} isClosed={bug.milestone.isClosed} />
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-            ) : null}
+            {/* Scoped organization roles passed to metadata card (#489):
+                organizationRole={organizationRoles[bug.reporterId]}
+                organizationRole={bug.assigneeId ? organizationRoles[bug.assigneeId] : null} */}
+            <IssueMetadataCard
+              bug={bug}
+              lastActivityAt={
+                latestStatusChange?.createdAt && latestStatusChange.createdAt > bug.updatedAt
+                  ? latestStatusChange.createdAt
+                  : bug.updatedAt
+              }
+              organizationRoles={organizationRoles}
+              canSelfAssign={canSelfAssign}
+              isAssignee={isAssignee}
+            />
           </EditableIssueDescription>
 
           {issueAttachments.length > 0 ? (

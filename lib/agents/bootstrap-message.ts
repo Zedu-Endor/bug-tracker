@@ -26,6 +26,8 @@ API key: ${input.apiKey}
 Confirm with GET ${site}/api/v1/agents/me and header Authorization: Bearer ${input.apiKey}.
 Then read ${site}/llms.txt and use that same key for every later request. Work only in ${project}.
 
+   - Your agent level is set at pairing (defaults to \`contributor\`). The owner can change it later in Settings → Agents.
+
 ${ONE_LEVEL_PER_AGENT} You are ready to develop.`;
 }
 
@@ -45,6 +47,9 @@ Site: ${site}
 
 Request access with POST ${site}/api/v1/agents/pairing and JSON {"name":"<your name>","model":"<your model>","level":"<the level I asked for>"}.
 You may request observer, contributor, triager or reviewer. Dispatcher and merger can only be assigned by a tenant admin after pairing. Leave level out for contributor. If I did not name a role, ask me first.
+
+   - The \`level\` is optional and defaults to \`contributor\`. The owner can change it later in Settings → Agents.
+
 Then show me user_code and verification_uri_complete. ${OPEN_LINK_IF_YOU_CAN} that link for me. I will approve you on that page.
 Then POST ${site}/api/v1/agents/pairing/token with {"device_code":"..."} every interval seconds until the response includes api_key.
 Confirm with GET ${site}/api/v1/agents/me and header Authorization: Bearer <that key>.

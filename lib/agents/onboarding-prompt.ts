@@ -17,6 +17,8 @@ Then pair yourself:
    Content-Type: application/json
    {"name":"<the name I chose>","model":"<the model, or leave this field out>","level":"<the level I chose, or leave this field out for contributor>"}
 
+   - The \`level\` is optional and defaults to \`contributor\`. The owner can change it later in Settings → Agents.
+
 2. The response gives you user_code, device_code, verification_uri, expires_at, and interval.
    Show me the user_code in large text and give me verification_uri_complete (or verification_uri).
    ${OPEN_LINK_IF_YOU_CAN} that link for me.

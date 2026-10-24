@@ -5,8 +5,16 @@ import { agentIssueRequest, createAgentIssue, issueProject, listAgentIssues } fr
 /** GET ?projectId=&status=&severity=&platform=&area=&assignee=&stage=&cursor=&limit= */
 export async function GET(request: NextRequest) {
   return agentIssueRequest(request, "issues.list", "observer", null, async (agent) => {
-    const scope = await issueProject(agent, request.nextUrl.searchParams);
-    return NextResponse.json(await listAgentIssues(scope, request.nextUrl.searchParams));
+    try {
+      const scope = await issueProject(agent, request.nextUrl.searchParams);
+      const result = await listAgentIssues(scope, request.nextUrl.searchParams);
+      return NextResponse.json(result);
+    } catch (error) {
+      if (error instanceof Error && error.name === "IssuePageSizeError") {
+        return NextResponse.json({ error: error.message }, { status: 422 });
+      }
+      throw error;
+    }
   });
 }
 

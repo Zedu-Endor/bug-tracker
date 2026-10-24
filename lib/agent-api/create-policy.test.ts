@@ -259,7 +259,7 @@ describe("list cursor (#441)", () => {
 
   it("clamps the page size", () => {
     expect(pageSize(undefined)).toBe(25);
-    expect(pageSize("0")).toBe(25);
+    expect(pageSize("0")).toBe(1);
     expect(pageSize("10")).toBe(10);
     expect(pageSize("5000")).toBe(100);
   });

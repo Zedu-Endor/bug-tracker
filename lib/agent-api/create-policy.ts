@@ -322,11 +322,25 @@ export function cursorOrderBy(direction: CursorDirection = "desc"): Prisma.BugOr
   return [{ createdAt: direction }, { id: direction }];
 }
 
-/** A `?limit=` value, clamped to 1–MAX_PAGE_SIZE. */
+/** A `?limit=` value. (#454) */
+export class IssuePageSizeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IssuePageSizeError";
+  }
+}
+
+/** A `?limit=` value, clamped to 1–MAX_PAGE_SIZE or rejected if invalid. */
 export function pageSize(raw: string | null | undefined): number {
-  const n = Number.parseInt(raw ?? "", 10);
-  if (!Number.isFinite(n) || n < 1) return DEFAULT_PAGE_SIZE;
-  return Math.min(n, MAX_PAGE_SIZE);
+  if (raw === null || raw === undefined || raw === "") return DEFAULT_PAGE_SIZE;
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    throw new IssuePageSizeError(
+      `limit must be a whole number between 1 and ${MAX_PAGE_SIZE}; the default is ${DEFAULT_PAGE_SIZE}.`,
+    );
+  }
+  const n = Number(trimmed);
+  return Math.min(Math.max(n, 1), MAX_PAGE_SIZE);
 }
 
 /**

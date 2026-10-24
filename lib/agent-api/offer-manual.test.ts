@@ -92,4 +92,37 @@ describe("manual issue offers (#590)", () => {
     expect(error?.message).toBe("waiting_for_human");
     expect(error?.body).toEqual({ approvalId: "appr-wait" });
   });
+
+  it("commits the new approval request before refusing the offer (#508)", async () => {
+    const createApproval = vi.fn(async () => ({ id: "appr-new", status: "pending" }));
+    Object.assign(db as Record<string, unknown>, {
+      approvalRule: { findMany: vi.fn(async () => [{ id: "rule-1", stage: "before_offer", issueTypeId: null, severity: null, fileGlob: null }]) },
+      issueApproval: { findFirst: vi.fn(async () => null), create: createApproval },
+      membership: { findMany: vi.fn(async () => []) },
+      agentEvent: { create: vi.fn(async () => ({ id: "event-1" })) },
+      webhookSubscription: { findMany: vi.fn(async () => []) },
+    });
+    // Model Prisma: a callback that throws rolls back; one that returns commits.
+    const outcomes: string[] = [];
+    db.$transaction.mockImplementation(async (run: (tx: unknown) => unknown) => {
+      try {
+        const value = await run(db);
+        outcomes.push("committed");
+        return value;
+      } catch (error) {
+        outcomes.push("rolled back");
+        throw error;
+      }
+    });
+
+    await expect(offerIssue(agent, "project-1", "bug-1")).rejects.toMatchObject({
+      status: 409,
+      message: "waiting_for_human",
+      body: { approvalId: "appr-new" },
+    });
+    expect(createApproval).toHaveBeenCalledTimes(1);
+    expect(outcomes).toEqual(["committed"]);
+    expect(db.issueClaim.create).not.toHaveBeenCalled();
+    expect(notifyClaimOffered).not.toHaveBeenCalled();
+  });
 });

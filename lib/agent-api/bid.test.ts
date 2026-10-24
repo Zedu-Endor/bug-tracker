@@ -16,12 +16,16 @@ const db = vi.hoisted(() => {
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 vi.mock("@/lib/agent-api/validation", () => ({ isConfirmed: vi.fn(async () => true) }));
 vi.mock("@/lib/redesigns", () => ({ assertRedesignOpen: vi.fn(async () => undefined) }));
+vi.mock("@/lib/approvals", () => ({ assertApprovalOpen: vi.fn(async () => undefined) }));
 vi.mock("@/lib/agent-api/events", () => ({ publish: vi.fn(async () => ({ id: "evt" })) }));
 vi.mock("@/lib/watch", () => ({ ensureWatching: vi.fn(async () => undefined) }));
 vi.mock("@/lib/agents/membership", () => ({ isTenantAdmin: vi.fn(async () => false) }));
 
 import { isConfirmed } from "@/lib/agent-api/validation";
 import { publish } from "@/lib/agent-api/events";
+import { assertRedesignOpen } from "@/lib/redesigns";
+import { assertApprovalOpen } from "@/lib/approvals";
+import { IssueApiError } from "@/lib/agent-api/issues";
 import { awardBid, listBids, placeBid, withdrawBid } from "./bid";
 import { resetWorkflowCache } from "@/lib/workflow";
 
@@ -199,6 +203,62 @@ describe("awardBid", () => {
       message: expect.stringContaining("still an idea"),
     });
     expect(db.issueClaim.create).not.toHaveBeenCalled();
+  });
+
+  it("does not award while a redesign is waiting for a person (#508)", async () => {
+    db.issueBid.findUnique.mockResolvedValue(stored);
+    vi.mocked(assertRedesignOpen).mockRejectedValueOnce(new IssueApiError(409, "This redesign is waiting for a person."));
+    await expect(awardBid({ id: "reporter" }, "bid1")).rejects.toMatchObject({ status: 409 });
+    expect(assertRedesignOpen).toHaveBeenCalledWith("issue1", db);
+    expect(db.issueClaim.create).not.toHaveBeenCalled();
+    expect(db.bug.update).not.toHaveBeenCalled();
+  });
+
+  it("does not award while a before_offer human approval is pending (#508)", async () => {
+    db.issueBid.findUnique.mockResolvedValue(stored);
+    vi.mocked(assertApprovalOpen).mockRejectedValueOnce(new IssueApiError(409, "waiting_for_human", { approvalId: "ap1" }));
+    await expect(awardBid({ id: "reporter" }, "bid1")).rejects.toMatchObject({ status: 409 });
+    expect(assertApprovalOpen).toHaveBeenCalledWith("issue1", "before_offer", { db, tenantId: "tenant" });
+    expect(db.issueClaim.create).not.toHaveBeenCalled();
+  });
+
+  it("commits a newly requested approval before refusing the award (#508)", async () => {
+    db.issueBid.findUnique.mockResolvedValue(stored);
+    // Model Prisma: a callback that throws rolls back; one that returns commits.
+    const outcomes: string[] = [];
+    db.$transaction.mockImplementation(async (fn: (tx: typeof db) => unknown) => {
+      try {
+        const value = await fn(db);
+        outcomes.push("committed");
+        return value;
+      } catch (error) {
+        outcomes.push("rolled back");
+        throw error;
+      }
+    });
+    vi.mocked(assertApprovalOpen).mockRejectedValueOnce(new IssueApiError(409, "waiting_for_human", { approvalId: "ap1" }));
+    await expect(awardBid({ id: "reporter" }, "bid1")).rejects.toMatchObject({ status: 409, message: "waiting_for_human" });
+    expect(outcomes).toEqual(["committed"]);
+    expect(db.issueClaim.create).not.toHaveBeenCalled();
+    expect(db.bug.update).not.toHaveBeenCalled();
+  });
+
+  it("still rolls back when a gate fails for another reason (#508)", async () => {
+    db.issueBid.findUnique.mockResolvedValue(stored);
+    const outcomes: string[] = [];
+    db.$transaction.mockImplementation(async (fn: (tx: typeof db) => unknown) => {
+      try {
+        const value = await fn(db);
+        outcomes.push("committed");
+        return value;
+      } catch (error) {
+        outcomes.push("rolled back");
+        throw error;
+      }
+    });
+    vi.mocked(assertApprovalOpen).mockRejectedValueOnce(new Error("database down"));
+    await expect(awardBid({ id: "reporter" }, "bid1")).rejects.toThrow("database down");
+    expect(outcomes).toEqual(["rolled back"]);
   });
 
   it("refuses someone who did not report the issue and is not an admin", async () => {

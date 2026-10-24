@@ -58,11 +58,36 @@ export function scheduleOfferExpiry(claimId?: string): void {
   // Expiry is handled by sweepExpiredOffers on the scheduled runner.
 }
 
+/**
+ * #508: whether an issue may be handed out right now. The same two gates
+ * POST /offer enforces: no redesign waiting for a person, and no pending
+ * `before_offer` human approval. Every offer path goes through `offerNext`,
+ * so checking here keeps dispatcher offers, sweep re-offers and release
+ * re-offers from skipping them. A closed gate is not an error for those
+ * background paths: they simply make no offer.
+ */
+export async function offerGatesOpen(db: Db, bugId: string, tenantId: string): Promise<boolean> {
+  try {
+    // Partial test databases may lack the redesign table, as assertApprovalOpen
+    // already allows for the approval tables.
+    if (typeof (db as { redesignProposal?: unknown }).redesignProposal !== "undefined") {
+      await assertRedesignOpen(bugId, db);
+    }
+    await assertApprovalOpen(bugId, "before_offer", { db, tenantId });
+    return true;
+  } catch (error) {
+    if (error instanceof IssueApiError && error.status === 409) return false;
+    throw error;
+  }
+}
+
 /** Picks by active workload, then by who has waited longest since their last offer.
  * Exported for the stale-claim sweep (#524), which re-offers a reopened issue with no agent caller. */
 export async function offerNext(db: Db, caller: { agentId?: string; tenantId: string; ownerId?: string; level?: AgentContext["level"] }, bug: { id: string; projectId: string; title: string; assigneeId?: string | null; areaId?: string | null }, excludeUserIds: string[] = []) {
   // Lock the Bug row first to serialize offer creation on this issue across concurrent calls (#680).
   await db.$queryRaw`SELECT "id" FROM "Bug" WHERE "id" = ${bug.id} FOR NO KEY UPDATE`;
+  // #508: checked after the lock, at the point the offer is created.
+  if (!(await offerGatesOpen(db, bug.id, caller.tenantId))) return null;
   const workflow = await workflowFor(bug.projectId, db);
   const offerWindowMs = workflow.offerWindowSeconds * 1000;
 
@@ -162,8 +187,15 @@ export async function offerIssue(agent: AgentContext, projectId: string, bugId: 
       if (bug.status !== "open") throw new IssueApiError(409, "Only open issues can be offered.");
       if (bug.voteCount < WORK_READINESS_VOTE_THRESHOLD) throw new IssueApiError(409, `The issue must reach at least ${WORK_READINESS_VOTE_THRESHOLD} upvotes before it can be offered.`);
       if (!await isConfirmed(bugId, tx)) throw new IssueApiError(409, "The issue must be confirmed before it can be offered.");
-      await assertRedesignOpen(bugId, tx);
-      await assertApprovalOpen(bugId, "before_offer", { db: tx, tenantId: agent.tenantId, agent });
+      // #508: a closed gate is returned rather than thrown, so the approval
+      // request assertApprovalOpen may have just created still commits.
+      try {
+        await assertRedesignOpen(bugId, tx);
+        await assertApprovalOpen(bugId, "before_offer", { db: tx, tenantId: agent.tenantId, agent });
+      } catch (error) {
+        if (error instanceof IssueApiError && error.status === 409) return { refusal: error };
+        throw error;
+      }
       const current = await tx.issueClaim.findFirst({ where: { bugId, releasedAt: null } });
       if (current) {
         if (current.status === "offered" && !isOfferExpired(current.offeredAt)) {
@@ -178,6 +210,7 @@ export async function offerIssue(agent: AgentContext, projectId: string, bugId: 
       if (!next) throw new IssueApiError(409, "No eligible person is available for this offer.");
       return { ...next, created: true };
     });
+    if ("refusal" in result) throw result.refusal;
     if (result.created) {
       notifyClaimOffered({ id: result.claim.id, bugId, bugTitle: result.bugTitle, beneficiaryUserId: result.beneficiaryUserId });
       scheduleOfferExpiry(result.claim.id);

@@ -14,6 +14,7 @@ import { deliveryDeadline, deliveryWindowMinutes } from "@/lib/claim-deadline";
 import { assigneeChangedSummary, statusChangedSummary } from "@/lib/activity-log";
 import { WORK_READINESS_VOTE_THRESHOLD } from "@/lib/ticket-assignment";
 import { ensureWatching } from "@/lib/watch";
+import { assertApprovalOpen } from "@/lib/approvals";
 import type { AppRole } from "@/lib/roles";
 import { parseIssueRef } from "@/lib/issue-ref";
 
@@ -204,6 +205,18 @@ export async function awardBid(actor: Actor, bidId: string, dispatcher?: AgentCo
       if (fresh.bug.assigneeId && fresh.bug.assigneeId !== fresh.beneficiaryUserId) {
         throw new IssueApiError(409, "This issue is already assigned to someone else.");
       }
+      // #508: an award creates the active claim directly, so it runs the same
+      // gates as POST /offer: no waiting redesign, no pending human approval.
+      // A closed gate is returned rather than thrown, so the transaction still
+      // commits the approval request assertApprovalOpen may have just created;
+      // the 409 is raised once it has committed.
+      try {
+        await assertRedesignOpen(fresh.bugId, tx);
+        await assertApprovalOpen(fresh.bugId, "before_offer", { db: tx, tenantId: fresh.bug.tenantId });
+      } catch (error) {
+        if (error instanceof IssueApiError && error.status === 409) return { refusal: error };
+        throw error;
+      }
       const existingActive = await tx.issueClaim.findFirst({
         where: { bugId: fresh.bugId, status: "active", releasedAt: null },
       });
@@ -286,6 +299,7 @@ export async function awardBid(actor: Actor, bidId: string, dispatcher?: AgentCo
       });
       return { bidId: fresh.id, claimId: claim.id, bugId: fresh.bugId };
     });
+    if ("refusal" in result) throw result.refusal;
     return result;
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
